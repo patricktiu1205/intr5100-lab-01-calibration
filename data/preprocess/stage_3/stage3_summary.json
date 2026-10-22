@@ -1,0 +1,2081 @@
+{
+  "script": "src/preprocess_stage3.py",
+  "config": {
+    "grid_dt_s": 0.1,
+    "min_overlap_s": 1.0,
+    "max_interpolation_span_s": 0.3,
+    "sample_match_tolerance_s": 1e-09,
+    "output_decimals": 6
+  },
+  "inputs": {
+    "data/preprocess/stage_2/run_1_event_1.csv": {
+      "sha256": "be9e7919bd5c6fe8fb98530701330361dd4500b67c3a7dfebc8c0360e8faa630"
+    },
+    "data/preprocess/stage_2/run_1_event_2.csv": {
+      "sha256": "9d55dc95ad06a4570802e715ed2e16abb3852e8b61fe37ffb08999e41f6265bc"
+    },
+    "data/preprocess/stage_2/run_1_event_3.csv": {
+      "sha256": "97d5b3e5521f4be0a2dab7412fddcb1a0e5046e531608d4c4deb246296710a03"
+    },
+    "data/preprocess/stage_2/run_2_event_1.csv": {
+      "sha256": "1dba917de0d116e3e626d12dd7d8df69c02845908d881346d1dacbfb49318749"
+    },
+    "data/preprocess/stage_2/run_2_event_2.csv": {
+      "sha256": "4c0358c2d221e4733444fc9c1f8f39e4e216c0d2f2234e3f89e25393aa634057"
+    },
+    "data/preprocess/stage_2/run_2_event_3.csv": {
+      "sha256": "8726394e2f7a51e8f57f38452bd8b36127bbd7003a1631123926ca45ef815b9a"
+    },
+    "data/preprocess/stage_2/run_2_event_4.csv": {
+      "sha256": "eaa2199a4eb9eedabb240d9e8eb057b7422eb21d5de9003a66eb453549d21498"
+    },
+    "data/preprocess/stage_2/run_2_event_5.csv": {
+      "sha256": "85556758dd473315fa7674dc0c76674c7ea83904e0331512dd864210652ee79b"
+    },
+    "data/preprocess/stage_2/run_2_event_6.csv": {
+      "sha256": "d2dec4fb79c6bdf83bf935266dcbd515b3f1ee2e89318c4d4fa0a3101c46dc07"
+    },
+    "data/preprocess/stage_2/run_2_event_7.csv": {
+      "sha256": "c1fc82148aeecff62996822c5959ae6d937e142c702abb4544a2d924f3001392"
+    },
+    "data/preprocess/stage_2/run_2_event_8.csv": {
+      "sha256": "dc6e47ef753b8b74dfaec7cc8df02b8ccfe74c674c2802e34ffb4a05be7c3ea5"
+    },
+    "data/preprocess/stage_2/run_2_event_9.csv": {
+      "sha256": "629802251076fb83bab935db23d382912e03023fb5e83aed73353cca18ea6465"
+    },
+    "data/preprocess/stage_2/run_2_event_10.csv": {
+      "sha256": "c1fe1c7437310c0f511c89fc787b2596ee79269826af1280648496bdd09abea4"
+    },
+    "data/preprocess/stage_2/run_2_event_11.csv": {
+      "sha256": "ed6aa1ee26febd4844eb5d0b991c3b3fa65ae2d69603f0b095e1e427fbb1fcc8"
+    },
+    "data/preprocess/stage_2/run_2_event_12.csv": {
+      "sha256": "4c7d18c9741878090760862c7c8e264414ee6b3947434b304777e17494471d07"
+    },
+    "data/preprocess/stage_2/run_2_event_13.csv": {
+      "sha256": "89012aa34f6c8782fa076a48b04511949db18189427eca2b53d5479852886264"
+    }
+  },
+  "events": [
+    {
+      "run": "run_1",
+      "event": "event_1",
+      "status": "deleted",
+      "reason": "no_overlap",
+      "overlap": {
+        "t_start": 4.63057,
+        "t_end": 0.352735,
+        "duration_s": -4.277835
+      }
+    },
+    {
+      "run": "run_1",
+      "event": "event_2",
+      "file": "run_1_event_2.csv",
+      "input_file": "data/preprocess/stage_2/run_1_event_2.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 230,
+          "t_start": 12.442953,
+          "t_end": 38.593424,
+          "rows_outside_overlap": 46
+        },
+        "leader": {
+          "input_rows": 225,
+          "t_start": 8.39649,
+          "t_end": 33.865332,
+          "rows_outside_overlap": 38
+        }
+      },
+      "rows_outside_overlap_total": 84,
+      "overlap": {
+        "t_start": 12.442953,
+        "t_end": 33.865332,
+        "duration_s": 21.422379
+      },
+      "grid_points": 216,
+      "grid_points_kept": 211,
+      "grid_points_removed": 5,
+      "removed_by_reason": {
+        "discontinuity": 5,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 5,
+        "leader": 3
+      },
+      "removed_times": [
+        {
+          "t_from_start": 22.442953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 22.542953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 22.642953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 22.742953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 22.842953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        }
+      ],
+      "max_interpolation_span_s": 0.453398,
+      "max_interpolation_span_kept_s": 0.22099,
+      "written_rows_per_role": 211,
+      "written_rows_total": 422,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_1",
+      "event": "event_3",
+      "file": "run_1_event_3.csv",
+      "input_file": "data/preprocess/stage_2/run_1_event_3.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 105,
+          "t_start": 46.047997,
+          "t_end": 58.330555,
+          "rows_outside_overlap": 0
+        },
+        "leader": {
+          "input_rows": 145,
+          "t_start": 41.815037,
+          "t_end": 58.337247,
+          "rows_outside_overlap": 39
+        }
+      },
+      "rows_outside_overlap_total": 39,
+      "overlap": {
+        "t_start": 46.047997,
+        "t_end": 58.330555,
+        "duration_s": 12.282558
+      },
+      "grid_points": 124,
+      "grid_points_kept": 124,
+      "grid_points_removed": 0,
+      "removed_by_reason": {
+        "discontinuity": 0,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 0,
+        "leader": 0
+      },
+      "removed_times": [],
+      "max_interpolation_span_s": 0.268418,
+      "max_interpolation_span_kept_s": 0.268418,
+      "written_rows_per_role": 124,
+      "written_rows_total": 248,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_1",
+      "file": "run_2_event_1.csv",
+      "input_file": "data/preprocess/stage_2/run_2_event_1.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 261,
+          "t_start": 1.502474,
+          "t_end": 37.627446,
+          "rows_outside_overlap": 63
+        },
+        "leader": {
+          "input_rows": 171,
+          "t_start": 1.141841,
+          "t_end": 30.469,
+          "rows_outside_overlap": 2
+        }
+      },
+      "rows_outside_overlap_total": 65,
+      "overlap": {
+        "t_start": 1.502474,
+        "t_end": 30.469,
+        "duration_s": 28.966526
+      },
+      "grid_points": 291,
+      "grid_points_kept": 184,
+      "grid_points_removed": 107,
+      "removed_by_reason": {
+        "discontinuity": 107,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 38,
+        "leader": 88
+      },
+      "removed_times": [
+        {
+          "t_from_start": 2.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 2.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 2.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 2.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 2.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 4.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 4.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 4.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 5.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 5.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 5.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 6.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 6.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 6.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 7.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 7.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 7.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 8.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 8.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 8.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 8.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 8.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 8.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 8.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 8.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 10.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 10.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 10.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 11.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 11.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 11.802474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 12.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 12.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 12.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 12.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 12.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 12.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 12.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 12.802474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 12.902474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 14.902474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 15.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 15.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 15.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 15.802474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 15.902474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 16.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 16.902474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 17.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 17.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 17.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 17.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 17.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 18.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 18.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 18.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 18.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 18.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 18.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 18.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 19.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 19.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 19.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 20.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 20.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 20.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 20.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 20.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 20.802474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 21.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 21.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 21.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 21.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 21.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 21.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 21.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 21.802474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 21.902474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 22.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 22.802474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 22.902474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 23.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 23.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 23.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 23.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 23.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 24.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 24.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 24.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 25.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 25.802474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 25.902474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 26.002474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 26.102474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 26.202474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 26.302474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 26.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 26.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 26.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 26.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 26.802474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 27.402474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 27.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 27.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 29.502474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 29.602474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 29.702474,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        }
+      ],
+      "max_interpolation_span_s": 0.836315,
+      "max_interpolation_span_kept_s": 0.298862,
+      "written_rows_per_role": 184,
+      "written_rows_total": 368,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_2",
+      "status": "deleted",
+      "reason": "no_overlap",
+      "overlap": {
+        "t_start": 47.980696,
+        "t_end": 47.875813,
+        "duration_s": -0.104883
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_3",
+      "file": "run_2_event_3.csv",
+      "input_file": "data/preprocess/stage_2/run_2_event_3.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 127,
+          "t_start": 66.113415,
+          "t_end": 78.895299,
+          "rows_outside_overlap": 79
+        },
+        "leader": {
+          "input_rows": 118,
+          "t_start": 57.532075,
+          "t_end": 70.928018,
+          "rows_outside_overlap": 72
+        }
+      },
+      "rows_outside_overlap_total": 151,
+      "overlap": {
+        "t_start": 66.113415,
+        "t_end": 70.928018,
+        "duration_s": 4.814603
+      },
+      "grid_points": 50,
+      "grid_points_kept": 50,
+      "grid_points_removed": 0,
+      "removed_by_reason": {
+        "discontinuity": 0,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 0,
+        "leader": 0
+      },
+      "removed_times": [],
+      "max_interpolation_span_s": 0.192932,
+      "max_interpolation_span_kept_s": 0.192932,
+      "written_rows_per_role": 50,
+      "written_rows_total": 100,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_4",
+      "status": "deleted",
+      "reason": "no_overlap",
+      "overlap": {
+        "t_start": 86.139749,
+        "t_end": 82.314232,
+        "duration_s": -3.825517
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_5",
+      "status": "deleted",
+      "reason": "no_overlap",
+      "overlap": {
+        "t_start": 96.693091,
+        "t_end": 94.010883,
+        "duration_s": -2.682208
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_6",
+      "file": "run_2_event_6.csv",
+      "input_file": "data/preprocess/stage_2/run_2_event_6.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 300,
+          "t_start": 108.365971,
+          "t_end": 139.464819,
+          "rows_outside_overlap": 61
+        },
+        "leader": {
+          "input_rows": 287,
+          "t_start": 103.260567,
+          "t_end": 133.366433,
+          "rows_outside_overlap": 45
+        }
+      },
+      "rows_outside_overlap_total": 106,
+      "overlap": {
+        "t_start": 108.365971,
+        "t_end": 133.366433,
+        "duration_s": 25.000462
+      },
+      "grid_points": 252,
+      "grid_points_kept": 252,
+      "grid_points_removed": 0,
+      "removed_by_reason": {
+        "discontinuity": 0,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 0,
+        "leader": 0
+      },
+      "removed_times": [],
+      "max_interpolation_span_s": 0.219314,
+      "max_interpolation_span_kept_s": 0.219314,
+      "written_rows_per_role": 252,
+      "written_rows_total": 504,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_7",
+      "file": "run_2_event_7.csv",
+      "input_file": "data/preprocess/stage_2/run_2_event_7.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 271,
+          "t_start": 150.377398,
+          "t_end": 178.570093,
+          "rows_outside_overlap": 57
+        },
+        "leader": {
+          "input_rows": 276,
+          "t_start": 142.732015,
+          "t_end": 172.839221,
+          "rows_outside_overlap": 74
+        }
+      },
+      "rows_outside_overlap_total": 131,
+      "overlap": {
+        "t_start": 150.377398,
+        "t_end": 172.839221,
+        "duration_s": 22.461823
+      },
+      "grid_points": 226,
+      "grid_points_kept": 217,
+      "grid_points_removed": 9,
+      "removed_by_reason": {
+        "discontinuity": 9,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 0,
+        "leader": 9
+      },
+      "removed_times": [
+        {
+          "t_from_start": 158.577398,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 158.677398,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 158.777398,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 158.877398,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 158.977398,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 162.177398,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 162.277398,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 162.377398,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 162.477398,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        }
+      ],
+      "max_interpolation_span_s": 0.458707,
+      "max_interpolation_span_kept_s": 0.275207,
+      "written_rows_per_role": 217,
+      "written_rows_total": 434,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_8",
+      "file": "run_2_event_8.csv",
+      "input_file": "data/preprocess/stage_2/run_2_event_8.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 85,
+          "t_start": 188.048602,
+          "t_end": 196.916104,
+          "rows_outside_overlap": 59
+        },
+        "leader": {
+          "input_rows": 81,
+          "t_start": 182.117352,
+          "t_end": 190.653735,
+          "rows_outside_overlap": 56
+        }
+      },
+      "rows_outside_overlap_total": 115,
+      "overlap": {
+        "t_start": 188.048602,
+        "t_end": 190.653735,
+        "duration_s": 2.605133
+      },
+      "grid_points": 28,
+      "grid_points_kept": 28,
+      "grid_points_removed": 0,
+      "removed_by_reason": {
+        "discontinuity": 0,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 0,
+        "leader": 0
+      },
+      "removed_times": [],
+      "max_interpolation_span_s": 0.206762,
+      "max_interpolation_span_kept_s": 0.206762,
+      "written_rows_per_role": 28,
+      "written_rows_total": 56,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_9",
+      "file": "run_2_event_9.csv",
+      "input_file": "data/preprocess/stage_2/run_2_event_9.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 159,
+          "t_start": 205.800498,
+          "t_end": 222.232595,
+          "rows_outside_overlap": 63
+        },
+        "leader": {
+          "input_rows": 152,
+          "t_start": 199.720928,
+          "t_end": 215.827731,
+          "rows_outside_overlap": 58
+        }
+      },
+      "rows_outside_overlap_total": 121,
+      "overlap": {
+        "t_start": 205.800498,
+        "t_end": 215.827731,
+        "duration_s": 10.027233
+      },
+      "grid_points": 102,
+      "grid_points_kept": 102,
+      "grid_points_removed": 0,
+      "removed_by_reason": {
+        "discontinuity": 0,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 0,
+        "leader": 0
+      },
+      "removed_times": [],
+      "max_interpolation_span_s": 0.204431,
+      "max_interpolation_span_kept_s": 0.204431,
+      "written_rows_per_role": 102,
+      "written_rows_total": 204,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_10",
+      "status": "deleted",
+      "reason": "no_overlap",
+      "overlap": {
+        "t_start": 231.698012,
+        "t_end": 227.29812,
+        "duration_s": -4.399892
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_11",
+      "status": "deleted",
+      "reason": "no_overlap",
+      "overlap": {
+        "t_start": 242.946081,
+        "t_end": 239.078095,
+        "duration_s": -3.867986
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_12",
+      "file": "run_2_event_12.csv",
+      "input_file": "data/preprocess/stage_2/run_2_event_12.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 234,
+          "t_start": 253.934795,
+          "t_end": 278.945129,
+          "rows_outside_overlap": 57
+        },
+        "leader": {
+          "input_rows": 211,
+          "t_start": 248.230527,
+          "t_end": 273.021959,
+          "rows_outside_overlap": 52
+        }
+      },
+      "rows_outside_overlap_total": 109,
+      "overlap": {
+        "t_start": 253.934795,
+        "t_end": 273.021959,
+        "duration_s": 19.087164
+      },
+      "grid_points": 192,
+      "grid_points_kept": 169,
+      "grid_points_removed": 23,
+      "removed_by_reason": {
+        "discontinuity": 23,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 0,
+        "leader": 23
+      },
+      "removed_times": [
+        {
+          "t_from_start": 259.334795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 259.434795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 259.534795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 259.634795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 259.734795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 259.934795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 260.034795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 260.134795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 260.234795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 262.934795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 263.034795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 263.134795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 263.234795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 264.134795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 264.234795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 264.334795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 269.034795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 269.134795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 269.234795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 269.334795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 269.434795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 269.534795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 269.634795,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        }
+      ],
+      "max_interpolation_span_s": 0.591622,
+      "max_interpolation_span_kept_s": 0.232568,
+      "written_rows_per_role": 169,
+      "written_rows_total": 338,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_13",
+      "file": "run_2_event_13.csv",
+      "input_file": "data/preprocess/stage_2/run_2_event_13.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 154,
+          "t_start": 287.651011,
+          "t_end": 304.083341,
+          "rows_outside_overlap": 1
+        },
+        "leader": {
+          "input_rows": 183,
+          "t_start": 282.067606,
+          "t_end": 304.028865,
+          "rows_outside_overlap": 48
+        }
+      },
+      "rows_outside_overlap_total": 49,
+      "overlap": {
+        "t_start": 287.651011,
+        "t_end": 304.028865,
+        "duration_s": 16.377854
+      },
+      "grid_points": 165,
+      "grid_points_kept": 143,
+      "grid_points_removed": 22,
+      "removed_by_reason": {
+        "discontinuity": 22,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 0,
+        "leader": 22
+      },
+      "removed_times": [
+        {
+          "t_from_start": 289.451011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 289.551011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 289.651011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 289.751011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 290.451011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 290.551011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 290.651011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 290.751011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 290.851011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 292.351011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 292.451011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 292.551011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 292.651011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 295.351011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 295.451011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 295.551011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 295.651011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 295.751011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 295.851011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 295.951011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 296.051011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 296.151011,
+          "reason": "discontinuity",
+          "roles": [
+            "leader"
+          ]
+        }
+      ],
+      "max_interpolation_span_s": 0.610506,
+      "max_interpolation_span_kept_s": 0.285683,
+      "written_rows_per_role": 143,
+      "written_rows_total": 286,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    }
+  ],
+  "deleted_events": [
+    {
+      "run": "run_1",
+      "event": "event_1",
+      "file": null,
+      "status": "deleted",
+      "reason": "no_overlap",
+      "detail": "empty_intersection",
+      "input_file": "data/preprocess/stage_2/run_1_event_1.csv",
+      "roles": {
+        "follower": {
+          "input_rows": 18,
+          "t_start": 4.63057,
+          "t_end": 6.415966,
+          "rows_outside_overlap": 18
+        },
+        "leader": {
+          "input_rows": 4,
+          "t_start": -0.054888,
+          "t_end": 0.352735,
+          "rows_outside_overlap": 4
+        }
+      },
+      "overlap": {
+        "t_start": 4.63057,
+        "t_end": 0.352735,
+        "duration_s": -4.277835
+      },
+      "rows_outside_overlap_total": 22
+    },
+    {
+      "run": "run_2",
+      "event": "event_2",
+      "file": null,
+      "status": "deleted",
+      "reason": "no_overlap",
+      "detail": "empty_intersection",
+      "input_file": "data/preprocess/stage_2/run_2_event_2.csv",
+      "roles": {
+        "follower": {
+          "input_rows": 90,
+          "t_start": 47.980696,
+          "t_end": 57.384806,
+          "rows_outside_overlap": 90
+        },
+        "leader": {
+          "input_rows": 62,
+          "t_start": 40.357282,
+          "t_end": 47.875813,
+          "rows_outside_overlap": 62
+        }
+      },
+      "overlap": {
+        "t_start": 47.980696,
+        "t_end": 47.875813,
+        "duration_s": -0.104883
+      },
+      "rows_outside_overlap_total": 152
+    },
+    {
+      "run": "run_2",
+      "event": "event_4",
+      "file": null,
+      "status": "deleted",
+      "reason": "no_overlap",
+      "detail": "empty_intersection",
+      "input_file": "data/preprocess/stage_2/run_2_event_4.csv",
+      "roles": {
+        "follower": {
+          "input_rows": 25,
+          "t_start": 86.139749,
+          "t_end": 88.543494,
+          "rows_outside_overlap": 25
+        },
+        "leader": {
+          "input_rows": 21,
+          "t_start": 79.893573,
+          "t_end": 82.314232,
+          "rows_outside_overlap": 21
+        }
+      },
+      "overlap": {
+        "t_start": 86.139749,
+        "t_end": 82.314232,
+        "duration_s": -3.825517
+      },
+      "rows_outside_overlap_total": 46
+    },
+    {
+      "run": "run_2",
+      "event": "event_5",
+      "file": null,
+      "status": "deleted",
+      "reason": "no_overlap",
+      "detail": "empty_intersection",
+      "input_file": "data/preprocess/stage_2/run_2_event_5.csv",
+      "roles": {
+        "follower": {
+          "input_rows": 24,
+          "t_start": 96.693091,
+          "t_end": 99.318468,
+          "rows_outside_overlap": 24
+        },
+        "leader": {
+          "input_rows": 25,
+          "t_start": 91.38235,
+          "t_end": 94.010883,
+          "rows_outside_overlap": 25
+        }
+      },
+      "overlap": {
+        "t_start": 96.693091,
+        "t_end": 94.010883,
+        "duration_s": -2.682208
+      },
+      "rows_outside_overlap_total": 49
+    },
+    {
+      "run": "run_2",
+      "event": "event_10",
+      "file": null,
+      "status": "deleted",
+      "reason": "no_overlap",
+      "detail": "empty_intersection",
+      "input_file": "data/preprocess/stage_2/run_2_event_10.csv",
+      "roles": {
+        "follower": {
+          "input_rows": 26,
+          "t_start": 231.698012,
+          "t_end": 234.333631,
+          "rows_outside_overlap": 26
+        },
+        "leader": {
+          "input_rows": 24,
+          "t_start": 224.886816,
+          "t_end": 227.29812,
+          "rows_outside_overlap": 24
+        }
+      },
+      "overlap": {
+        "t_start": 231.698012,
+        "t_end": 227.29812,
+        "duration_s": -4.399892
+      },
+      "rows_outside_overlap_total": 50
+    },
+    {
+      "run": "run_2",
+      "event": "event_11",
+      "file": null,
+      "status": "deleted",
+      "reason": "no_overlap",
+      "detail": "empty_intersection",
+      "input_file": "data/preprocess/stage_2/run_2_event_11.csv",
+      "roles": {
+        "follower": {
+          "input_rows": 22,
+          "t_start": 242.946081,
+          "t_end": 245.237259,
+          "rows_outside_overlap": 22
+        },
+        "leader": {
+          "input_rows": 27,
+          "t_start": 236.36373,
+          "t_end": 239.078095,
+          "rows_outside_overlap": 27
+        }
+      },
+      "overlap": {
+        "t_start": 242.946081,
+        "t_end": 239.078095,
+        "duration_s": -3.867986
+      },
+      "rows_outside_overlap_total": 49
+    }
+  ],
+  "outputs": [
+    {
+      "file": "run_1_event_2.csv",
+      "rows": 422
+    },
+    {
+      "file": "run_1_event_3.csv",
+      "rows": 248
+    },
+    {
+      "file": "run_2_event_1.csv",
+      "rows": 368
+    },
+    {
+      "file": "run_2_event_3.csv",
+      "rows": 100
+    },
+    {
+      "file": "run_2_event_6.csv",
+      "rows": 504
+    },
+    {
+      "file": "run_2_event_7.csv",
+      "rows": 434
+    },
+    {
+      "file": "run_2_event_8.csv",
+      "rows": 56
+    },
+    {
+      "file": "run_2_event_9.csv",
+      "rows": 204
+    },
+    {
+      "file": "run_2_event_12.csv",
+      "rows": 338
+    },
+    {
+      "file": "run_2_event_13.csv",
+      "rows": 286
+    },
+    {
+      "file": "stage3_summary.json",
+      "rows": null
+    }
+  ],
+  "verification": [
+    {
+      "file": "run_1_event_2.csv",
+      "rows": 422,
+      "problems": []
+    },
+    {
+      "file": "run_1_event_3.csv",
+      "rows": 248,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_1.csv",
+      "rows": 368,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_3.csv",
+      "rows": 100,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_6.csv",
+      "rows": 504,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_7.csv",
+      "rows": 434,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_8.csv",
+      "rows": 56,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_9.csv",
+      "rows": 204,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_12.csv",
+      "rows": 338,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_13.csv",
+      "rows": 286,
+      "problems": []
+    }
+  ],
+  "total": {
+    "input_event_files": 16,
+    "written_event_files": 10,
+    "deleted_event_files": 6,
+    "grid_points": 1646,
+    "grid_points_kept": 1480,
+    "grid_points_removed": 166,
+    "written_rows": 2960,
+    "conservation_ok": true
+  }
+}

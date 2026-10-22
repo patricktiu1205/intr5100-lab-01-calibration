@@ -1,0 +1,320 @@
+{
+ "folds": {
+  "M1": [
+   {
+    "feasible": true,
+    "s_mse": 33532.09152901902,
+    "v_mse": 394.9604343149592,
+    "s_rmse": 183.11769856848633,
+    "v_rmse": 19.873611506592333,
+    "s_mae": 153.49704943433045,
+    "v_mae": 16.632565375698597,
+    "s_mape": 32.8151737600691,
+    "v_mape": 20.023520699265884,
+    "s_r2": -19.025850493974797,
+    "v_r2": -1.6258516224146957,
+    "violations": 0,
+    "held_event": "event_1"
+   },
+   {
+    "feasible": true,
+    "s_mse": 378.48942955071317,
+    "v_mse": 297.79363158187425,
+    "s_rmse": 19.454804793436328,
+    "v_rmse": 17.25669816569422,
+    "s_mae": 13.303508556478315,
+    "v_mae": 14.06097236826338,
+    "s_mape": 1.451743365928356,
+    "v_mape": 10.397939131526874,
+    "s_r2": 0.5803505625130646,
+    "v_r2": -0.09356767901571383,
+    "violations": 0,
+    "held_event": "event_3"
+   },
+   {
+    "feasible": true,
+    "s_mse": 44188.05570650407,
+    "v_mse": 431.86126719941376,
+    "s_rmse": 210.2095518916875,
+    "v_rmse": 20.78127203035016,
+    "s_mae": 191.31574400311575,
+    "v_mae": 18.52310865644007,
+    "s_mape": 84.06970266672525,
+    "v_mape": 20.998324184052496,
+    "s_r2": -240.02230392737616,
+    "v_r2": -7.814192624152449,
+    "violations": 0,
+    "held_event": "event_6"
+   },
+   {
+    "feasible": true,
+    "s_mse": 2899.6936220415573,
+    "v_mse": 184.37689510923246,
+    "s_rmse": 53.84880334827839,
+    "v_rmse": 13.578545397399253,
+    "s_mae": 43.77807322317288,
+    "v_mae": 10.750651498812326,
+    "s_mape": 7.961637435481596,
+    "v_mape": 9.431676350284942,
+    "s_r2": -1.0056056518114778,
+    "v_r2": -0.16483278107709687,
+    "violations": 0,
+    "held_event": "event_7"
+   },
+   {
+    "feasible": true,
+    "s_mse": 101.98534894880946,
+    "v_mse": 104.64332061593788,
+    "s_rmse": 10.098779577196913,
+    "v_rmse": 10.2295317886958,
+    "s_mae": 8.41198638054363,
+    "v_mae": 8.343774569751613,
+    "s_mape": 2.000411288260121,
+    "v_mape": 7.779639571568279,
+    "s_r2": -0.7091445760253061,
+    "v_r2": -0.7709955158863668,
+    "violations": 0,
+    "held_event": "event_8"
+   },
+   {
+    "feasible": true,
+    "s_mse": 2242.888235429536,
+    "v_mse": 134.72747896003452,
+    "s_rmse": 47.35914099125465,
+    "v_rmse": 11.607216675845873,
+    "s_mae": 40.847582661606985,
+    "v_mae": 9.557609698941619,
+    "s_mape": 8.680748612223073,
+    "v_mape": 9.406621055150989,
+    "s_r2": -8.940984815278249,
+    "v_r2": -0.58841123456121,
+    "violations": 0,
+    "held_event": "event_9"
+   },
+   {
+    "feasible": true,
+    "s_mse": 3679.3370438134284,
+    "v_mse": 125.35693574597747,
+    "s_rmse": 60.657539051740535,
+    "v_rmse": 11.19629116028953,
+    "s_mae": 57.878062805457716,
+    "v_mae": 8.42701901461012,
+    "s_mape": 15.232036253370643,
+    "v_mape": 7.971176174347239,
+    "s_r2": -21.303455551850192,
+    "v_r2": -0.4890277904152549,
+    "violations": 0,
+    "held_event": "event_12"
+   },
+   {
+    "feasible": true,
+    "s_mse": 669.2136838974147,
+    "v_mse": 126.99157484776187,
+    "s_rmse": 25.869164731344046,
+    "v_rmse": 11.269053857700825,
+    "s_mae": 21.19429013928995,
+    "v_mae": 8.893145737269176,
+    "s_mape": 4.810209718125792,
+    "v_mape": 8.530247259801392,
+    "s_r2": 0.159207461223128,
+    "v_r2": -0.832080454868666,
+    "violations": 0,
+    "held_event": "event_13"
+   }
+  ],
+  "M2": [
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_1"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_3"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_6"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_7"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_8"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_9"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_12"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_13"
+   }
+  ],
+  "M3": [
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_1"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_3"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_6"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_7"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_8"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_9"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_12"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_13"
+   }
+  ],
+  "M4": [
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_1"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_3"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_6"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_7"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_8"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_9"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_12"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_13"
+   }
+  ],
+  "M5": [
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_1"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_3"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_6"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_7"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_8"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_9"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_12"
+   },
+   {
+    "feasible": false,
+    "error": "'best_theta'",
+    "held_event": "event_13"
+   }
+  ]
+ },
+ "summary": {
+  "M1": {
+   "mean_s_mse": 10961.469324900569,
+   "mean_v_mse": 225.08894229689892,
+   "mean_s_rmse": 76.32693536917809,
+   "mean_v_rmse": 14.474027572821,
+   "mean_s_mae": 66.27828715049947,
+   "mean_v_mae": 11.898605864973362,
+   "mean_s_mape": 19.62770788752299,
+   "mean_v_mape": 11.817393053249761,
+   "violations": 0,
+   "n_feasible": 8
+  },
+  "M2": {
+   "n_feasible": 0
+  },
+  "M3": {
+   "n_feasible": 0
+  },
+  "M4": {
+   "n_feasible": 0
+  },
+  "M5": {
+   "n_feasible": 0
+  }
+ }
+}

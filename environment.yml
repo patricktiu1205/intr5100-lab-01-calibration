@@ -1,0 +1,20 @@
+name: intr5100
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.12
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - pytorch
+  - cvxpy
+  - osqp
+  - pyqt6
+  - pyqtgraph
+  - pyyaml
+  - python-docx
+  - pypdf
+  - pdf2image
+  - tectonic

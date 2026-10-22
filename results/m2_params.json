@@ -1,0 +1,1412 @@
+{
+  "method": "M2",
+  "script": "src/calibrate/m2_neldermead.py",
+  "input_dir": "data/preprocess/stage_4",
+  "configuration": {
+    "objective": "equal weight mean over events of the normalised trajectory cost",
+    "cost_definition": "mean((s_sim-s_obs)^2)/sigma_s^2 + mean((v_sim-v_obs)^2)/sigma_v^2 + S_VIOLATION_PENALTY*violations",
+    "solver": "scipy.optimize.minimize(method='Nelder-Mead', adaptive=True)",
+    "solver_options": {
+      "adaptive": true,
+      "xatol": 1e-08,
+      "fatol": 1e-10,
+      "maxiter": 4000
+    },
+    "n_starts": 13,
+    "start_sampling": "reference theta0 + Latin hypercube over the parameter box",
+    "seed": 20260921,
+    "L_VEH": 250.0,
+    "delta": 4.0,
+    "parameter_bounds": {
+      "v0": [
+        40.0,
+        200.0
+      ],
+      "T": [
+        0.3,
+        5.0
+      ],
+      "s0": [
+        10.0,
+        400.0
+      ],
+      "a": [
+        10.0,
+        200.0
+      ],
+      "b": [
+        10.0,
+        200.0
+      ]
+    },
+    "parameter_penalty": 1000000.0,
+    "infeasible_cost": 1000000000000.0,
+    "spacing_violation_penalty": 1000000.0,
+    "integration_method": "rk4",
+    "initial_conditions": "first measured sample of the event (s and v)",
+    "leader_speed": "measured lv, linearly interpolated at the integration nodes"
+  },
+  "units": {
+    "spacing": "coordinate units",
+    "speed": "coordinate units/s",
+    "acceleration": "coordinate units/s^2",
+    "spacing_rmse": "coordinate units (raw, un-normalised)",
+    "speed_rmse": "coordinate units/s (raw, un-normalised)",
+    "total_error": "dimensionless (per-event spread normalised, equal weight mean)"
+  },
+  "runs": {
+    "run_1": {
+      "theta": {
+        "v0": 146.357486,
+        "T": 1.921215,
+        "s0": 10.0,
+        "a": 56.890818,
+        "b": 10.000034
+      },
+      "theta_vector": [
+        146.357486,
+        1.921215,
+        10.0,
+        56.890818,
+        10.000034
+      ],
+      "parameters_within_bounds": true,
+      "total_error": 1.203707,
+      "total_error_method": "equal weight mean of the per-event normalised costs",
+      "n_events": 2,
+      "n_samples": 335,
+      "mean_spacing_rmse": 21.725243,
+      "mean_speed_rmse": 15.897893,
+      "worst_spacing_rmse": 28.679306,
+      "worst_speed_rmse": 16.937178,
+      "events": {
+        "event_2": {
+          "n_samples": 211,
+          "duration_s": 21.5,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 21.579935,
+          "sigma_v": 15.829448,
+          "spacing_rmse": 14.771181,
+          "speed_rmse": 14.858608,
+          "spacing_rmse_normalized": 0.684487,
+          "speed_rmse_normalized": 0.938669,
+          "j_spacing": 0.468522,
+          "j_speed": 0.881099,
+          "j_total": 1.349621,
+          "zero_model": {
+            "spacing_rmse_const_first": 32.819622,
+            "spacing_rmse_const_mean": 21.579935,
+            "speed_rmse_const_first": 55.390901,
+            "speed_rmse_const_mean": 15.829448,
+            "best_spacing_rmse": 21.579935,
+            "best_speed_rmse": 15.829448
+          }
+        },
+        "event_3": {
+          "n_samples": 124,
+          "duration_s": 12.3,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 49.743095,
+          "sigma_v": 19.886424,
+          "spacing_rmse": 28.679306,
+          "speed_rmse": 16.937178,
+          "spacing_rmse_normalized": 0.576548,
+          "speed_rmse_normalized": 0.851696,
+          "j_spacing": 0.332408,
+          "j_speed": 0.725385,
+          "j_total": 1.057793,
+          "zero_model": {
+            "spacing_rmse_const_first": 96.425235,
+            "spacing_rmse_const_mean": 49.743095,
+            "speed_rmse_const_first": 20.703154,
+            "speed_rmse_const_mean": 19.886424,
+            "best_spacing_rmse": 49.743095,
+            "best_speed_rmse": 19.886424
+          }
+        }
+      },
+      "multistart": {
+        "n_starts": 13,
+        "seed": 20260921,
+        "sampling": "reference point + Latin hypercube over the parameter box",
+        "feasible_starts": 11,
+        "infeasible_starts": 2,
+        "starts_stopped_on_wall": 2,
+        "starts_projected_onto_bounds": 0,
+        "best_cost": 1.203707,
+        "best_start_index": 0,
+        "worst_feasible_cost": 1.46353,
+        "distinct_feasible_results": 11,
+        "initial_point_cost": 8.904643,
+        "initial_point_improvement": 7.700936,
+        "runs": [
+          {
+            "index": 0,
+            "label": "reference theta0",
+            "start_theta": [
+              120.0,
+              1.2,
+              100.0,
+              80.0,
+              100.0
+            ],
+            "theta": [
+              146.357486,
+              1.921215,
+              10.0,
+              56.890818,
+              10.000034
+            ],
+            "raw_theta": [
+              146.357486,
+              1.921215,
+              10.0,
+              56.890818,
+              10.000034
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.203707,
+            "cost": 1.203707,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1951,
+            "nfev": 3379
+          },
+          {
+            "index": 1,
+            "label": "lhs 1 (seed 20260921)",
+            "start_theta": [
+              132.333985,
+              0.839315,
+              337.101563,
+              133.141524,
+              89.442915
+            ],
+            "theta": [
+              146.249897,
+              1.913237,
+              10.720833,
+              56.964459,
+              10.0
+            ],
+            "raw_theta": [
+              146.249897,
+              1.913237,
+              10.720833,
+              56.964459,
+              10.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.203764,
+            "cost": 1.203764,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 2149,
+            "nfev": 3749
+          },
+          {
+            "index": 2,
+            "label": "lhs 2 (seed 20260921)",
+            "start_theta": [
+              139.407276,
+              3.080835,
+              265.538955,
+              187.653453,
+              67.318519
+            ],
+            "theta": [
+              144.79072,
+              1.803301,
+              20.62068,
+              57.954858,
+              10.0
+            ],
+            "raw_theta": [
+              144.79072,
+              1.803301,
+              20.62068,
+              57.954858,
+              10.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.20458,
+            "cost": 1.20458,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1470,
+            "nfev": 2593
+          },
+          {
+            "index": 3,
+            "label": "lhs 3 (seed 20260921)",
+            "start_theta": [
+              178.247701,
+              2.825002,
+              225.529078,
+              156.262769,
+              161.02465
+            ],
+            "theta": [
+              143.826075,
+              0.3,
+              176.183383,
+              82.164996,
+              119.824198
+            ],
+            "raw_theta": [
+              143.826075,
+              0.3,
+              176.183383,
+              82.164996,
+              119.824198
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.46353,
+            "cost": 1.46353,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 732,
+            "nfev": 1356
+          },
+          {
+            "index": 4,
+            "label": "lhs 4 (seed 20260921)",
+            "start_theta": [
+              195.583992,
+              4.906681,
+              384.652194,
+              29.367811,
+              174.169591
+            ],
+            "theta": [
+              133.669763,
+              0.3,
+              160.517344,
+              109.004694,
+              10.0
+            ],
+            "raw_theta": [
+              133.669763,
+              0.3,
+              160.517344,
+              109.004694,
+              10.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.288055,
+            "cost": 1.288055,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1318,
+            "nfev": 2396
+          },
+          {
+            "index": 5,
+            "label": "lhs 5 (seed 20260921)",
+            "start_theta": [
+              56.719395,
+              1.937911,
+              185.425601,
+              72.743332,
+              10.489798
+            ],
+            "theta": [
+              56.719395,
+              1.937911,
+              185.425601,
+              72.743332,
+              10.489798
+            ],
+            "raw_theta": [
+              56.719395,
+              1.937911,
+              185.425601,
+              72.743332,
+              10.489798
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": true,
+            "optimiser_final_objective": 1000000000000.0,
+            "cost": null,
+            "inside_bounds": true,
+            "feasible_candidate": false,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 94,
+            "nfev": 657
+          },
+          {
+            "index": 6,
+            "label": "lhs 6 (seed 20260921)",
+            "start_theta": [
+              153.713869,
+              0.629633,
+              131.920867,
+              104.447207,
+              126.424664
+            ],
+            "theta": [
+              134.93313,
+              0.884551,
+              103.005432,
+              66.687666,
+              10.0
+            ],
+            "raw_theta": [
+              134.93313,
+              0.884551,
+              103.005432,
+              66.687666,
+              10.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.213492,
+            "cost": 1.213492,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 802,
+            "nfev": 1428
+          },
+          {
+            "index": 7,
+            "label": "lhs 7 (seed 20260921)",
+            "start_theta": [
+              100.955182,
+              4.408614,
+              330.794522,
+              83.409109,
+              46.711179
+            ],
+            "theta": [
+              133.014281,
+              0.342575,
+              154.675067,
+              123.784454,
+              10.0
+            ],
+            "raw_theta": [
+              133.014281,
+              0.342575,
+              154.675067,
+              123.784454,
+              10.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.321482,
+            "cost": 1.321482,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1217,
+            "nfev": 2159
+          },
+          {
+            "index": 8,
+            "label": "lhs 8 (seed 20260921)",
+            "start_theta": [
+              73.106793,
+              1.464265,
+              277.37633,
+              109.014368,
+              149.067491
+            ],
+            "theta": [
+              133.355391,
+              0.682086,
+              121.323814,
+              68.779312,
+              10.0
+            ],
+            "raw_theta": [
+              133.355391,
+              0.682086,
+              121.323814,
+              68.779312,
+              10.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.214648,
+            "cost": 1.214648,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1457,
+            "nfev": 2567
+          },
+          {
+            "index": 9,
+            "label": "lhs 9 (seed 20260921)",
+            "start_theta": [
+              162.764228,
+              2.435207,
+              48.440973,
+              144.070105,
+              81.173683
+            ],
+            "theta": [
+              138.054528,
+              1.206097,
+              74.39381,
+              63.801085,
+              10.0
+            ],
+            "raw_theta": [
+              138.054528,
+              1.206097,
+              74.39381,
+              63.801085,
+              10.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.210015,
+            "cost": 1.210015,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 739,
+            "nfev": 1369
+          },
+          {
+            "index": 10,
+            "label": "lhs 10 (seed 20260921)",
+            "start_theta": [
+              119.854604,
+              4.169538,
+              160.259935,
+              170.69102,
+              189.4412
+            ],
+            "theta": [
+              145.511651,
+              1.859872,
+              15.535713,
+              57.212694,
+              10.0
+            ],
+            "raw_theta": [
+              145.511651,
+              1.859872,
+              15.535713,
+              57.212694,
+              10.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.204167,
+            "cost": 1.204167,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1399,
+            "nfev": 2478
+          },
+          {
+            "index": 11,
+            "label": "lhs 11 (seed 20260921)",
+            "start_theta": [
+              50.386791,
+              1.767133,
+              22.022695,
+              51.321948,
+              110.986962
+            ],
+            "theta": [
+              50.386791,
+              1.767133,
+              22.022695,
+              51.321948,
+              110.986962
+            ],
+            "raw_theta": [
+              50.386791,
+              1.767133,
+              22.022695,
+              51.321948,
+              110.986962
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": true,
+            "optimiser_final_objective": 1000000000000.0,
+            "cost": null,
+            "inside_bounds": true,
+            "feasible_candidate": false,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 92,
+            "nfev": 643
+          },
+          {
+            "index": 12,
+            "label": "lhs 12 (seed 20260921)",
+            "start_theta": [
+              84.178544,
+              3.435584,
+              96.218508,
+              24.14663,
+              37.453239
+            ],
+            "theta": [
+              138.503849,
+              1.263192,
+              69.089475,
+              62.64743,
+              10.0
+            ],
+            "raw_theta": [
+              138.503849,
+              1.263192,
+              69.089475,
+              62.64743,
+              10.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 1.209424,
+            "cost": 1.209424,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1073,
+            "nfev": 1931
+          }
+        ]
+      },
+      "convergence": {
+        "solver": "scipy.optimize.minimize(method='Nelder-Mead', adaptive=True)",
+        "options": {
+          "adaptive": true,
+          "xatol": 1e-08,
+          "fatol": 1e-10,
+          "maxiter": 4000
+        },
+        "best_start_index": 0,
+        "status": 0,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "nit": 1951,
+        "nfev": 3379,
+        "stopped_on_wall": false,
+        "projected_onto_bounds": false,
+        "objective": "idm_core.constrained_total_error (box penalty outside the bounds, INFEASIBLE_COST wall for infeasible trajectories)"
+      }
+    },
+    "run_2": {
+      "theta": {
+        "v0": 123.817523,
+        "T": 2.293543,
+        "s0": 10.0,
+        "a": 15.907993,
+        "b": 199.999997
+      },
+      "theta_vector": [
+        123.817523,
+        2.293543,
+        10.0,
+        15.907993,
+        199.999997
+      ],
+      "parameters_within_bounds": true,
+      "total_error": 4.75525,
+      "total_error_method": "equal weight mean of the per-event normalised costs",
+      "n_events": 8,
+      "n_samples": 1140,
+      "mean_spacing_rmse": 38.615159,
+      "mean_speed_rmse": 11.598768,
+      "worst_spacing_rmse": 184.940665,
+      "worst_speed_rmse": 18.483275,
+      "events": {
+        "event_1": {
+          "n_samples": 184,
+          "duration_s": 29.0,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 40.919926,
+          "sigma_v": 12.26427,
+          "spacing_rmse": 184.940665,
+          "speed_rmse": 17.711042,
+          "spacing_rmse_normalized": 4.519575,
+          "speed_rmse_normalized": 1.444117,
+          "j_spacing": 20.426556,
+          "j_speed": 2.085474,
+          "j_total": 22.512031,
+          "zero_model": {
+            "spacing_rmse_const_first": 111.532398,
+            "spacing_rmse_const_mean": 40.919926,
+            "speed_rmse_const_first": 26.055444,
+            "speed_rmse_const_mean": 12.26427,
+            "best_spacing_rmse": 40.919926,
+            "best_speed_rmse": 12.26427
+          }
+        },
+        "event_3": {
+          "n_samples": 49,
+          "duration_s": 4.8,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 30.031952,
+          "sigma_v": 16.501935,
+          "spacing_rmse": 21.762748,
+          "speed_rmse": 18.483275,
+          "spacing_rmse_normalized": 0.724653,
+          "speed_rmse_normalized": 1.120067,
+          "j_spacing": 0.525122,
+          "j_speed": 1.25455,
+          "j_total": 1.779673,
+          "zero_model": {
+            "spacing_rmse_const_first": 72.018328,
+            "spacing_rmse_const_mean": 30.031952,
+            "speed_rmse_const_first": 22.989232,
+            "speed_rmse_const_mean": 16.501935,
+            "best_spacing_rmse": 30.031952,
+            "best_speed_rmse": 16.501935
+          }
+        },
+        "event_6": {
+          "n_samples": 251,
+          "duration_s": 25.0,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 13.540161,
+          "sigma_v": 6.999723,
+          "spacing_rmse": 18.387832,
+          "speed_rmse": 6.85068,
+          "spacing_rmse_normalized": 1.358022,
+          "speed_rmse_normalized": 0.978707,
+          "j_spacing": 1.844223,
+          "j_speed": 0.957868,
+          "j_total": 2.802091,
+          "zero_model": {
+            "spacing_rmse_const_first": 26.608092,
+            "spacing_rmse_const_mean": 13.540161,
+            "speed_rmse_const_first": 8.003301,
+            "speed_rmse_const_mean": 6.999723,
+            "best_spacing_rmse": 13.540161,
+            "best_speed_rmse": 6.999723
+          }
+        },
+        "event_7": {
+          "n_samples": 216,
+          "duration_s": 22.4,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 38.023605,
+          "sigma_v": 12.581182,
+          "spacing_rmse": 30.671814,
+          "speed_rmse": 12.910167,
+          "spacing_rmse_normalized": 0.806652,
+          "speed_rmse_normalized": 1.026149,
+          "j_spacing": 0.650687,
+          "j_speed": 1.052982,
+          "j_total": 1.703669,
+          "zero_model": {
+            "spacing_rmse_const_first": 53.883716,
+            "spacing_rmse_const_mean": 38.023605,
+            "speed_rmse_const_first": 24.894757,
+            "speed_rmse_const_mean": 12.581182,
+            "best_spacing_rmse": 38.023605,
+            "best_speed_rmse": 12.581182
+          }
+        },
+        "event_8": {
+          "n_samples": 28,
+          "duration_s": 2.7,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 7.724662,
+          "sigma_v": 7.686826,
+          "spacing_rmse": 8.166797,
+          "speed_rmse": 9.103539,
+          "spacing_rmse_normalized": 1.057237,
+          "speed_rmse_normalized": 1.184304,
+          "j_spacing": 1.11775,
+          "j_speed": 1.402576,
+          "j_total": 2.520326,
+          "zero_model": {
+            "spacing_rmse_const_first": 17.525489,
+            "spacing_rmse_const_mean": 7.724662,
+            "speed_rmse_const_first": 15.549393,
+            "speed_rmse_const_mean": 7.686826,
+            "best_spacing_rmse": 7.724662,
+            "best_speed_rmse": 7.686826
+          }
+        },
+        "event_9": {
+          "n_samples": 101,
+          "duration_s": 10.0,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 15.020663,
+          "sigma_v": 9.209724,
+          "spacing_rmse": 21.888279,
+          "speed_rmse": 9.111268,
+          "spacing_rmse_normalized": 1.457211,
+          "speed_rmse_normalized": 0.98931,
+          "j_spacing": 2.123465,
+          "j_speed": 0.978733,
+          "j_total": 3.102198,
+          "zero_model": {
+            "spacing_rmse_const_first": 40.59863,
+            "spacing_rmse_const_mean": 15.020663,
+            "speed_rmse_const_first": 9.330076,
+            "speed_rmse_const_mean": 9.209724,
+            "best_spacing_rmse": 15.020663,
+            "best_speed_rmse": 9.209724
+          }
+        },
+        "event_12": {
+          "n_samples": 169,
+          "duration_s": 19.1,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 12.843953,
+          "sigma_v": 9.175353,
+          "spacing_rmse": 14.444799,
+          "speed_rmse": 9.805316,
+          "spacing_rmse_normalized": 1.124638,
+          "speed_rmse_normalized": 1.068658,
+          "j_spacing": 1.264811,
+          "j_speed": 1.14203,
+          "j_total": 2.406841,
+          "zero_model": {
+            "spacing_rmse_const_first": 29.370343,
+            "spacing_rmse_const_mean": 12.843953,
+            "speed_rmse_const_first": 19.87652,
+            "speed_rmse_const_mean": 9.175353,
+            "best_spacing_rmse": 12.843953,
+            "best_speed_rmse": 9.175353
+          }
+        },
+        "event_13": {
+          "n_samples": 142,
+          "duration_s": 16.3,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 28.212267,
+          "sigma_v": 8.325593,
+          "spacing_rmse": 8.658338,
+          "speed_rmse": 8.814858,
+          "spacing_rmse_normalized": 0.3069,
+          "speed_rmse_normalized": 1.058766,
+          "j_spacing": 0.094187,
+          "j_speed": 1.120986,
+          "j_total": 1.215174,
+          "zero_model": {
+            "spacing_rmse_const_first": 64.220338,
+            "spacing_rmse_const_mean": 28.212267,
+            "speed_rmse_const_first": 15.087975,
+            "speed_rmse_const_mean": 8.325593,
+            "best_spacing_rmse": 28.212267,
+            "best_speed_rmse": 8.325593
+          }
+        }
+      },
+      "multistart": {
+        "n_starts": 13,
+        "seed": 20260921,
+        "sampling": "reference point + Latin hypercube over the parameter box",
+        "feasible_starts": 13,
+        "infeasible_starts": 0,
+        "starts_stopped_on_wall": 0,
+        "starts_projected_onto_bounds": 0,
+        "best_cost": 4.75525,
+        "best_start_index": 12,
+        "worst_feasible_cost": 4.935821,
+        "distinct_feasible_results": 13,
+        "initial_point_cost": 5.249928,
+        "initial_point_improvement": 0.494677,
+        "runs": [
+          {
+            "index": 0,
+            "label": "reference theta0",
+            "start_theta": [
+              120.0,
+              1.2,
+              100.0,
+              80.0,
+              100.0
+            ],
+            "theta": [
+              123.717809,
+              2.289725,
+              10.0,
+              16.10054,
+              151.128947
+            ],
+            "raw_theta": [
+              123.717809,
+              2.289725,
+              10.0,
+              16.10054,
+              151.128947
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.785865,
+            "cost": 4.785865,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 613,
+            "nfev": 1168
+          },
+          {
+            "index": 1,
+            "label": "lhs 1 (seed 20260921)",
+            "start_theta": [
+              132.333985,
+              0.839315,
+              337.101563,
+              133.141524,
+              89.442915
+            ],
+            "theta": [
+              123.817436,
+              2.293514,
+              10.0,
+              15.912182,
+              199.605636
+            ],
+            "raw_theta": [
+              123.817436,
+              2.293514,
+              10.0,
+              15.912182,
+              199.605636
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.755449,
+            "cost": 4.755449,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1612,
+            "nfev": 2840
+          },
+          {
+            "index": 2,
+            "label": "lhs 2 (seed 20260921)",
+            "start_theta": [
+              139.407276,
+              3.080835,
+              265.538955,
+              187.653453,
+              67.318519
+            ],
+            "theta": [
+              119.132989,
+              0.3,
+              184.159489,
+              23.405922,
+              22.250715
+            ],
+            "raw_theta": [
+              119.132989,
+              0.3,
+              184.159489,
+              23.405922,
+              22.250715
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.935821,
+            "cost": 4.935821,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 925,
+            "nfev": 1672
+          },
+          {
+            "index": 3,
+            "label": "lhs 3 (seed 20260921)",
+            "start_theta": [
+              178.247701,
+              2.825002,
+              225.529078,
+              156.262769,
+              161.02465
+            ],
+            "theta": [
+              123.822345,
+              2.292456,
+              10.145428,
+              15.914898,
+              200.0
+            ],
+            "raw_theta": [
+              123.822345,
+              2.292456,
+              10.145428,
+              15.914898,
+              200.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.755391,
+            "cost": 4.755391,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1362,
+            "nfev": 2419
+          },
+          {
+            "index": 4,
+            "label": "lhs 4 (seed 20260921)",
+            "start_theta": [
+              195.583992,
+              4.906681,
+              384.652194,
+              29.367811,
+              174.169591
+            ],
+            "theta": [
+              123.794415,
+              2.286456,
+              10.616722,
+              15.934121,
+              200.0
+            ],
+            "raw_theta": [
+              123.794415,
+              2.286456,
+              10.616722,
+              15.934121,
+              200.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.75584,
+            "cost": 4.75584,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1554,
+            "nfev": 2739
+          },
+          {
+            "index": 5,
+            "label": "lhs 5 (seed 20260921)",
+            "start_theta": [
+              56.719395,
+              1.937911,
+              185.425601,
+              72.743332,
+              10.489798
+            ],
+            "theta": [
+              119.175981,
+              0.3,
+              184.37279,
+              23.416839,
+              21.951448
+            ],
+            "raw_theta": [
+              119.175981,
+              0.3,
+              184.37279,
+              23.416839,
+              21.951448
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.935644,
+            "cost": 4.935644,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 780,
+            "nfev": 1440
+          },
+          {
+            "index": 6,
+            "label": "lhs 6 (seed 20260921)",
+            "start_theta": [
+              153.713869,
+              0.629633,
+              131.920867,
+              104.447207,
+              126.424664
+            ],
+            "theta": [
+              123.811667,
+              2.292204,
+              10.0,
+              16.085511,
+              180.865657
+            ],
+            "raw_theta": [
+              123.811667,
+              2.292204,
+              10.0,
+              16.085511,
+              180.865657
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.76562,
+            "cost": 4.76562,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1455,
+            "nfev": 2570
+          },
+          {
+            "index": 7,
+            "label": "lhs 7 (seed 20260921)",
+            "start_theta": [
+              100.955182,
+              4.408614,
+              330.794522,
+              83.409109,
+              46.711179
+            ],
+            "theta": [
+              123.709103,
+              2.257764,
+              13.149061,
+              15.984245,
+              200.0
+            ],
+            "raw_theta": [
+              123.709103,
+              2.257764,
+              13.149061,
+              15.984245,
+              200.0
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.758272,
+            "cost": 4.758272,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1697,
+            "nfev": 2980
+          },
+          {
+            "index": 8,
+            "label": "lhs 8 (seed 20260921)",
+            "start_theta": [
+              73.106793,
+              1.464265,
+              277.37633,
+              109.014368,
+              149.067491
+            ],
+            "theta": [
+              123.780781,
+              2.289294,
+              10.0,
+              15.940145,
+              185.800471
+            ],
+            "raw_theta": [
+              123.780781,
+              2.289294,
+              10.0,
+              15.940145,
+              185.800471
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.762902,
+            "cost": 4.762902,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 847,
+            "nfev": 1583
+          },
+          {
+            "index": 9,
+            "label": "lhs 9 (seed 20260921)",
+            "start_theta": [
+              162.764228,
+              2.435207,
+              48.440973,
+              144.070105,
+              81.173683
+            ],
+            "theta": [
+              123.782935,
+              2.290881,
+              10.0,
+              16.116022,
+              176.269234
+            ],
+            "raw_theta": [
+              123.782935,
+              2.290881,
+              10.0,
+              16.116022,
+              176.269234
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.768371,
+            "cost": 4.768371,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 999,
+            "nfev": 1774
+          },
+          {
+            "index": 10,
+            "label": "lhs 10 (seed 20260921)",
+            "start_theta": [
+              119.854604,
+              4.169538,
+              160.259935,
+              170.69102,
+              189.4412
+            ],
+            "theta": [
+              123.784322,
+              2.286498,
+              10.0,
+              17.542827,
+              113.113968
+            ],
+            "raw_theta": [
+              123.784322,
+              2.286498,
+              10.0,
+              17.542827,
+              113.113968
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.821747,
+            "cost": 4.821747,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1007,
+            "nfev": 1813
+          },
+          {
+            "index": 11,
+            "label": "lhs 11 (seed 20260921)",
+            "start_theta": [
+              50.386791,
+              1.767133,
+              22.022695,
+              51.321948,
+              110.986962
+            ],
+            "theta": [
+              123.824503,
+              2.293891,
+              10.0,
+              15.935881,
+              198.75098
+            ],
+            "raw_theta": [
+              123.824503,
+              2.293891,
+              10.0,
+              15.935881,
+              198.75098
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.755883,
+            "cost": 4.755883,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 906,
+            "nfev": 1620
+          },
+          {
+            "index": 12,
+            "label": "lhs 12 (seed 20260921)",
+            "start_theta": [
+              84.178544,
+              3.435584,
+              96.218508,
+              24.14663,
+              37.453239
+            ],
+            "theta": [
+              123.817523,
+              2.293543,
+              10.0,
+              15.907993,
+              199.999997
+            ],
+            "raw_theta": [
+              123.817523,
+              2.293543,
+              10.0,
+              15.907993,
+              199.999997
+            ],
+            "projected_onto_bounds": false,
+            "optimum_stopped_on_wall": false,
+            "optimiser_final_objective": 4.75525,
+            "cost": 4.75525,
+            "inside_bounds": true,
+            "feasible_candidate": true,
+            "success": true,
+            "status": 0,
+            "message": "Optimization terminated successfully.",
+            "nit": 1623,
+            "nfev": 2794
+          }
+        ]
+      },
+      "convergence": {
+        "solver": "scipy.optimize.minimize(method='Nelder-Mead', adaptive=True)",
+        "options": {
+          "adaptive": true,
+          "xatol": 1e-08,
+          "fatol": 1e-10,
+          "maxiter": 4000
+        },
+        "best_start_index": 12,
+        "status": 0,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "nit": 1623,
+        "nfev": 2794,
+        "stopped_on_wall": false,
+        "projected_onto_bounds": false,
+        "objective": "idm_core.constrained_total_error (box penalty outside the bounds, INFEASIBLE_COST wall for infeasible trajectories)"
+      }
+    }
+  },
+  "run_registry": {
+    "available": true,
+    "path": "data/run_registry.json",
+    "runs": {
+      "run_1": {
+        "collection": "collection_20260917_144342",
+        "source": "data/raw/collection_20260917_144342/straight_trajectory.csv",
+        "sha256": "0a9baed906809a3905d6d56e41f2da6a18b6111647896a363d2d493969457ee9",
+        "stage1_file": "data/preprocess/stage_1/run_1.csv",
+        "rows": 727
+      },
+      "run_2": {
+        "collection": "collection_20260922_142956",
+        "source": "data/raw/collection_20260922_142956/straight_trajectory.csv",
+        "sha256": "cc073d4122e65ac3c532146648f4d451ca7e25c5c62c25f8e22a98cd06f16581",
+        "stage1_file": "data/preprocess/stage_1/run_2.csv",
+        "rows": 3435
+      }
+    },
+    "collections": {
+      "collection_20260917_144342": "run_1",
+      "collection_20260922_142956": "run_2"
+    }
+  },
+  "self_checks": {
+    "run_1_has_parameters": true,
+    "run_1_parameters_within_bounds": true,
+    "run_2_has_parameters": true,
+    "run_2_parameters_within_bounds": true,
+    "runs_found": [
+      "run_1",
+      "run_2"
+    ],
+    "runs_found_nonempty": true,
+    "focus_run": "run_1",
+    "focus_event": "event_2",
+    "focus_beats_zero_model": true,
+    "focus_improvement_factor": 1.460949,
+    "run_1_event_2_spacing_rmse": 14.771181,
+    "run_1_event_2_zero_model_spacing_rmse": 21.579935,
+    "run_1_event_2_beats_zero_model": true,
+    "run_1_event_2_improvement_factor": 1.460949
+  }
+}

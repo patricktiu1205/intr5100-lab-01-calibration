@@ -1,0 +1,21 @@
+# Local environments and caches
+.venv/
+.conda/
+__pycache__/
+*.py[cod]
+.mplconfig/
+.DS_Store
+.pytest_cache/
+
+# Temporary compiler and rendering files
+.tmp/
+*.aux
+*.log
+*.out
+*.xdv
+*.synctex.gz
+
+# Local credentials
+.env
+.env.*
+!.env.example

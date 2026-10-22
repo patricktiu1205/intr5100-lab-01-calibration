@@ -1,0 +1,715 @@
+{
+  "analysis": "five-group IDM parameter comparison and validation-run analysis (Lab Session I)",
+  "script": "src/group_validation/group_validation_analysis.py",
+  "submitted_group": "group_4",
+  "groups": [
+    "group_1",
+    "group_2",
+    "group_3",
+    "group_4",
+    "group_5"
+  ],
+  "method_notes": {
+    "spacing_convention": "spacing = gap - L_VEH, L_VEH = 250 platform-record units",
+    "spacing_thresholds": [
+      100.0,
+      250.0
+    ],
+    "moving_speed_threshold": 0.3,
+    "jerk": "jerk_i = (a_idm[i] - a_idm[i-1]) / dt[i] over consecutive follower rows with both a_idm present and dt <= 1 s; RMS = sqrt(mean(jerk^2)); relationships across a mode gap larger than that are skipped",
+    "a_idm_present": "blank (NaN) in curve_fixed / non-IDM control steps, so dynamics are IDM-only",
+    "dimensionless_invariance": "v0~ = v0/sqrt(b*s0), a~ = a/b, T~ = T*sqrt(b/s0) are invariant under the multiplicative length-unit rescaling s->alpha*s and time-unit rescaling t->beta*t (v->v*alpha/beta, T->T*beta, a,b->a,b*alpha/beta^2)",
+    "cv": "coefficient of variation = sample std (ddof=1) / mean",
+    "units": "all validation quantities in the platform-record units of the log (coordinate units and coordinate units per second)"
+  },
+  "A_parameters": {
+    "raw_parameters": {
+      "group_1": {
+        "v0": 40.0,
+        "T": 7.55,
+        "s0": 126.34,
+        "a": 5.32,
+        "b": 80.0,
+        "delta": 4.0
+      },
+      "group_2": {
+        "v0": 188.5,
+        "T": 4.17,
+        "s0": 23.9,
+        "a": 139.6,
+        "b": 355.8,
+        "delta": 4.0
+      },
+      "group_3": {
+        "v0": 130.2,
+        "T": 3.19,
+        "s0": 30.0,
+        "a": 22.77,
+        "b": 26.46,
+        "delta": 4.0
+      },
+      "group_4": {
+        "v0": 41.12,
+        "T": 2.09,
+        "s0": 28.72,
+        "a": 13.97,
+        "b": 185.16,
+        "delta": 4.0
+      },
+      "group_5": {
+        "v0": 112.76,
+        "T": 1.65,
+        "s0": 92.46,
+        "a": 9.1,
+        "b": 45.19,
+        "delta": 4.0
+      }
+    },
+    "dimensionless": {
+      "group_1": {
+        "v0_tilde": 0.397873,
+        "a_tilde": 0.0665,
+        "T_tilde": 6.007884
+      },
+      "group_2": {
+        "v0_tilde": 2.044134,
+        "a_tilde": 0.392355,
+        "T_tilde": 16.089408
+      },
+      "group_3": {
+        "v0_tilde": 4.621207,
+        "a_tilde": 0.860544,
+        "T_tilde": 2.995884
+      },
+      "group_4": {
+        "v0_tilde": 0.563881,
+        "a_tilde": 0.075448,
+        "T_tilde": 5.306738
+      },
+      "group_5": {
+        "v0_tilde": 1.744444,
+        "a_tilde": 0.201372,
+        "T_tilde": 1.153528
+      }
+    },
+    "raw_spread": {
+      "v0": {
+        "n": 5,
+        "min": 40.0,
+        "max": 188.5,
+        "mean": 102.516,
+        "std": 63.131432,
+        "cv": 0.61582,
+        "range": 148.5
+      },
+      "T": {
+        "n": 5,
+        "min": 1.65,
+        "max": 7.55,
+        "mean": 3.73,
+        "std": 2.350191,
+        "cv": 0.630078,
+        "range": 5.9
+      },
+      "s0": {
+        "n": 5,
+        "min": 23.9,
+        "max": 126.34,
+        "mean": 60.284,
+        "std": 46.464751,
+        "cv": 0.770764,
+        "range": 102.44
+      },
+      "a": {
+        "n": 5,
+        "min": 5.32,
+        "max": 139.6,
+        "mean": 38.152,
+        "std": 57.085529,
+        "cv": 1.496266,
+        "range": 134.28
+      },
+      "b": {
+        "n": 5,
+        "min": 26.46,
+        "max": 355.8,
+        "mean": 138.522,
+        "std": 136.086747,
+        "cv": 0.98242,
+        "range": 329.34
+      },
+      "delta": {
+        "n": 5,
+        "min": 4.0,
+        "max": 4.0,
+        "mean": 4.0,
+        "std": 0.0,
+        "cv": 0.0,
+        "range": 0.0
+      }
+    },
+    "dimensionless_spread": {
+      "v0_tilde": {
+        "n": 5,
+        "min": 0.397873,
+        "max": 4.621207,
+        "mean": 1.874308,
+        "std": 1.694715,
+        "cv": 0.904182,
+        "range": 4.223334
+      },
+      "a_tilde": {
+        "n": 5,
+        "min": 0.0665,
+        "max": 0.860544,
+        "mean": 0.319244,
+        "std": 0.329985,
+        "cv": 1.033646,
+        "range": 0.794044
+      },
+      "T_tilde": {
+        "n": 5,
+        "min": 1.153528,
+        "max": 16.089408,
+        "mean": 6.310688,
+        "std": 5.794549,
+        "cv": 0.918212,
+        "range": 14.93588
+      }
+    }
+  },
+  "B_validation_runs": {
+    "group_1": {
+      "metadata": {
+        "leader_ip": "192.168.0.129",
+        "follower_ip": "192.168.0.102",
+        "line_name": "line1",
+        "leader_speed": 40,
+        "curve_speed": 35
+      },
+      "commands": {
+        "duration_s": 171.202296,
+        "follower_rows": 857,
+        "t_first_s": 0.038493,
+        "t_last_s": 171.240789,
+        "mode_counts": {
+          "curve_fixed": 505,
+          "idm_straight": 352
+        },
+        "spacing": {
+          "min": 434.630932,
+          "mean": 1561.69154,
+          "median": 1743.038704,
+          "count_below_100": 0,
+          "fraction_below_100": 0.0,
+          "count_below_250": 0,
+          "fraction_below_250": 0.0
+        },
+        "safety": {
+          "emergency_rows": 4,
+          "emergency_row_fraction": 0.004667,
+          "emergency_episodes": 4,
+          "episode_records": [
+            {
+              "start_s": 23.844172,
+              "end_s": 23.844172,
+              "n_samples": 1,
+              "mode": "idm_straight",
+              "spacing_at_trigger": 942.071865,
+              "spacing_min_in_episode": 942.071865
+            },
+            {
+              "start_s": 39.639301,
+              "end_s": 39.639301,
+              "n_samples": 1,
+              "mode": "idm_straight",
+              "spacing_at_trigger": 1098.843829,
+              "spacing_min_in_episode": 1098.843829
+            },
+            {
+              "start_s": 89.445761,
+              "end_s": 89.445761,
+              "n_samples": 1,
+              "mode": "curve_fixed",
+              "spacing_at_trigger": 1970.650343,
+              "spacing_min_in_episode": 1970.650343
+            },
+            {
+              "start_s": 89.845284,
+              "end_s": 89.845284,
+              "n_samples": 1,
+              "mode": "curve_fixed",
+              "spacing_at_trigger": 1973.648195,
+              "spacing_min_in_episode": 1973.648195
+            }
+          ]
+        },
+        "speed": {
+          "v_cmd_mean": 30.172697,
+          "v_cmd_max": 35.414001,
+          "v_cmd_min": 0.0,
+          "moving_threshold": 0.3,
+          "moving_count": 853,
+          "moving_fraction": 0.995333
+        },
+        "dynamics": {
+          "a_idm_samples": 352,
+          "a_idm_present_fraction": 0.410735,
+          "a_idm_rms": 3.577218,
+          "a_idm_abs_p95": 5.172904,
+          "a_idm_abs_max": 5.251555,
+          "a_idm_mean_signed": 3.217443,
+          "jerk_definition": "jerk_i = (a_idm[i] - a_idm[i-1]) / dt[i] over consecutive follower rows whose a_idm are both present and whose dt <= 1 s; RMS = sqrt(mean(jerk^2))",
+          "jerk_pairs": 344,
+          "jerk_gaps_skipped": 0,
+          "jerk_rms": 1.010725,
+          "jerk_abs_max": 18.407183
+        }
+      },
+      "trajectory": {
+        "trajectory_samples": 966,
+        "lateral_error_rms": 12.377623,
+        "lateral_error_abs_max": 93.0,
+        "max_route_distance": 93.0,
+        "t_last_s": 171.328073
+      },
+      "independent_check": {
+        "follower_rows": 857,
+        "spacing_min": 434.630932,
+        "emergency_rows": 4,
+        "emergency_episodes": 4,
+        "emergency_episode_modes": [
+          "idm_straight",
+          "idm_straight",
+          "curve_fixed",
+          "curve_fixed"
+        ],
+        "moving_count": 853,
+        "moving_fraction": 0.995333
+      }
+    },
+    "group_2": {
+      "metadata": {
+        "leader_ip": "192.168.0.129",
+        "follower_ip": "192.168.0.102",
+        "line_name": "line1",
+        "leader_speed": 40,
+        "curve_speed": 35
+      },
+      "commands": {
+        "duration_s": 149.00376,
+        "follower_rows": 746,
+        "t_first_s": 0.008113,
+        "t_last_s": 149.011873,
+        "mode_counts": {
+          "curve_fixed": 406,
+          "idm_straight": 340
+        },
+        "spacing": {
+          "min": 0.0,
+          "mean": 258.017108,
+          "median": 194.542966,
+          "count_below_100": 15,
+          "fraction_below_100": 0.020107,
+          "count_below_250": 442,
+          "fraction_below_250": 0.592493
+        },
+        "safety": {
+          "emergency_rows": 8,
+          "emergency_row_fraction": 0.010724,
+          "emergency_episodes": 2,
+          "episode_records": [
+            {
+              "start_s": 75.816074,
+              "end_s": 76.015279,
+              "n_samples": 2,
+              "mode": "curve_fixed",
+              "spacing_at_trigger": 338.247777,
+              "spacing_min_in_episode": 338.247777
+            },
+            {
+              "start_s": 111.411651,
+              "end_s": 112.418146,
+              "n_samples": 6,
+              "mode": "idm_straight",
+              "spacing_at_trigger": 0.0,
+              "spacing_min_in_episode": 0.0
+            }
+          ]
+        },
+        "speed": {
+          "v_cmd_mean": 34.283461,
+          "v_cmd_max": 98.488275,
+          "v_cmd_min": 0.0,
+          "moving_threshold": 0.3,
+          "moving_count": 737,
+          "moving_fraction": 0.987936
+        },
+        "dynamics": {
+          "a_idm_samples": 340,
+          "a_idm_present_fraction": 0.455764,
+          "a_idm_rms": 346.227109,
+          "a_idm_abs_p95": 117.347144,
+          "a_idm_abs_max": 4171.351725,
+          "a_idm_mean_signed": -20.152385,
+          "jerk_definition": "jerk_i = (a_idm[i] - a_idm[i-1]) / dt[i] over consecutive follower rows whose a_idm are both present and whose dt <= 1 s; RMS = sqrt(mean(jerk^2))",
+          "jerk_pairs": 335,
+          "jerk_gaps_skipped": 0,
+          "jerk_rms": 1485.842893,
+          "jerk_abs_max": 20719.269687
+        }
+      },
+      "trajectory": {
+        "trajectory_samples": 796,
+        "lateral_error_rms": 20.968704,
+        "lateral_error_abs_max": 94.0,
+        "max_route_distance": 94.0,
+        "t_last_s": 149.093643
+      },
+      "independent_check": {
+        "follower_rows": 746,
+        "spacing_min": 0.0,
+        "emergency_rows": 8,
+        "emergency_episodes": 2,
+        "emergency_episode_modes": [
+          "curve_fixed",
+          "idm_straight"
+        ],
+        "moving_count": 737,
+        "moving_fraction": 0.987936
+      }
+    },
+    "group_3": {
+      "metadata": {
+        "leader_ip": "192.168.0.124",
+        "follower_ip": "192.168.0.129",
+        "line_name": "line1",
+        "leader_speed": 40,
+        "curve_speed": 35
+      },
+      "commands": {
+        "duration_s": 151.001201,
+        "follower_rows": 756,
+        "t_first_s": 0.064272,
+        "t_last_s": 151.065473,
+        "mode_counts": {
+          "curve_fixed": 406,
+          "idm_straight": 350
+        },
+        "spacing": {
+          "min": 84.481307,
+          "mean": 276.587756,
+          "median": 259.229017,
+          "count_below_100": 65,
+          "fraction_below_100": 0.085979,
+          "count_below_250": 362,
+          "fraction_below_250": 0.478836
+        },
+        "safety": {
+          "emergency_rows": 0,
+          "emergency_row_fraction": 0.0,
+          "emergency_episodes": 0,
+          "episode_records": []
+        },
+        "speed": {
+          "v_cmd_mean": 35.21259,
+          "v_cmd_max": 81.054995,
+          "v_cmd_min": 3.348159,
+          "moving_threshold": 0.3,
+          "moving_count": 756,
+          "moving_fraction": 1.0
+        },
+        "dynamics": {
+          "a_idm_samples": 350,
+          "a_idm_present_fraction": 0.462963,
+          "a_idm_rms": 11.63362,
+          "a_idm_abs_p95": 21.470855,
+          "a_idm_abs_max": 28.519812,
+          "a_idm_mean_signed": 4.9549,
+          "jerk_definition": "jerk_i = (a_idm[i] - a_idm[i-1]) / dt[i] over consecutive follower rows whose a_idm are both present and whose dt <= 1 s; RMS = sqrt(mean(jerk^2))",
+          "jerk_pairs": 345,
+          "jerk_gaps_skipped": 0,
+          "jerk_rms": 7.236903,
+          "jerk_abs_max": 42.368214
+        }
+      },
+      "trajectory": {
+        "trajectory_samples": 895,
+        "lateral_error_rms": 20.571063,
+        "lateral_error_abs_max": 99.651798,
+        "max_route_distance": 99.651798,
+        "t_last_s": 151.136074
+      },
+      "independent_check": {
+        "follower_rows": 756,
+        "spacing_min": 84.481307,
+        "emergency_rows": 0,
+        "emergency_episodes": 0,
+        "emergency_episode_modes": [],
+        "moving_count": 756,
+        "moving_fraction": 1.0
+      }
+    },
+    "group_4": {
+      "metadata": {
+        "leader_ip": "192.168.0.129",
+        "follower_ip": "192.168.0.102",
+        "line_name": "line1",
+        "leader_speed": 40,
+        "curve_speed": 35
+      },
+      "commands": {
+        "duration_s": 149.606357,
+        "follower_rows": 749,
+        "t_first_s": 0.058982,
+        "t_last_s": 149.665339,
+        "mode_counts": {
+          "curve_fixed": 430,
+          "idm_straight": 319
+        },
+        "spacing": {
+          "min": 143.286121,
+          "mean": 589.739475,
+          "median": 608.779349,
+          "count_below_100": 0,
+          "fraction_below_100": 0.0,
+          "count_below_250": 113,
+          "fraction_below_250": 0.150868
+        },
+        "safety": {
+          "emergency_rows": 0,
+          "emergency_row_fraction": 0.0,
+          "emergency_episodes": 0,
+          "episode_records": []
+        },
+        "speed": {
+          "v_cmd_mean": 35.088882,
+          "v_cmd_max": 39.482715,
+          "v_cmd_min": 2.082652,
+          "moving_threshold": 0.3,
+          "moving_count": 749,
+          "moving_fraction": 1.0
+        },
+        "dynamics": {
+          "a_idm_samples": 319,
+          "a_idm_present_fraction": 0.425901,
+          "a_idm_rms": 6.096301,
+          "a_idm_abs_p95": 13.55985,
+          "a_idm_abs_max": 13.884345,
+          "a_idm_mean_signed": 4.923215,
+          "jerk_definition": "jerk_i = (a_idm[i] - a_idm[i-1]) / dt[i] over consecutive follower rows whose a_idm are both present and whose dt <= 1 s; RMS = sqrt(mean(jerk^2))",
+          "jerk_pairs": 311,
+          "jerk_gaps_skipped": 0,
+          "jerk_rms": 1.382397,
+          "jerk_abs_max": 5.917894
+        }
+      },
+      "trajectory": {
+        "trajectory_samples": 757,
+        "lateral_error_rms": 13.712752,
+        "lateral_error_abs_max": 96.219805,
+        "max_route_distance": 96.219805,
+        "t_last_s": 149.590015
+      },
+      "independent_check": {
+        "follower_rows": 749,
+        "spacing_min": 143.286121,
+        "emergency_rows": 0,
+        "emergency_episodes": 0,
+        "emergency_episode_modes": [],
+        "moving_count": 749,
+        "moving_fraction": 1.0
+      }
+    },
+    "group_5": {
+      "metadata": {
+        "leader_ip": "192.168.0.129",
+        "follower_ip": "192.168.0.102",
+        "line_name": "line1",
+        "leader_speed": 40,
+        "curve_speed": 35
+      },
+      "commands": {
+        "duration_s": 147.004928,
+        "follower_rows": 736,
+        "t_first_s": 0.084904,
+        "t_last_s": 147.089832,
+        "mode_counts": {
+          "curve_fixed": 420,
+          "idm_straight": 316
+        },
+        "spacing": {
+          "min": 44.392424,
+          "mean": 569.488468,
+          "median": 483.473932,
+          "count_below_100": 32,
+          "fraction_below_100": 0.043478,
+          "count_below_250": 188,
+          "fraction_below_250": 0.255435
+        },
+        "safety": {
+          "emergency_rows": 0,
+          "emergency_row_fraction": 0.0,
+          "emergency_episodes": 0,
+          "episode_records": []
+        },
+        "speed": {
+          "v_cmd_mean": 36.466405,
+          "v_cmd_max": 61.095061,
+          "v_cmd_min": 0.0,
+          "moving_threshold": 0.3,
+          "moving_count": 730,
+          "moving_fraction": 0.991848
+        },
+        "dynamics": {
+          "a_idm_samples": 316,
+          "a_idm_present_fraction": 0.429348,
+          "a_idm_rms": 8.045045,
+          "a_idm_abs_p95": 8.84557,
+          "a_idm_abs_max": 29.182452,
+          "a_idm_mean_signed": 5.01669,
+          "jerk_definition": "jerk_i = (a_idm[i] - a_idm[i-1]) / dt[i] over consecutive follower rows whose a_idm are both present and whose dt <= 1 s; RMS = sqrt(mean(jerk^2))",
+          "jerk_pairs": 308,
+          "jerk_gaps_skipped": 0,
+          "jerk_rms": 4.871725,
+          "jerk_abs_max": 41.836479
+        }
+      },
+      "trajectory": {
+        "trajectory_samples": 777,
+        "lateral_error_rms": 17.372142,
+        "lateral_error_abs_max": 93.593776,
+        "max_route_distance": 93.593776,
+        "t_last_s": 147.157868
+      },
+      "independent_check": {
+        "follower_rows": 736,
+        "spacing_min": 44.392424,
+        "emergency_rows": 0,
+        "emergency_episodes": 0,
+        "emergency_episode_modes": [],
+        "moving_count": 730,
+        "moving_fraction": 0.991848
+      }
+    }
+  },
+  "C_interpretation": {
+    "safety_rank_by_spacing_min_best_first": [
+      "group_1",
+      "group_4",
+      "group_3",
+      "group_5",
+      "group_2"
+    ],
+    "safety_rank_by_emergency_episodes_best_first": [
+      "group_4",
+      "group_3",
+      "group_5",
+      "group_2",
+      "group_1"
+    ],
+    "efficiency_rank_by_v_cmd_mean_best_first": [
+      "group_5",
+      "group_3",
+      "group_4",
+      "group_2",
+      "group_1"
+    ],
+    "efficiency_rank_by_duration_best_first": [
+      "group_5",
+      "group_2",
+      "group_4",
+      "group_3",
+      "group_1"
+    ],
+    "pure_idm_groups": [
+      "group_3",
+      "group_4",
+      "group_5"
+    ],
+    "safety_layer_groups": [
+      "group_1",
+      "group_2"
+    ],
+    "group_1_triggers_are_proximity_driven": false,
+    "notes": [
+      "group_4 (our submission) is a pure-IDM run: 0 emergency episodes, minimum spacing 143.3 units, dimensionless v0~=0.564, a~=0.075, T~=5.307.",
+      "groups that needed the safety layer (>=1 emergency episode): ['group_1', 'group_2']; groups that stayed in pure IDM control: ['group_3', 'group_4', 'group_5'].",
+      "group_1 fires its emergency flag at large spacing (min spacing over the run 434.6 units); its triggers are therefore NOT proximity-driven, so ranking it least-safe by raw episode count is misleading. proximity-driven=False.",
+      "group_2 is the only run whose spacing reaches the floor (min spacing = 0.0) and whose emergency triggers coincide with spacing 0-5.5 units: it is the genuinely proximity-critical run.",
+      "the mean commanded speed (v_cmd) is a scale-dependent quantity and is confounded across groups; the speed-based efficiency ordering is descriptive only, unlike the moving fraction, which is dimensionless and comparable.",
+      "no monotone relation holds between the dimensionless combinations and the safety-layer usage: group_1 (smallest v0~ and a~) and group_2 (largest T~) sit at different corners of the box yet both triggered the layer."
+    ],
+    "caveats": [
+      "each group ran a different physical car / IP (metadata.json leader_ip / follower_ip), so run-to-run differences confound parameter differences",
+      "one run per group: no repetition, therefore no inferential claim, only descriptive ordering",
+      "the raw parameter scales are inconsistent between groups (different units/gauges), so only the dimensionless combinations are comparable",
+      "device / recording-scale differences (coordinate-unit speed vs vehicle-reported speed) are not removable from these logs"
+    ]
+  },
+  "self_check": {
+    "all_agree": true,
+    "per_group": {
+      "group_1": {
+        "spacing_min_pandas": 434.630932,
+        "spacing_min_csv": 434.630932,
+        "spacing_min_abs_diff": 0.0,
+        "emergency_rows_pandas": 4,
+        "emergency_rows_csv": 4,
+        "emergency_episodes_pandas": 4,
+        "emergency_episodes_csv": 4,
+        "moving_count_pandas": 853,
+        "moving_count_csv": 853,
+        "agree": true
+      },
+      "group_2": {
+        "spacing_min_pandas": 0.0,
+        "spacing_min_csv": 0.0,
+        "spacing_min_abs_diff": 0.0,
+        "emergency_rows_pandas": 8,
+        "emergency_rows_csv": 8,
+        "emergency_episodes_pandas": 2,
+        "emergency_episodes_csv": 2,
+        "moving_count_pandas": 737,
+        "moving_count_csv": 737,
+        "agree": true
+      },
+      "group_3": {
+        "spacing_min_pandas": 84.481307,
+        "spacing_min_csv": 84.481307,
+        "spacing_min_abs_diff": 0.0,
+        "emergency_rows_pandas": 0,
+        "emergency_rows_csv": 0,
+        "emergency_episodes_pandas": 0,
+        "emergency_episodes_csv": 0,
+        "moving_count_pandas": 756,
+        "moving_count_csv": 756,
+        "agree": true
+      },
+      "group_4": {
+        "spacing_min_pandas": 143.286121,
+        "spacing_min_csv": 143.286121,
+        "spacing_min_abs_diff": 0.0,
+        "emergency_rows_pandas": 0,
+        "emergency_rows_csv": 0,
+        "emergency_episodes_pandas": 0,
+        "emergency_episodes_csv": 0,
+        "moving_count_pandas": 749,
+        "moving_count_csv": 749,
+        "agree": true
+      },
+      "group_5": {
+        "spacing_min_pandas": 44.392424,
+        "spacing_min_csv": 44.392424,
+        "spacing_min_abs_diff": 7.105427357601002e-15,
+        "emergency_rows_pandas": 0,
+        "emergency_rows_csv": 0,
+        "emergency_episodes_pandas": 0,
+        "emergency_episodes_csv": 0,
+        "moving_count_pandas": 730,
+        "moving_count_csv": 730,
+        "agree": true
+      }
+    }
+  }
+}

@@ -1,0 +1,105 @@
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+stage 2 input: data/preprocess/stage_2
+output dir   : data/preprocess/stage_3
+
+configuration:
+  grid step                 : dt = 0.1 s
+  grid time resolution      : 6 printed decimals (right edge appended as closing instant)
+  minimum overlap           : 1.0 s (shorter -> event deleted, reason no_overlap)
+  interpolation span limit  : 0.3 s (larger -> time point deleted for both roles)
+
+events found in stage_2: 16
+
+rebuilt output dir, removed previous content: run_1_event_2.csv, run_1_event_3.csv, stage3_summary.json
+
+per-event alignment:
+  run_1_event_1.csv        input rows: follower=18, leader=4               t: follower [4.63057, 6.415966]  leader [-0.054888, 0.352735]
+      -> DELETED (reason: no_overlap, empty_intersection): overlap length -4.277835 s < 1.0 s; 22 non-overlapping rows dropped
+
+  run_1_event_2.csv        input rows: follower=230, leader=225            t: follower [12.442953, 38.593424]  leader [8.39649, 33.865332]
+      overlap [12.442953, 33.865332] = 21.422379 s, non-overlapping rows dropped: follower 46, leader 38
+      grid: 216 instants -> kept 211, removed 5 (5 discontinuity (follower 5, leader 3), 0 outside source range), max span 0.453398 s (max span kept 0.22099 s)
+      deleted time points: 22.442953, 22.542953, 22.642953, 22.742953, 22.842953
+      wrote run_1_event_2.csv: 422 rows (follower 211 + leader 211)  timestamps identical follower/leader: yes
+
+  run_1_event_3.csv        input rows: follower=105, leader=145            t: follower [46.047997, 58.330555]  leader [41.815037, 58.337247]
+      overlap [46.047997, 58.330555] = 12.282558 s, non-overlapping rows dropped: follower 0, leader 39
+      grid: 124 instants -> kept 124, removed 0 (0 discontinuity (follower 0, leader 0), 0 outside source range), max span 0.268418 s (max span kept 0.268418 s)
+      wrote run_1_event_3.csv: 248 rows (follower 124 + leader 124)  timestamps identical follower/leader: yes
+
+  run_2_event_1.csv        input rows: follower=261, leader=171            t: follower [1.502474, 37.627446]  leader [1.141841, 30.469]
+      overlap [1.502474, 30.469] = 28.966526 s, non-overlapping rows dropped: follower 63, leader 2
+      grid: 291 instants -> kept 184, removed 107 (107 discontinuity (follower 38, leader 88), 0 outside source range), max span 0.836315 s (max span kept 0.298862 s)
+      deleted time points: 2.002474, 2.102474, 2.202474, 2.302474, 2.402474, 4.302474, 4.402474, 4.502474, 5.302474, 5.402474, 5.502474, 6.402474, 6.502474, 6.602474, 7.402474, 7.502474, 7.602474, 8.002474, 8.102474, 8.202474, 8.302474, 8.402474, 8.502474, 8.602474, 8.702474, 10.102474, 10.202474, 10.302474, 11.602474, 11.702474, 11.802474, 12.102474, 12.202474, 12.302474, 12.402474, 12.502474, 12.602474, 12.702474, 12.802474, 12.902474, 14.902474, 15.002474, 15.102474, 15.702474, 15.802474, 15.902474, 16.002474, 16.902474, 17.002474, 17.102474, 17.502474, 17.602474, 17.702474, 18.002474, 18.102474, 18.202474, 18.302474, 18.502474, 18.602474, 18.702474, 19.002474, 19.102474, 19.202474, 20.002474, 20.102474, 20.202474, 20.602474, 20.702474, 20.802474, 21.102474, 21.202474, 21.302474, 21.402474, 21.502474, 21.602474, 21.702474, 21.802474, 21.902474, 22.702474, 22.802474, 22.902474, 23.002474, 23.102474, 23.202474, 23.302474, 23.402474, 24.202474, 24.302474, 24.402474, 25.702474, 25.802474, 25.902474, 26.002474, 26.102474, 26.202474, 26.302474, 26.402474, 26.502474, 26.602474, 26.702474, 26.802474, 27.402474, 27.502474, 27.602474, 29.502474, 29.602474, 29.702474
+      wrote run_2_event_1.csv: 368 rows (follower 184 + leader 184)  timestamps identical follower/leader: yes
+
+  run_2_event_2.csv        input rows: follower=90, leader=62              t: follower [47.980696, 57.384806]  leader [40.357282, 47.875813]
+      -> DELETED (reason: no_overlap, empty_intersection): overlap length -0.104883 s < 1.0 s; 152 non-overlapping rows dropped
+
+  run_2_event_3.csv        input rows: follower=127, leader=118            t: follower [66.113415, 78.895299]  leader [57.532075, 70.928018]
+      overlap [66.113415, 70.928018] = 4.814603 s, non-overlapping rows dropped: follower 79, leader 72
+      grid: 50 instants -> kept 50, removed 0 (0 discontinuity (follower 0, leader 0), 0 outside source range), max span 0.192932 s (max span kept 0.192932 s)
+      wrote run_2_event_3.csv: 100 rows (follower 50 + leader 50)  timestamps identical follower/leader: yes
+
+  run_2_event_4.csv        input rows: follower=25, leader=21              t: follower [86.139749, 88.543494]  leader [79.893573, 82.314232]
+      -> DELETED (reason: no_overlap, empty_intersection): overlap length -3.825517 s < 1.0 s; 46 non-overlapping rows dropped
+
+  run_2_event_5.csv        input rows: follower=24, leader=25              t: follower [96.693091, 99.318468]  leader [91.38235, 94.010883]
+      -> DELETED (reason: no_overlap, empty_intersection): overlap length -2.682208 s < 1.0 s; 49 non-overlapping rows dropped
+
+  run_2_event_6.csv        input rows: follower=300, leader=287            t: follower [108.365971, 139.464819]  leader [103.260567, 133.366433]
+      overlap [108.365971, 133.366433] = 25.000462 s, non-overlapping rows dropped: follower 61, leader 45
+      grid: 252 instants -> kept 252, removed 0 (0 discontinuity (follower 0, leader 0), 0 outside source range), max span 0.219314 s (max span kept 0.219314 s)
+      wrote run_2_event_6.csv: 504 rows (follower 252 + leader 252)  timestamps identical follower/leader: yes
+
+  run_2_event_7.csv        input rows: follower=271, leader=276            t: follower [150.377398, 178.570093]  leader [142.732015, 172.839221]
+      overlap [150.377398, 172.839221] = 22.461823 s, non-overlapping rows dropped: follower 57, leader 74
+      grid: 226 instants -> kept 217, removed 9 (9 discontinuity (follower 0, leader 9), 0 outside source range), max span 0.458707 s (max span kept 0.275207 s)
+      deleted time points: 158.577398, 158.677398, 158.777398, 158.877398, 158.977398, 162.177398, 162.277398, 162.377398, 162.477398
+      wrote run_2_event_7.csv: 434 rows (follower 217 + leader 217)  timestamps identical follower/leader: yes
+
+  run_2_event_8.csv        input rows: follower=85, leader=81              t: follower [188.048602, 196.916104]  leader [182.117352, 190.653735]
+      overlap [188.048602, 190.653735] = 2.605133 s, non-overlapping rows dropped: follower 59, leader 56
+      grid: 28 instants -> kept 28, removed 0 (0 discontinuity (follower 0, leader 0), 0 outside source range), max span 0.206762 s (max span kept 0.206762 s)
+      wrote run_2_event_8.csv: 56 rows (follower 28 + leader 28)  timestamps identical follower/leader: yes
+
+  run_2_event_9.csv        input rows: follower=159, leader=152            t: follower [205.800498, 222.232595]  leader [199.720928, 215.827731]
+      overlap [205.800498, 215.827731] = 10.027233 s, non-overlapping rows dropped: follower 63, leader 58
+      grid: 102 instants -> kept 102, removed 0 (0 discontinuity (follower 0, leader 0), 0 outside source range), max span 0.204431 s (max span kept 0.204431 s)
+      wrote run_2_event_9.csv: 204 rows (follower 102 + leader 102)  timestamps identical follower/leader: yes
+
+  run_2_event_10.csv       input rows: follower=26, leader=24              t: follower [231.698012, 234.333631]  leader [224.886816, 227.29812]
+      -> DELETED (reason: no_overlap, empty_intersection): overlap length -4.399892 s < 1.0 s; 50 non-overlapping rows dropped
+
+  run_2_event_11.csv       input rows: follower=22, leader=27              t: follower [242.946081, 245.237259]  leader [236.36373, 239.078095]
+      -> DELETED (reason: no_overlap, empty_intersection): overlap length -3.867986 s < 1.0 s; 49 non-overlapping rows dropped
+
+  run_2_event_12.csv       input rows: follower=234, leader=211            t: follower [253.934795, 278.945129]  leader [248.230527, 273.021959]
+      overlap [253.934795, 273.021959] = 19.087164 s, non-overlapping rows dropped: follower 57, leader 52
+      grid: 192 instants -> kept 169, removed 23 (23 discontinuity (follower 0, leader 23), 0 outside source range), max span 0.591622 s (max span kept 0.232568 s)
+      deleted time points: 259.334795, 259.434795, 259.534795, 259.634795, 259.734795, 259.934795, 260.034795, 260.134795, 260.234795, 262.934795, 263.034795, 263.134795, 263.234795, 264.134795, 264.234795, 264.334795, 269.034795, 269.134795, 269.234795, 269.334795, 269.434795, 269.534795, 269.634795
+      wrote run_2_event_12.csv: 338 rows (follower 169 + leader 169)  timestamps identical follower/leader: yes
+
+  run_2_event_13.csv       input rows: follower=154, leader=183            t: follower [287.651011, 304.083341]  leader [282.067606, 304.028865]
+      overlap [287.651011, 304.028865] = 16.377854 s, non-overlapping rows dropped: follower 1, leader 48
+      grid: 165 instants -> kept 143, removed 22 (22 discontinuity (follower 0, leader 22), 0 outside source range), max span 0.610506 s (max span kept 0.285683 s)
+      deleted time points: 289.451011, 289.551011, 289.651011, 289.751011, 290.451011, 290.551011, 290.651011, 290.751011, 290.851011, 292.351011, 292.451011, 292.551011, 292.651011, 295.351011, 295.451011, 295.551011, 295.651011, 295.751011, 295.851011, 295.951011, 296.051011, 296.151011
+      wrote run_2_event_13.csv: 286 rows (follower 143 + leader 143)  timestamps identical follower/leader: yes
+
+on-disk verification (re-read after writing):
+  run_1_event_2.csv   rows=422  (follower/leader timestamps identical: yes)  OK
+  run_1_event_3.csv   rows=248  (follower/leader timestamps identical: yes)  OK
+  run_2_event_1.csv   rows=368  (follower/leader timestamps identical: yes)  OK
+  run_2_event_3.csv   rows=100  (follower/leader timestamps identical: yes)  OK
+  run_2_event_6.csv   rows=504  (follower/leader timestamps identical: yes)  OK
+  run_2_event_7.csv   rows=434  (follower/leader timestamps identical: yes)  OK
+  run_2_event_8.csv   rows=56  (follower/leader timestamps identical: yes)  OK
+  run_2_event_9.csv   rows=204  (follower/leader timestamps identical: yes)  OK
+  run_2_event_12.csv  rows=338  (follower/leader timestamps identical: yes)  OK
+  run_2_event_13.csv  rows=286  (follower/leader timestamps identical: yes)  OK
+  total written data rows: 2960
+  total surviving grid instants (x2 = rows): 1480
+  total removed grid instants: 166
+
+.tmp leftovers: none
+stage_3 dir contents: run_1_event_2.csv, run_1_event_3.csv, run_2_event_1.csv, run_2_event_12.csv, run_2_event_13.csv, run_2_event_3.csv, run_2_event_6.csv, run_2_event_7.csv, run_2_event_8.csv, run_2_event_9.csv, stage3_summary.json

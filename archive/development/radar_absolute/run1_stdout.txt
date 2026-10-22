@@ -1,0 +1,37 @@
+script  : src/tgsim/plot_events.py
+figures : results/figures/tgsim
+  results/figures/tgsim/fig_01_spacing_fit_HV-HV.png (280924 bytes)
+  results/figures/tgsim/fig_03_spacing_fit_HV-AV.png (202713 bytes)
+  results/figures/tgsim/fig_02_speed_fit_HV-HV.png (292950 bytes)
+  results/figures/tgsim/fig_04_speed_fit_HV-AV.png (227223 bytes)
+  results/figures/tgsim/fig_05_error_comparison.png (127073 bytes)
+  results/figures/tgsim/fig_06_style_bars.png (126430 bytes)
+  results/figures/tgsim/fig_09_style_radar.png (140210 bytes)
+  results/figures/tgsim/fig_07_ttc.png (106649 bytes)
+  results/figures/tgsim/fig_08_spacing_speed_and_accel.png (230866 bytes)
+  results/figures/tgsim/fig_10_dimensionless.png (64283 bytes)
+  results/figures/tgsim/fig_11_convergence.png (96302 bytes)
+style radar: absolute 0-1 rubric (fixed anchors, identical for both pairs)
+  axis (metric key)                        anchors: raw value -> score
+  efficiency (moving fraction)           (moving_fraction)
+                                         0 -> 0, 1 -> 1
+  gap keeping (mean spacing)             (spacing_mean_m)
+                                         5 -> 0, 10 -> 1, 25 -> 1, 40 -> 0
+  closest approach (min spacing)         (spacing_min_m)
+                                         2 -> 0, 6 -> 1
+  smoothness (low jerk)                  (jerk_rms_smoothed_mps3)
+                                         0.5 -> 1, 3 -> 0
+  comfort (low accel)                    (accel_rms_mps2)
+                                         0.5 -> 1, 3 -> 0
+  pair    axis                                   raw value   score
+  HV-HV   efficiency (moving fraction)              0.7550   0.7550
+  HV-HV   gap keeping (mean spacing)                8.5052   0.7010
+  HV-HV   closest approach (min spacing)            4.2383   0.5596
+  HV-HV   smoothness (low jerk)                     0.3774   1.0000
+  HV-HV   comfort (low accel)                       0.3806   1.0000
+  HV-AV   efficiency (moving fraction)              0.7806   0.7806
+  HV-AV   gap keeping (mean spacing)               14.2643   1.0000
+  HV-AV   closest approach (min spacing)            8.7968   1.0000
+  HV-AV   smoothness (low jerk)                     0.3351   1.0000
+  HV-AV   comfort (low accel)                       0.3369   1.0000
+.tmp leftovers: none

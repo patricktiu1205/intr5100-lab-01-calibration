@@ -1,0 +1,44 @@
+rubric_score unit checks (values taken from the brief, not from the data)
+  PASS  efficiency 0.0                                 got 0.0                    expected 0.0
+  PASS  efficiency 0.754953                            got 0.754953               expected 0.754953
+  PASS  efficiency 1.0                                 got 1.0                    expected 1.0
+  PASS  gap 5 m -> 0                                   got 0.0                    expected 0.0
+  PASS  gap 7.5 m -> 0.5 (ramp up)                     got 0.5                    expected 0.5
+  PASS  gap 10 m -> 1                                  got 1.0                    expected 1.0
+  PASS  gap 17.5 m -> 1 (plateau)                      got 1.0                    expected 1.0
+  PASS  gap 25 m -> 1                                  got 1.0                    expected 1.0
+  PASS  gap 32.5 m -> 0.5 (ramp down)                  got 0.5                    expected 0.5
+  PASS  gap 40 m -> 0                                  got 0.0                    expected 0.0
+  PASS  gap 4 m -> 0 (clamp below)                     got 0.0                    expected 0.0
+  PASS  gap 60 m -> 0 (clamp above)                    got 0.0                    expected 0.0
+  PASS  gap 8.50522 m                                  got 0.7010439999999999     expected 0.7010439999999999
+  PASS  min spacing 2 m -> 0                           got 0.0                    expected 0.0
+  PASS  min spacing 4.238255 m                         got 0.5595637499999999     expected 0.5595637499999999
+  PASS  min spacing 6 m -> 1                           got 1.0                    expected 1.0
+  PASS  min spacing 9 m -> 1 (clamp)                   got 1.0                    expected 1.0
+  PASS  jerk_rms_smoothed_mps3 x=3.0 -> 0              got 0.0                    expected 0.0
+  PASS  jerk_rms_smoothed_mps3 x=1.75 -> 0.5           got 0.5                    expected 0.5
+  PASS  jerk_rms_smoothed_mps3 x=0.5 -> 1              got 1.0                    expected 1.0
+  PASS  jerk_rms_smoothed_mps3 x=0.2 -> 1 (clamp)      got 1.0                    expected 1.0
+  PASS  jerk_rms_smoothed_mps3 x=4.0 -> 0 (clamp)      got 0.0                    expected 0.0
+  PASS  jerk_rms_smoothed_mps3 x=0.0 == clamp((3-x)/2.5) got 1.0                    expected 1.0
+  PASS  jerk_rms_smoothed_mps3 x=0.377389 == clamp((3-x)/2.5) got 1.0                    expected 1.0
+  PASS  jerk_rms_smoothed_mps3 x=1.0 == clamp((3-x)/2.5) got 0.8                    expected 0.8
+  PASS  jerk_rms_smoothed_mps3 x=2.4 == clamp((3-x)/2.5) got 0.24                   expected 0.24000000000000005
+  PASS  jerk_rms_smoothed_mps3 x=5.0 == clamp((3-x)/2.5) got 0.0                    expected 0.0
+  PASS  accel_rms_mps2 x=3.0 -> 0                      got 0.0                    expected 0.0
+  PASS  accel_rms_mps2 x=1.75 -> 0.5                   got 0.5                    expected 0.5
+  PASS  accel_rms_mps2 x=0.5 -> 1                      got 1.0                    expected 1.0
+  PASS  accel_rms_mps2 x=0.2 -> 1 (clamp)              got 1.0                    expected 1.0
+  PASS  accel_rms_mps2 x=4.0 -> 0 (clamp)              got 0.0                    expected 0.0
+  PASS  accel_rms_mps2 x=0.0 == clamp((3-x)/2.5)       got 1.0                    expected 1.0
+  PASS  accel_rms_mps2 x=0.377389 == clamp((3-x)/2.5)  got 1.0                    expected 1.0
+  PASS  accel_rms_mps2 x=1.0 == clamp((3-x)/2.5)       got 0.8                    expected 0.8
+  PASS  accel_rms_mps2 x=2.4 == clamp((3-x)/2.5)       got 0.24                   expected 0.24000000000000005
+  PASS  accel_rms_mps2 x=5.0 == clamp((3-x)/2.5)       got 0.0                    expected 0.0
+  PASS  None -> 0.0                                    got 0.0                    expected 0.0
+  PASS  NaN -> 0.0                                     got 0.0                    expected 0.0
+  PASS  +inf -> 0.0                                    got 0.0                    expected 0.0
+  PASS  data independence (0.9 twice)                  got 0.9                    expected 0.9
+
+unit checks: ALL PASS

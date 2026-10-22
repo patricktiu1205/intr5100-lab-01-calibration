@@ -1,0 +1,180 @@
+{
+  "HV-HV": {
+    "source": "HV-HV.csv",
+    "stop_runs": 12,
+    "events": [
+      {
+        "event": "event_1.csv",
+        "n": 141,
+        "t0": 26.3,
+        "t1": 40.3,
+        "s_min": 2.7,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      },
+      {
+        "event": "event_2.csv",
+        "n": 498,
+        "t0": 40.4,
+        "t1": 90.1,
+        "s_min": 2.09,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      },
+      {
+        "event": "event_3.csv",
+        "n": 815,
+        "t0": 90.2,
+        "t1": 171.6,
+        "s_min": 4.57,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      },
+      {
+        "event": "event_4.csv",
+        "n": 154,
+        "t0": 171.7,
+        "t1": 187.0,
+        "s_min": 4.45,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      },
+      {
+        "event": "event_5.csv",
+        "n": 662,
+        "t0": 187.1,
+        "t1": 253.2,
+        "s_min": 4.83,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      },
+      {
+        "event": "event_6.csv",
+        "n": 158,
+        "t0": 253.3,
+        "t1": 269.0,
+        "s_min": 3.88,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      },
+      {
+        "event": "event_7.csv",
+        "n": 79,
+        "t0": 273.5,
+        "t1": 281.3,
+        "s_min": 3.44,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      },
+      {
+        "event": "event_8.csv",
+        "n": 541,
+        "t0": 281.4,
+        "t1": 335.4,
+        "s_min": 3.8,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      },
+      {
+        "event": "event_9.csv",
+        "n": 209,
+        "t0": 335.5,
+        "t1": 356.3,
+        "s_min": 5.35,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      },
+      {
+        "event": "event_10.csv",
+        "n": 994,
+        "t0": 356.4,
+        "t1": 455.7,
+        "s_min": 7.26,
+        "leader_length": 4.83,
+        "follower_length": 4.15
+      }
+    ],
+    "total_samples": 4251,
+    "spacing_definition": "s = hypot(leader xloc/yloc - follower xloc/yloc) - leader_length (metric m; dhw column = raw centre distance)"
+  },
+  "HV-AV": {
+    "source": "HV-AV.csv",
+    "stop_runs": 7,
+    "events": [
+      {
+        "event": "event_1.csv",
+        "n": 535,
+        "t0": 115.6,
+        "t1": 169.0,
+        "s_min": 3.83,
+        "leader_length": 4.52,
+        "follower_length": 4.74
+      },
+      {
+        "event": "event_2.csv",
+        "n": 997,
+        "t0": 169.1,
+        "t1": 268.7,
+        "s_min": 4.03,
+        "leader_length": 4.52,
+        "follower_length": 4.74
+      },
+      {
+        "event": "event_3.csv",
+        "n": 174,
+        "t0": 268.8,
+        "t1": 286.1,
+        "s_min": 3.91,
+        "leader_length": 4.52,
+        "follower_length": 4.74
+      },
+      {
+        "event": "event_4.csv",
+        "n": 721,
+        "t0": 286.2,
+        "t1": 358.2,
+        "s_min": 5.51,
+        "leader_length": 4.52,
+        "follower_length": 4.74
+      },
+      {
+        "event": "event_5.csv",
+        "n": 238,
+        "t0": 358.3,
+        "t1": 382.0,
+        "s_min": 3.95,
+        "leader_length": 4.52,
+        "follower_length": 4.74
+      },
+      {
+        "event": "event_6.csv",
+        "n": 807,
+        "t0": 382.1,
+        "t1": 462.7,
+        "s_min": 6.43,
+        "leader_length": 4.52,
+        "follower_length": 4.74
+      },
+      {
+        "event": "event_7.csv",
+        "n": 570,
+        "t0": 462.8,
+        "t1": 519.7,
+        "s_min": 7.99,
+        "leader_length": 4.52,
+        "follower_length": 4.74
+      },
+      {
+        "event": "event_8.csv",
+        "n": 328,
+        "t0": 519.8,
+        "t1": 552.5,
+        "s_min": 34.72,
+        "leader_length": 4.52,
+        "follower_length": 4.74
+      }
+    ],
+    "total_samples": 4370,
+    "spacing_definition": "s = hypot(leader xloc/yloc - follower xloc/yloc) - leader_length (metric m; dhw column = raw centre distance)"
+  }
+}

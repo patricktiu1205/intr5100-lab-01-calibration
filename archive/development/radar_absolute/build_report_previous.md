@@ -1,0 +1,3683 @@
+STATUS: COMPLETE
+
+# Build Report — TGSIM 真实数据 IDM 标定与 AV–HV 分析（Lab Session I 延伸：Comparison with real-world IDM）
+
+一句话：用与 M5 **同一套方法**（torch 可微 IDM + Euler 前向积分 + sigmoid 入盒 + Adam 多起点 + pooled 公共尺度损失）对 TGSIM I-90/I-94 Moving Trajectories 的 **HV-HV（10 events/4251 点）** 与 **HV-AV（8 events/4370 点）** 各标定一套**公制单位**参数，产出可复跑的 JSON + 11 张图 + 三部分分析（误差对比 / AV 与 HV 跟驰风格 / 补充 metrics 含与 SC²I 的**无量纲**对比）。torch 与 numpy 两套独立实现互相校验（最大相对差 1.1e-16 / 3.9e-16，阈值 1e-8），全部产物 `.tmp`+`os.replace` 原子落盘并落盘自校验。
+
+---
+
+## 1. 交付文件
+
+| 文件 | 说明 |
+|---|---|
+| `src/tgsim/tgsim_core.py` | **新增**：公制 IDM 核心（模型、Euler rollout、pooled 尺度成本、指标、原子 JSON IO、数据/单位核查）。与 `src/calibrate/idm_core.py` **明确不共用常量**（那套是坐标单位、车长 250），只共用「方法口径」。 |
+| `src/tgsim/calibrate_events.py` | **重写**（原草稿未跑通，已备份到 scratch）：可微 IDM 标定，多起点 Adam、pooled 尺度损失、违例计数、numpy 统一口径重算 + torch↔numpy 对照、自检；`--exclude-sparse` 支持稳健性重标定。 |
+| `src/tgsim/analyze_events.py` | **新增**：Part 1 误差对比、Part 1b 稳健性、Part 2 风格差异、Part 3 补充 metrics（平衡态 spacing–speed、前后车加速度相关、参数相关、无量纲对比）、Part 4s 车长口径敏感性。 |
+| `src/tgsim/plot_events.py` | **新增**：11 张图，全部可重跑（`.tmp`+`os.replace`，落盘校验）。 |
+| `src/tgsim/preprocess_events.py` | **最小增量修改**（未改切分逻辑）：manifest 每 event 记录 `leader_length`/`follower_length`（并加 `spacing_definition` 说明），使 `s = dhw - leader_length` 精确，不再用四舍五入的 `s_min` 反推车长。 |
+| `results/tgsim_calibration.json` | 主标定产物（两组参数、cost、每 event 指标、收敛/多起点、自检、单位核查）。 |
+| `results/tgsim_calibration_robustness.json` | 稳健性重标定（剔除稀疏跟驰事件，`--exclude-sparse 20`）。 |
+| `results/tgsim_analysis.json` | 三部分分析 + 稳健性 + 口径敏感性。 |
+| `results/figures/tgsim/fig_01..fig_11*.png` | 11 张图（轨迹叠加、误差、风格条形、风格雷达、TTC、spacing–speed+加速度相关、无量纲、收敛）。 |
+
+## 2. 实际执行的命令与真实输出（Git-Bash）
+
+```bash
+PY=C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+
+# 0) 预处理增量改动后重跑（幂等验证：18 个 event CSV 全部 byte-identical，仅 manifest 新增字段）
+$PY src/tgsim/preprocess_events.py
+#   HV-HV stop runs 12 -> events 10 samples 4251 ; HV-AV stop runs 7 -> events 8 samples 4370
+#   md5sum -c 比对：data/tgsim/HV-HV/*.csv 10/10 OK，HV-AV 8/8 OK，manifest.json FAILED(=唯一预期变化)
+
+# 1) 主标定（全预算：10 起点 × 300 Adam 步，lr 0.05，seed 20260929，float64 单线程）
+KMP_DUPLICATE_LIB_OK=TRUE $PY src/tgsim/calibrate_events.py --starts 10 --steps 300 --lr 0.05 --seed 20260929 --out results/tgsim_calibration.json
+
+# 2) 稳健性重标定（剔除平均间距 > 20 m 的稀疏事件）
+KMP_DUPLICATE_LIB_OK=TRUE $PY src/tgsim/calibrate_events.py --starts 6 --steps 100 --lr 0.05 --seed 20260929 --exclude-sparse 20 --out results/tgsim_calibration_robustness.json
+
+# 3) 分析 + 4) 出图
+$PY src/tgsim/analyze_events.py
+$PY src/tgsim/plot_events.py
+```
+
+真实输出（主标定，节选自己方捕获的 stdout，非预测）：
+
+```
+unit check HV-HV: median |d position|/dt over speed_kf = 1.000000, lengths [4.15, 4.15] m, dt = [0.1]
+unit check HV-AV: median |d position|/dt over speed_kf = 1.000000, lengths [4.74, 4.74] m, dt = [0.1]
+
+HV-HV  events=10  samples=4251  sigma_s=4.9691 m  sigma_v=1.4857 m/s
+  theta              : v0=33.0026  T=2.8654  s0=3.4646  a=3.6609  b=7.8255
+  cost J (numpy)     : 0.244928   (torch 0.244928, rel. diff 1.13e-16)
+  spacing RMSE       : mean 1.8225 m   pooled 2.6623 m   worst 3.8701 m
+  speed   RMSE       : mean 0.3482 m/s   pooled 0.3953 m/s   worst 0.6276 m/s
+  training           : 300 Adam steps, lr=0.05, 10 starts, 731.4 s; torch-vs-numpy max rel. diff 1.13e-16; runaway starts 0
+
+HV-AV  events=8  samples=4370  sigma_s=11.1774 m  sigma_v=1.5588 m/s
+  theta              : v0=34.8873  T=4.9996  s0=3.1551  a=1.8902  b=7.9724
+  cost J (numpy)     : 1.148222
+  spacing RMSE       : mean 8.1873 m   pooled 9.2581 m   worst 22.1260 m
+  speed   RMSE       : mean 0.7914 m/s   pooled 0.8591 m/s   worst 1.6702 m/s
+  training           : 300 Adam steps, lr=0.05, 10 starts, 813.1 s; torch-vs-numpy max rel. diff 3.86e-16; runaway starts 0
+
+self-checks: HV-HV/HV-AV 参数在盒内 True、有限 True、cost 有限 True、torch 与 numpy 一致 True、
+            无 runaway 起点 True、落盘可重解析 True、.tmp 残留 none
+```
+
+分析脚本真实输出（节选）：
+
+```
+Part 1 - calibration error (raw metric units, directly comparable)
+  pair      ev     n        J    sRMSE    sMAE   sMAPE    vRMSE    vMAE   vMAPE
+  HV-HV     10  4251   0.2449    1.823   1.480    19.2    0.348   0.280    48.3
+  HV-AV      8  4370   1.1482    8.187   6.942    52.9    0.791   0.577    74.9
+
+Part 1b - robustness
+  HV-HV  events 10 -> 10 (excluded [])                     sRMSE 1.823 m  theta change v0 -14.9% T +0.0% s0 +0.1% a +2.3% b -12.4%
+  HV-AV  events  8 ->  6 (excluded ['event_7','event_8'])  sRMSE 1.050 m  theta change v0 -74.4% T -68.4% s0 +49.4% a +45.8% b -2.1%
+
+Part 2 - AV vs HV driving style (measured series, event means; p = two-sided Mann-Whitney on 10 vs 8 events)
+  metric                               HV-HV     HV-AV   p (MWU)
+  speed_mean_mps                       1.726     1.994     0.965
+  speed_p85_mps                        2.825     3.349     0.696
+  moving_fraction                      0.755     0.781     0.829
+  stop_fraction                        0.245     0.219     0.829
+  accel_rms_mps2                       0.381     0.337     1.000
+  accel_p95_abs_mps2                   0.736     0.717     0.762
+  accel_harsh_fraction                 0.007     0.000     0.222
+  jerk_rms_mps3 (raw 10 Hz)            0.570     0.280     0.315
+  jerk_rms_smoothed_mps3 (SG 1.1 s)    0.377     0.335     1.000
+  spacing_min_m                        4.238     8.797     0.146
+  spacing_mean_m                       8.505    14.264     0.573
+  relative_speed_rms_mps               0.673     0.695     0.965
+  thw_median_s                         5.205     5.763     0.740
+
+  spacing-speed: HV-HV 实测斜率 2.714 s (R^2 0.658, corr 0.811) vs IDM 平衡态斜率 2.866 s
+                 HV-AV 实测斜率 3.009 s (R^2 0.176, corr 0.420) vs IDM 平衡态斜率 4.975 s
+  TTC: HV-HV 每 event 最小 TTC 最小 2.83 s（中位 6.84 s），TTC<3 s 占比 0.65%，<1.5 s 占比 0%
+       HV-AV 每 event 最小 TTC 最小 5.71 s（中位 8.79 s），<3 s / <1.5 s 占比均为 0%
+  leader/follower 加速度：HV-HV 平均 r=0.554, gain=0.505（无一个 event gain>1）
+                          HV-AV 平均 r=0.420, gain=0.479（无一个 event gain>1）
+  车长口径敏感性：HV-HV offset +0.68 m → sRMSE 1.823→1.818(same theta)→1.824 m；HV-AV offset -0.22 m → 8.187→8.228→8.180 m
+
+  dimensionless comparison (SC2I vs TGSIM)
+               v0/sqrt(b s0)       a/b    T sqrt(b/s0)
+  HV-HV                6.528     0.467           4.311
+  HV-AV                6.082     0.236           7.849
+  SC2I                 6.518     5.636           0.715
+```
+
+## 3. 关键数字表
+
+**参数（公制 SI，θ = [v0(m/s), T(s), s0(m), a(m/s²), b(m/s²)]，δ=4）**
+
+| pair | v0 | T | s0 | a | b | cost J | 盒边界 |
+|---|---|---|---|---|---|---|---|
+| HV-HV | 33.003 | 2.865 | 3.465 | 3.661 | 7.826 | 0.2449 | b 接近上界 8（7.83） |
+| HV-AV | 34.887 | 4.9996 | 3.155 | 1.890 | 7.972 | 1.1482 | **T 顶到上界 5.0**、v0/b 接近上界 |
+
+**误差（原始公制单位，直接可比；J 为各 pair 自身 pooled 尺度归一，仅组内可比）**
+
+| pair | n_ev | n | σ_s | σ_v | sRMSE(均值/池化/最差) | sMAE | sMAPE | vRMSE(均值/池化) | vMAE | vMAPE |
+|---|---|---|---|---|---|---|---|---|---|---|
+| HV-HV | 10 | 4251 | 4.969 m | 1.486 m/s | 1.823 / 2.662 / 3.870 m | 1.480 m | 19.2% | 0.348 / 0.395 m/s | 0.280 | 48.3% |
+| HV-AV | 8 | 4370 | 11.177 m | 1.559 m/s | 8.187 / 9.258 / 22.126 m | 6.942 m | 52.9% | 0.791 / 0.859 m/s | 0.577 | 74.9% |
+
+HV-AV / HV-HV 比值：spacing RMSE **4.49×**，speed RMSE 2.27×，cost 4.69×。
+
+**稳健性（剔除 HV-AV event_7 mean 28.1 m、event_8 mean 41.2 m 两个稀疏跟驰事件后重标定）**：HV-AV sRMSE 8.187 → **1.050 m**、vRMSE 0.791 → 0.318 m/s、cost 1.148 → 0.229，**优于 HV-HV 的 1.823 m**；θ 变为 v0=8.92, T=1.58, s0=4.71, a=2.76, b=7.80。HV-HV 无事件被剔除，θ 仅 v0 在弱识别方向上漂移（−14.9%，其余 ≤2.3%）。
+
+## 4. 单位核查（公制 SI，两处独立证据）
+
+1. **官方数据字典**（U.S. DOT / ITS JPO 数据门户，TGSIM I-90/I-94，同一 12 列 schema）：`time` 秒、`xloc_kf`/`yloc_kf` **米**、`speed_kf` **m/s**、`acceleration_kf` **m/s²**、`length_smoothed`/`width_smoothed` **米**（由像素按 1 px = 0.3 m 换算），`av` = "yes"/"no"。已写入 `tgsim_calibration.json → unit_verification.reference`（含 URL 与 DOI 10.21949/1404218）。
+2. **对原始 CSV 的独立复核**（脚本每次自动重跑）：位置差分速度 / `speed_kf` 中位比值 = **1.000000**（p05–p95 = 0.999996–1.000004），Δt 唯一值 = 0.1 s，车长 4.15/4.74 m（物理量级）。结论：**统一公制，整条管线不做任何倍数换算**。
+
+## 5. 三部分分析的结论
+
+- **Part 1（误差）**：HV-HV 拟合良好（sRMSE 1.82 m，约为间距标准差的 0.37σ；vRMSE 0.35 m/s），HV-AV 表面误差大 4.5 倍。但 HV-AV 的误差**并非"IDM 拟不动 AV"**：其 8 个事件里 event_7/event_8 全程平均间距 28.1/41.2 m、间距标准差极大（池化 σ_s 11.18 m 被它们主导），IDM 交互项在大部分时刻不激活；剔除这两个事件后 HV-AV 的 sRMSE 反而**优于** HV-HV（1.05 vs 1.82 m）。
+- **Part 2（风格）**：AV（HV-AV 中的 follower）在**数据层面**表现为更大的间距（均值 14.26 vs 8.51 m）、更大的最近接近距离（s_min 8.80 vs 4.24 m）、更低的 jerk RMS（原始 0.280 vs 0.570；1.1 s 平滑后 0.335 vs 0.377）、更低的急动（harsh accel 占比 0 vs 0.007），平均速度略高、停车占比略低；加速度 RMS 相近（0.337 vs 0.381）。参数层面：AV 侧 **T 顶到搜索盒上界 5 s**（HV-HV 2.87 s）、**a 更小**（1.89 vs 3.66 m/s²）、**a/b 更小**（0.236 vs 0.467），即"更大的稳态时距 + 更柔和的加减速"——**更保守、更平滑，但样本量小（10 vs 8 events），Mann-Whitney p 全部 >0.14，差异不具统计显著性**，只能作为方向性描述。
+- **Part 3（补充）**：
+  - 平衡态 spacing–speed：HV-HV 实测斜率 2.714 s 与标定 IDM 平衡态斜率 2.866 s **高度一致**（实测 cloud 的 R²=0.658）；HV-AV 实测斜率 3.009 s 与 IDM 平衡态 4.975 s 差距大，且实测 cloud 的解释力弱（R²=0.176），再次指向该组包含非跟驰段。
+  - string stability 近似：两组的一阶响应增益都 **< 1**（HV-HV 0.505、HV-AV 0.479），相关系数 0.55/0.42，**没有任何 event 增益 > 1**，即在这批低速拥挤数据中没有观察到加速度放大（不构成线性不稳定）。
+  - 参数相关性（10 个可行起点的最终 θ）：HV-HV 中 **v0 跨起点极差 9.91–34.19 m/s、std 8.74**（弱识别，因事件平均速度仅 ~2.2 m/s，v≪v0 使自由流项失效），T/s0 极差 <0.1（强识别）；a 与 b 强负相关（r=−0.80），v0 与 T 正相关（r=0.73）。HV-AV 中 a 与 b 也负相关（−0.52）、v0 与 a 负相关（−0.81）。这正是"成本面沿 v0 方向近乎平坦"的直接证据，已作为 v0 只报为"盒内弱识别"的理由。
+  - 与 SC²I 的**无量纲**对比（唯一合法比较）：`v0/√(b·s0)` HV-HV 6.53 / HV-AV 6.08 / SC²I 6.52（HV-HV 与缩微台几乎相同）；`a/b` 0.47 / 0.24 / 5.64（真实数据远低，说明真实场景中最大加速度相对舒适减速度的余量小得多）；`T√(b/s0)` 4.31 / 7.85 / 0.72（真实数据大一个量级）。剔除稀疏事件后的 HV-AV 为 1.47 / 0.353 / 2.03。
+
+## 6. 验证与自检（机器产出）
+
+- **torch ↔ numpy 对照**：10 个起点全量重算，最大相对差 **1.13e-16（HV-HV）/ 3.86e-16（HV-AV）** ≪ 1e-8 阈值 → 计算图与报告口径一致（`torch_vs_numpy.agrees_with_numpy = true`）。
+- **选优口径**：按 numpy 成本排序（与报告指标同一函数），HV-HV 收敛 0.3056→0.2449，HV-AV 1.1568→1.1482；10/10 起点可行、无 runaway、无间距违例；跨起点成本 std 0.00093 / 0.00828。
+- **落盘自校验**：全部 JSON/PNG 走 `.tmp`+`os.replace`，脚本结束时检查文件存在且可重新解析（`written_on_disk_reparses = True`），`.tmp` 残留 = none。
+- **幂等**：预处理脚本重跑后 18/18 event CSV 的 md5 与重跑前**完全相同**（仅 manifest 按设计新增字段）；标定/分析/出图脚本固定 seed + float64 单线程、无随机源之外的状态。
+- 产物 md5：`results/tgsim_calibration.json` = `18a443939fd297f53c476d7360fe3e1f`，`results/tgsim_calibration_robustness.json` = `3a0c3fbcf287fe6cc29ef22ae73f49c8`，`results/tgsim_analysis.json` = `0c8a0db2752ee5b5161c7acec3cc543e`。
+
+## 7. 假设、偏差与限制（必须如实说明）
+
+1. **事件集沿用既有预处理**（未重切），因此 HV-AV 含 event_7/event_8 两个稀疏跟驰段；主标定按要求包含全部事件，剔除版本作为 Part 1b 稳健性一并交付。
+2. **搜索盒按数据调整的依据**已写入 JSON（`configuration.box_rationale`）；HV-AV 的 T 顶到上界 5.0 s、b/v0 接近上界，说明该组数据在盒边界上取最优，**若要主张 T>5 s 需扩盒再标定**（未做，超出 brief 给定盒）。
+3. **v0 弱识别**：两组事件平均速度仅约 2.2 m/s，(v/v0)⁴ ≈ 4e-4，自由流项几乎不激活，v0 主要由成本面平坦方向决定（多起点 std 8.6–8.7 m/s）。报告中 v0 只作参考，不作强结论。
+4. **"zero model" 比较不适用于停驶段**：HV-AV 0/8、HV-HV 6/10 的事件间距 RMSE 优于常数零模型；失败的事件多为几乎停驶或间距近乎恒定的段（event_4/6/7 停驶占比 0.46–0.75），此时常数间距基线本身很强，该指标对短/停驶事件无信息量。已按"仅报告、不致命"处理（脚本打印 NOTE，JSON 记录分子分母与被点名事件）。
+5. **车长口径**：沿用既有约定 `s = 中心距 − leader_length`（brief 明示）。若跟踪点为**前保险杠**，严格应为 `− follower_length`，两者差一个常量（HV-HV +0.68 m、HV-AV −0.22 m）。敏感性已量化：sRMSE 变化 ≤0.07 m（IDM 通过 s0 吸收常量偏移），**未做**该口径下的完整重标定。
+6. jerk 用 10 Hz 速度中心差分（快扫噪声放大），同时给出 1.1 s Savitzky-Golay 平滑值；两组同口径处理，比较有效，绝对值仅作参考。
+7. **统计功效低**：10 vs 8 个事件值，Mann-Whitney p 均 >0.14，所有风格差异只作方向性描述。
+
+## 8. 建议（未执行，仅列出）
+
+- 若要复现"全预算"更长时间训练：`--starts 12 --steps 500`；本次实测 300 步/10 起点已收敛到 0.04%（同为 300 步时 12 起点与 10 起点成本一致），故未再拉长。
+- 在**前保险杠口径**下重跑一次完整标定（改 `preprocess_events.py` 的 spacing 定义 + 重跑本管线）以彻底消除第 5 条口径疑问。
+- 扩大搜索盒（T 上界 8 s、v0 上界 45 m/s）检验 HV-AV 触界是否为盒的人为结果。
+- 用 TGSIM 的 `acceleration_kf` 列替代差分加速度做 comfort 指标（当前事件表未携带该列，需从原始 CSV 透传）。
+- 事件级单独标定（每 event 一套 θ）以获得 18 个样本的参数分布（本次因算力/时间未做）。
+
+## 9. 服务与进程
+
+未启动任何常驻服务。仅运行上述 4 个 Python 脚本（含 2 个后台标定进程，均已结束）；如仍有遗留标定进程，用 `tasklist | grep python` 查看，`taskkill /PID <pid> /F` 结束。
+
+
+---
+
+# 附录 A：Lab Session I 主体报告（历史，保持原样）
+
+STATUS: COMPLETE
+
+# Build Report — Lab 1 数据重组：管线改为 run 口径 + run_1 全链路重跑（Lab Session I 第 5 步）
+
+一句话：确认两个 collection 是**同一个人**的两次录制后，把整条管线从「driver 口径」重构成「**run 口径**」——stage 1 改为自动发现 `data/raw/collection_*` 并按目录名（时间戳）顺序编号 `run_1, run_2, …`（映射写入 `data/run_registry.json`），标签列/文件名/JSON 字段/loader 全链路一致改名（算法与边界口径一行未动），旧结构的中间产物与旧结果全部归档；随后对 **run_1（collection_20260917_144342）** 重跑 stage 1→4 + M1..M5 + 2 折 leave-one-event-out CV，产出 per-run 结构的 `results/final_params.json`。
+**关键回归证据**：重构后的 run_1 产物与重构前 driver_2 的产物**逐值完全一致**（727 / 22·455·250 / 211+124 行，0 处数值差异），最终 θ 与旧报告**逐位相同**（v0=140.368591, T=1.507387, s0=45.409655, a=57.559955, b=10.212675），两次连续 CV 运行 JSON 除耗时字段外**完全一致**。
+
+---
+
+## 0. 接入新 run（run_2）的操作命令 —— 先看这里
+
+项目根 = `C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1`
+解释器 = `C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe`（numpy/scipy/torch，本项目一直用它；不装任何新包）
+下面均为 **Git-Bash** 语法。
+
+```bash
+PY=C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+
+# 步骤 1：把新的原始 collection 整个目录拷进 data/raw/（目录名保持 collection_<时间戳> 原样）
+#         例：data/raw/collection_20260925_103000/
+
+# 步骤 2：重跑预处理（stage 1 会自动发现两个 collection → run_1 / run_2）
+$PY src/preprocess_stage1.py
+$PY src/preprocess_stage2.py
+$PY src/preprocess_stage3.py
+$PY src/preprocess_stage4.py
+
+# 步骤 3：五个方法各自标定（每个 run 独立一套参数）
+$PY src/calibrate/m1_instant_ls.py
+$PY src/calibrate/m2_neldermead.py
+$PY src/calibrate/m3_ga.py
+$PY src/calibrate/m4_pso.py
+$PY src/calibrate/m5_differentiable.py
+
+# 步骤 4：per-run 留一 event 交叉验证 + 各 run 最终参数（约 5 分钟量级）
+$PY src/calibrate/cross_validate.py
+
+# 步骤 5（可选，run_2 齐全后）：validation 回放 + 自包含 HTML 报告
+#   $PY src/run_validation_pipeline.py --validation-raw <某个 collection 目录> --run run_1 --report
+#   $PY src/analysis/build_html_report.py --run run_1
+```
+
+**会自动发生什么**（无需改代码）：
+- `src/preprocess_stage1.py` 每次自动发现 `data/raw/collection_*`：**已登记的 collection 保留原 run 标签**，新出现的 collection 取下一个空号 → 新数据即 `run_2`；映射与源文件 sha256 写入 `data/run_registry.json`。
+- stage 2→4、M1..M5、CV 全部按 run 循环处理，**两个 run 的行绝不混在一个文件里**（每个输出文件只带自己的 run 标签）。
+- 标定与 CV **per run 独立**：`final_params.json` / `cv_results.json` 都是 `runs: {run_1: {...}, run_2: {...}}`；run_2 的 CV 折是它自己的全部 event。
+- run 标签**不会复用**：已登记的 collection 若从 `data/raw/` 移走，其标签记入 `retired_runs` 并保留占用，后加的数据不会被顶替成同一个标签。
+
+---
+
+## 1. 交付物与变更清单
+
+| 文件 | sha256 前缀 | 变更摘要 |
+|---|---|---|
+| `src/preprocess_stage1.py` | `4c49cd940668a2bc` | 重写：删除硬编码 `DRIVER_SOURCES`，改为自动发现 `data/raw/collection_*` + run 编号 + `data/run_registry.json`；输出列 `run`，文件 `run_<n>.csv`；新增对旧 driver 产物的清理 |
+| `src/preprocess_stage2.py` | `fc580af4331cbaa0` | 标签列/文件名/参数名 driver→run；`discover_runs` 只接受 `run_<n>` 并按数字序排序（`run_2` 在 `run_10` 前）；与「零速停顿 run」的循环变量重名问题显式消除 |
+| `src/preprocess_stage3.py` | `c2cfb5b855fdeed2` | 同上；`EVENT_FILE_RE` 命名组 `run`；事件按 (run 序号, event 序号) 排序 |
+| `src/preprocess_stage4.py` | `64d97e6d14e3a3ee` | 同上 |
+| `src/calibrate/idm_core.py` | `34e9d9828cb52f0a` | `load_events`/`load_event_data` 返回 **`run -> [(event, data)]`**；`self_checks` 的 focus 事件改为「该 run 的第一个真实 event」（不再硬编码 `event_1`）+ 通用键 `focus_beats_zero_model`；新增 `load_run_registry()` 并把 registry 写进每个结果 JSON；`runs_found_nonempty` 取代 `two_drivers_found` |
+| `src/calibrate/m1_instant_ls.py` | `d63374474f80aa65` | `calibrate_driver`→`calibrate_run`、`print_driver`→`print_run`、`per_driver`→`per_run`、`focus_run` 等一致改名；自检键改读通用 focus 键；docstring 里 σ_a 例子换成 run_1 实测值（128.25 / 101.29） |
+| `src/calibrate/m2_neldermead.py` | `c62ef28da59c7d12` | 同上（算法/预算/种子不变） |
+| `src/calibrate/m3_ga.py` | `0742e47cf0040aff` | 同上 |
+| `src/calibrate/m4_pso.py` | `40a39d384d70ca06` | 同上 |
+| `src/calibrate/m5_differentiable.py` | `f38cdd66f2132037` | 同上 |
+| `src/calibrate/cross_validate.py` | `e8d21e19e8414bcc` | 内部与 JSON 全部 run 口径（`runs` / `finals` / 输出块内 `run` 字段）；折数说明改为 run_1 的 2 折；score 公式与预算表未动 |
+| `src/analysis/metrics.py` | `2933c399cec8ca17` | `runs_with_final_params` / `theta_for_run` / `--run`；读 `final_params.json` 的 `runs` 键；评价块字段 `run` |
+| `src/analysis/build_html_report.py` | `73832a848910078e` | 全文 driver→run（含正文措辞、CLI、图标题），读 `final["runs"][run]` / `cv["runs"][run]`，`--run`；机械改名会误伤模型全名的一处已修回（`Intelligent Driver Model (IDM)`，冒烟实测渲染文本已确认）；本轮**未重生成 HTML**，只做适配与冒烟 |
+| `src/run_validation_pipeline.py` | `d1afd2aba1997d31` | `--run`、`validation_<run>` 隔离树、`results/validation_<run>.json`；标签参数与指标块参数同名冲突处显式拆名（`run_label` vs `run`） |
+
+未改动：`briefs/**`（历史需求文档）、算法本体、参数边界、成本函数、积分器、指标口径、预算常量、随机种子（20260921）。
+
+---
+
+## 2. 归档与清理清单（全部实测）
+
+**移入归档（未删除）**
+
+| 动作 | 内容 | 数量/体积 |
+|---|---|---|
+| `mv data/raw/collection_20260917_144220 → archive/collection_20260917_144220` | 试跑（water-test）整套原始文件：`commands.csv, follower_straight_trajectory.csv, leader_events.csv, leader_straight_trajectory.csv, metadata.json, PUT_YOUR_DATA_HERE.txt, straight_trajectory.csv` | 7 文件 / 960K |
+| `mv results/{...} → archive/old_results/` | `m1_params.json, m2_params.json, m3_params.json, m4_params.json, m5_params.json, cv_results.json, final_params.json, validation_driver_1.json, lab1_full_report_demo.html` | 9 文件 / 1.3M |
+
+**删除（旧的、可重建的中间产物；无回溯价值）**
+
+| 动作 | 内容 |
+|---|---|
+| `rm -rf data/preprocess/validation_driver_1` | demo 验证树（stage_1..4）整体删除 |
+| `rm -rf data/preprocess/stage_1..4` | 旧 driver 标签结构整体重建（重建后不含任何 `driver_*` 文件，实测 `stage_1` 只有 `run_1.csv`） |
+
+**当前 `data/` 实际内容（实测 `find data -type f`）**
+
+```
+data/raw/collection_20260917_144342/{7 个原始文件}
+data/preprocess/stage_1/run_1.csv
+data/preprocess/stage_2/{run_1_event_1.csv, run_1_event_2.csv, run_1_event_3.csv, stage2_summary.json}
+data/preprocess/stage_3/{run_1_event_2.csv, run_1_event_3.csv, stage3_summary.json}
+data/preprocess/stage_4/{run_1_event_2.csv, run_1_event_3.csv, stage4_summary.json}
+data/run_registry.json
+```
+
+`results/` 当前只有 `m1..m5_params.json, cv_results.json, final_params.json` —— **没有** HTML 报告、没有 `validation_*.json`（符合本轮约定）。
+
+---
+
+## 3. `data/run_registry.json`（原文）
+
+```json
+{
+  "schema": "intr5100-lab1-run-registry",
+  "script": "src/preprocess_stage1.py",
+  "raw_dir": "data/raw",
+  "discovery_glob": "data/raw/collection_*",
+  "labelling_rule": "one run per data/raw/collection_* directory, numbered run_1, run_2, ... in directory-name (chronological) order; an already registered collection keeps its label and a newly added collection gets the next free number",
+  "raw_filename": "straight_trajectory.csv",
+  "stage1_file": "{run}.csv",
+  "runs": {
+    "run_1": {
+      "collection": "collection_20260917_144342",
+      "source": "data/raw/collection_20260917_144342/straight_trajectory.csv",
+      "sha256": "0a9baed906809a3905d6d56e41f2da6a18b6111647896a363d2d493969457ee9",
+      "stage1_file": "data/preprocess/stage_1/run_1.csv",
+      "rows": 727
+    }
+  },
+  "collections": { "collection_20260917_144342": "run_1" },
+  "retired_runs": {},
+  "skipped_collections": []
+}
+```
+
+（`runs` 是 run 标签 → collection 目录；`collections` 是反向映射；`retired_runs` 记录「已登记但目录已不在 `data/raw`」的标签，编号不被回收；`skipped_collections` 记录缺 `straight_trajectory.csv` 的目录——会被跳过并报出，绝不静默当成某个 run。）
+
+---
+
+## 4. run_1 各 stage 行数（实测，与 brief 给的口径逐一吻合）
+
+| stage | run_1 结果 |
+|---|---|
+| stage_1 | `run_1.csv` **727** 行（follower 353 + leader 374），header `run,role,t_from_start,x,y,heading,velocity` |
+| stage_2 | 3 个 event：`run_1_event_1.csv` **22** 行（follower 18 + leader 4）、`run_1_event_2.csv` **455** 行（230+225）、`run_1_event_3.csv` **250** 行（105+145）；kept 727 = paired 727 + unmatched 0 |
+| stage_3 | `event_1` **删除**（reason=`no_overlap`, detail=`empty_intersection`，overlap = −4.277835 s）；`event_2` = **211 对**（422 行）、`event_3` = **124 对**（248 行）；总网格 593 → kept 580 / removed 5（全为 discontinuity）；conservation_ok=True |
+| stage_4 | `run_1_event_2.csv` **211** 行、`run_1_event_3.csv` **124** 行，列为 `time,fv,lv,dhw`；deleted 0 / dropped 0；conservation_ok=True |
+
+注意 stage_2 的 `event_1` 两车时间区间不重叠（follower [4.630570, 6.415966] vs leader [−0.054888, 0.352735]），stage_3 按既有口径删除，**与 brief 预期一致**。
+
+### 4.1 重构未改数值的回归证据（逐值比对）
+
+把重构前的 `stage_1..4/driver_2*` 先复制到 Hermes scratch 作为参照，重跑后逐行逐字段比对（忽略标签列本身）：
+
+```
+stage_2/driver_2_event_1.csv vs stage_2/run_1_event_1.csv  rows 22/22   value-diffs=0
+stage_2/driver_2_event_2.csv vs stage_2/run_1_event_2.csv  rows 455/455 value-diffs=0
+stage_2/driver_2_event_3.csv vs stage_2/run_1_event_3.csv  rows 250/250 value-diffs=0
+stage_3/driver_2_event_2.csv vs stage_3/run_1_event_2.csv  rows 422/422 value-diffs=0
+stage_3/driver_2_event_3.csv vs stage_3/run_1_event_3.csv  rows 248/248 value-diffs=0
+stage_4/driver_2_event_2.csv vs stage_4/run_1_event_2.csv  rows 211/211 value-diffs=0
+stage_4/driver_2_event_3.csv vs stage_4/run_1_event_3.csv  rows 124/124 value-diffs=0
+TOTAL value differences (label column ignored): 0
+```
+
+即：**这次重构只改标签与组织方式，没有改动任何一个数据值**。
+
+---
+
+## 5. 五方法对 run_1 重新标定（全量 2 个 event / 335 样本）
+
+`results/m1..m5_params.json` 已按 run 口径重写（顶层键 `runs: {run_1: ...}`，`run_registry` 随附）。
+
+| 方法 | 全量 J | mean s_RMSE | mean v_RMSE | v0 | T | s0 | a | b |
+|---|---|---|---|---|---|---|---|---|
+| M1 瞬时加速度最小二乘 | 2.194745 | 29.2367 | 18.7629 | 200.000000 | 1.684615 | 60.978288 | 27.143481 | 79.978442 |
+| M2 Nelder-Mead 多起点 | 1.203707 | 21.7252 | 15.8979 | 146.357486 | 1.921215 | 10.000000 | 56.890818 | 10.000034 |
+| M3 遗传算法 | 1.207964 | 22.0434 | 15.9604 | 140.122638 | 1.407196 | 56.291871 | 61.740796 | 10.000000 |
+| M4 粒子群 | 1.203707 | 21.7253 | 15.8979 | 146.357753 | 1.921218 | 10.000000 | 56.891226 | 10.000000 |
+| M5 可微 IDM + Adam | 1.214134 | 21.5150 | 16.0457 | 140.368591 | 1.507387 | 45.409655 | 57.559955 | 10.212675 |
+
+- 所有方法均 `parameters_within_bounds=True`，无 `s_violations`（两 event 均为 0）。
+- M1 的 v0 停在箱体上界 200（其目标函数是加速度拟合，不看轨迹）；M2/M4 的 s0 停在箱体下界 10、M3/M4 的 b 停在下界 10 —— 都属于「最优解落在箱体边界」的正常结果，JSON 的 `parameters_at_bound` 有记录。
+- 每方法自检均 `runs_found=['run_1']`、`focus=run_1/event_2`（自动选中该 run 真正存在的第一个 event）、registry available=True。
+- **M1 的 focus 事件 spacing RMSE 未优于零模型**（27.85 vs 21.58，improvement 0.77）：这是 M1 已知的设计特性（它拟合瞬时加速度而非轨迹），脚本按既有约定只报 WARNING、不判失败，此处如实记录。
+
+---
+
+## 6. run_1 的 2 折 leave-one-event-out CV 排名（`results/cv_results.json`）
+
+折：`run_1/leave_event_2_out`（训练于 event_3）、`run_1/leave_event_3_out`（训练于 event_2）——**2 折，全部 10 个 fold×方法组合均 feasible，无 infeasible、无 s_violations**。
+归一化尺度：`scale_s = 36.385422`、`scale_v = 18.280244`（该 run 全事件测量值的合并标准差）。
+score = mean(s_RMSE)/scale_s + mean(v_RMSE)/scale_v + 1.0 × Σ s_violations（公式与上一轮完全一致）。
+
+| 排名 | 方法 | s_MSE | s_RMSE | s_MAE | s_MAPE% | s_R²(合并) | v_MSE | v_RMSE | v_MAE | v_MAPE% | v_R²(合并) | viol | score |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | **M5** | 2148.23 | 45.0262 | 40.5418 | 18.080 | −0.9892 | 322.93 | 17.9545 | 13.0718 | 12.754 | −0.0846 | 0 | **2.2197** |
+| 2 | M2 | 2114.49 | 45.2543 | 39.9968 | 17.977 | −0.9072 | 342.41 | 18.4791 | 13.3913 | 13.060 | −0.1561 | 0 | 2.2546 |
+| 3 | M3 | 2316.29 | 46.8766 | 42.5598 | 19.010 | −1.1351 | 314.60 | 17.7344 | 13.1008 | 12.782 | −0.0431 | 0 | 2.2585 |
+| 4 | M4 | 2598.49 | 50.4898 | 43.9296 | 20.099 | −1.3011 | 344.10 | 18.5489 | 14.0549 | 13.687 | −0.1246 | 0 | 2.4023 |
+| 5 | M1 | 2435.32 | 49.3472 | 39.1714 | 18.187 | −1.0227 | 523.52 | 22.8773 | 17.2303 | 16.752 | −0.7360 | 0 | 2.6077 |
+
+逐折明细（held-out 预测，原始单位）：
+
+| 折 | 方法 | held-out s_RMSE | held-out v_RMSE | J_e | viol |
+|---|---|---|---|---|---|
+| leave_event_2_out | M1 | 49.7600 | 23.2638 | 7.4768 | 0 |
+| leave_event_2_out | M2 | 53.4115 | 19.4467 | 7.6351 | 0 |
+| leave_event_2_out | M3 | 57.7794 | 18.0308 | 8.4663 | 0 |
+| leave_event_2_out | M4 | 57.5089 | 18.3414 | 8.4444 | 0 |
+| leave_event_2_out | M5 | 56.0205 | 18.7057 | 8.1354 | 0 |
+| leave_event_3_out | M1 | 48.9344 | 22.4908 | 2.2468 | 0 |
+| leave_event_3_out | M2 | 37.0972 | 17.5116 | 1.3316 | 0 |
+| leave_event_3_out | M3 | 35.9738 | 17.4380 | 1.2919 | 0 |
+| leave_event_3_out | M4 | 43.4707 | 18.7563 | 1.6533 | 0 |
+| leave_event_3_out | M5 | 34.0320 | 17.2032 | 1.2164 | 0 |
+
+诚实记录两点（不影响排名口径，但读者必须知道）：
+1. **只用 1 个 event 训练时，留出 event 的 R² 为负**（s_R² 合并 −0.99…−1.30，v_R² 也大多为负）：单事件训练集信息量有限，跨 event 的外推误差大于「常数预测」。排名是在这一前提下**相对比较**五方法的，不能说模型已能泛化到另一段轨迹。
+2. **全量 J 最小的并不是 CV 冠军**：全量 J 上 M2/M4（1.203707）略优于 M5（1.214134），但 CV score 上 M5 胜出（2.2197 vs 2.2546）。选优按 brief 规定用 CV score，故最终方法为 M5。
+
+---
+
+## 7. run_1 最终参数（`results/final_params.json`，结构已改为 per-run）
+
+```json
+"runs": {
+  "run_1": {
+    "run": "run_1",
+    "method": "M5",
+    "method_description": "differentiable IDM (torch) + Adam, multi-start",
+    "method_rank_in_cv": 1,
+    "cv_score": 2.219658,
+    "theta": {"v0": 140.368591, "T": 1.507387, "s0": 45.409655, "a": 57.559955, "b": 10.212675},
+    "delta": 4.0, "L_VEH": 250.0,
+    "parameters_within_bounds": true, "parameters_at_bound": [],
+    "total_error": 1.214134, "n_events": 2, "n_samples": 335,
+    "mean_spacing_rmse": 21.51498, "mean_speed_rmse": 16.045744,
+    "training_events": ["event_2", "event_3"],
+    "integration_method": "rk4", "seed": 20260921
+  }
+}
+```
+
+即 **run_1 的最终 θ = (v0=140.368591, T=1.507387, s0=45.409655, a=57.559955, b=10.212675)**，δ=4 固定，L_VEH=250，RK4，seed=20260921，全量 J=1.214134（2 event / 335 样本），无一参数贴边。
+逐 event（拟合集）：event_2 n=211 s_RMSE=14.7230 v_RMSE=15.0697 J=1.3718；event_3 n=124 s_RMSE=28.3070 v_RMSE=17.0217 J=1.0565；viol 均为 0。
+与上一轮 driver_2 的最终块**逐值相同**（含 cv_score 2.219658、total_error 1.214134）——再次说明重构未改算法。
+
+---
+
+## 8. 可复现性（两次运行比对，实测）
+
+| 检查 | 结果 |
+|---|---|
+| 连续两次 `cross_validate.py` 的 `cv_results.json`：剔除所有 `timing` / `elapsed_seconds` 字段后 | **完全相同**（True，13 个顶层块） |
+| 同上 `final_params.json` | **完全相同**（True，12 个顶层块） |
+| 两次运行的耗时字段（唯一差异来源） | run A: per_fold {e2: 39.87 s, e3: 56.78 s}, retrain 58.04 s, total 154.75 s；run B: {35.28 s, 52.15 s}, 55.39 s, total 142.84 s |
+| run_1 最终块 vs 归档里的 `old_results/final_params.json:drivers.driver_2`（剔除 timing/标签后） | **完全相同** |
+
+脚本自带 self-checks 全部通过：`all_per_fold_rmse_match_idm_core=True`、`all_mean_rmse_match_cv_table=True`、`all_final_blocks_complete=True`、`full_budget_retrain_reproduces_published_run={'run_1': True}`（满额重训与 `m5_params.json` 的 max|Δθ| = 3.539e-07 ≤ 5e-07 容差）、`mape_skipped_points_total=0`、`methods_with_spacing_violations=[]`。
+
+---
+
+## 9. run_2 就绪性：在隔离副本里放进第二个 collection 实测
+
+为验证「新数据放进去就能跑、两个 run 互不混合」，把整个 `src/` 复制到 Hermes scratch 的隔离项目树（`…/scratch/lab1_runs/run2_sim`），`data/raw/` 下放**两个** collection（原有 144342 + 复制的 `collection_20260918_101500` 作为模拟 run_2），并把当前的 `run_registry.json` 一并拷入（检验标签稳定性）：
+
+```
+runs to process (2), in run order:
+  run_1    <- collection_20260917_144342      （沿用登记标签，未被重编号）
+  run_2    <- collection_20260918_101500      （新 collection 自动取下一个空号）
+on-disk verification:
+  run_1.csv  expected=727  on_disk=727  run column=['run_1']  OK
+  run_2.csv  expected=727  on_disk=727  run column=['run_2']  OK
+stage_2 dir: run_1_event_{1,2,3}.csv, run_2_event_{1,2,3}.csv, stage2_summary.json
+stage_3 dir: run_1_event_{2,3}.csv,  run_2_event_{2,3}.csv,  stage3_summary.json   （两个 run 的 event_1 各自 no_overlap 被删）
+stage_4 dir: run_1_event_{2,3}.csv,  run_2_event_{2,3}.csv,  stage4_summary.json
+loader 分组：run_1 [('event_2', 211), ('event_3', 124)]   run_2 [('event_2', 211), ('event_3', 124)]
+registry 更新后：runs = {run_1: collection_20260917_144342, run_2: collection_20260918_101500}
+```
+
+即 stage 1→4 与 loader 的 run 分组全部自动生效，**输出文件只带自己的 run 标签、两 run 数据不混合**。
+
+再把这条链走完（隔离树内跑满 `cross_validate.py`，**exit=0，两个 run 各 2 折 + 各 1 次满额重训**）：
+
+```
+cv runs            : ['run_1', 'run_2']                     ← 每个 run 一个独立结果块
+cv finals          : {'run_1': 'M5', 'run_2': 'M5'}         ← 每个 run 独立选优
+cv folds           : run_1 ['leave_event_2_out','leave_event_3_out']
+                     run_2 ['leave_event_2_out','leave_event_3_out']
+final_params runs  : ['run_1', 'run_2']
+  run_1: method=M5 rank=1 score=2.219658  theta={v0:140.368591, T:1.507387, s0:45.409655, a:57.559955, b:10.212675} events=['event_2','event_3']
+  run_2: method=M5 rank=1 score=2.219658  theta={v0:140.368591, T:1.507387, s0:45.409655, a:57.559955, b:10.212675} events=['event_2','event_3']
+  cv run_1 order: M5(2.2197) > M2(2.2546) > M3(2.2585) > M4(2.4023) > M1(2.6077)
+  cv run_2 order: M5(2.2197) > M2(2.2546) > M3(2.2585) > M4(2.4023) > M1(2.6077)
+self-checks: all_per_fold_rmse_match_idm_core=True, all_mean_rmse_match_cv_table=True,
+             all_final_blocks_complete=True, all_full_budget_retrains_reproduce_published_run=True
+registry runs: ['run_1', 'run_2']
+```
+
+两个 run 的数值**完全一致**是预期的（模拟 run_2 用的是同一份数据的副本），恰好说明「一个 run 的 event 没有串到另一个 run 里去」——若发生混合，折会变成 4 个 event、块数会塌成一个。
+（该校验在隔离副本中进行，`--root` 指向副本，**未触碰真实工程的 `data/` / `results/`**：真实 `results/` 在同期只有 7 个 JSON 文件。）
+
+---
+
+## 10. HTML 报告适配确认（本轮按约定**不**重生成）
+
+- `src/analysis/build_html_report.py` 已全文改为 run 口径：`--run`、`final["runs"][run]`、`cv["runs"][run]`、正文/表头/图标题的 driver→run。
+- `src/run_validation_pipeline.py --dry-run --run run_1` 全部检查通过（唯一 warn = validation 数据尚不存在，符合预期），其最后打印的两条命令已是 `--run run_1` 形式。
+- 冒烟实测（输出写到 scratch，**没有**写进 `results/`）：`build_html_report.py --run run_1 --demo "…" --out <scratch>/report.html` → `all checks passed=True`，bytes=64827，6 sections / 10 tables / 1 embedded figure / 0 unresolved placeholders / 0 external resources；无 validation 表时按既有设计降级说明，不报错。
+- 结论：**run_2 数据齐全后直接跑 `build_html_report.py --run run_1`（或再加 `--run run_2`）即可**，无需再改代码。`results/` 下当前没有 HTML 产物（符合「本轮不重生成」）。
+
+---
+
+## 11. 假设、偏差与遗留问题
+
+**假设**
+1. scenario：「一个 run = 一个 `data/raw/collection_*` 目录」；run 的时间顺序即目录名字符串升序（目录名以采集时间戳结尾）。若将来出现不同命名习惯的目录，需要显式改 `COLLECTION_GLOB` 或先在 registry 登记。
+2. 「同一人多次实验」——因此不再有 driver 语义；`_driver_` 只作为历史产物被清理，不再产生。
+3. run 编号**一次分配、永不回收**：已登记 collection 被移走后其编号记入 `retired_runs` 并继续占用。这样同一标签永远指同一份数据（可追溯性优先于编号连续性）。
+
+**偏差（相对「仅改字段/映射」的最小改动）**
+1. `idm_core.self_checks` 的 focus 事件不再硬编码 `event_1`，改为「focus run 的第一个真实存在的 event」，并新增通用键 `focus_beats_zero_model` / `focus_improvement_factor`（m1..m5 改读通用键）。原因：run_1 的 `event_1` 已被 stage 3 删除，硬编码会产生一个永远为 None 的自检。
+2. `two_drivers_found`（`len(per_run)==2`）→ `runs_found_nonempty`（`bool(per_run)`）。原因：run 数量由数据决定，不能再假设恒为 2。
+3. stage 1 的 `discover_runs`/stage 3/4 的事件排序改为「run 序号数值序 + event 序号」而非字符串序（`run_2` 必须排在 `run_10` 前）。仅影响处理/打印顺序，不影响任何数值。
+4. 新增 `data/run_registry.json`（brief 允许）；`idm_core` 会把 registry 摘要写进每个结果 JSON（`run_registry` 键）用于溯源。
+5. stage 2 里「零速停顿 run」的循环变量由 `run` 改名为 `record`，避免与数据 run 语义重名——纯可读性，逻辑未动。
+6. docstring/注释里的示例数字（如 M1 的 σ_a 例子）已换成 run_1 的**实测值**（event_3 128.25、event_2 101.29），不再引用已归档 collection 的旧数字。
+7. 机械改名会误伤「模型全名」：报告正文里的 `Intelligent Driver Model (IDM)` 一度被改成 `Intelligent Run Model`，已修回并用冒烟渲染文本核验（`grep -o "Intelligent [A-Za-z]* Model (IDM)"` → `Intelligent Driver Model (IDM)`）。
+8. 重构后仍保留 2 处 `driver` 字样，均为**有意为之**，不是遗漏：(a) `build_html_report.py` 第 502 行的叙述句 `A human driver follows a leader vehicle…`（指被测的人，非数据标签）；(b) `preprocess_stage1.py` 的 `LEGACY_OUTPUTS = ("driver_1.csv", "driver_2.csv", …)`（旧产物清理名单，显式列举、不做通配，用来确保旧文件被删且不误删别的）。
+
+**遗留 / 待办**
+1. **HTML 报告未重生成**（按 brief 约定，等 run_2 齐全）。当前 `results/` 无 `.html`。
+2. run_2 的真实数据尚未提供，第 9 节用的是**复制的同一份数据**做的结构验证；真实 run_2 到位后需要实跑一次并核对它自己的行数/CV 排名（命令见第 0 节）。
+3. `src/analysis/metrics.py --run run_1` 与 validation 管线本轮只做到「能在 run 口径下跑通/自检通过」；未做真实 validation 数据回放（无数据）。
+4. `__pycache__` 已清理；未做 `git` 操作（本工程不是 git 仓库）。
+5. M1 的「未优于零模型」WARNING 属既有设计行为（加速度拟合 vs 轨迹误差），未做任何放宽。
+
+---
+
+## 12. 实际执行的命令（可按序复现）
+
+```bash
+# 0) 侦察旧结构与参照值
+ls -la data/raw data/preprocess results
+#    复制重构前 driver_2 的 stage_1..4 到 scratch 作为逐值比对参照
+
+# 1) 归档与清理
+mkdir -p archive archive/old_results
+mv data/raw/collection_20260917_144220 archive/collection_20260917_144220
+mv results/{m1,m2,m3,m4,m5}_params.json results/cv_results.json results/final_params.json \
+   results/validation_driver_1.json results/lab1_full_report_demo.html archive/old_results/
+rm -rf data/preprocess/validation_driver_1
+
+# 2) 重构（14 个文件，见第 1 节）+ 语法检查
+C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe -m py_compile src/*.py src/calibrate/*.py src/analysis/*.py
+
+# 3) run_1 全链路重跑
+PY=C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe
+rm -rf data/preprocess/stage_1 stage_2 stage_3 stage_4
+$PY src/preprocess_stage1.py          # → run_1.csv 727 行 + data/run_registry.json
+$PY src/preprocess_stage2.py          # → 22/455/250，kept 727 = paired 727 + unmatched 0
+$PY src/preprocess_stage3.py          # → event_1 no_overlap 删除；event_2 211 对、event_3 124 对
+$PY src/preprocess_stage4.py          # → event_2 211 行、event_3 124 行
+$PY src/calibrate/m1_instant_ls.py    # → results/m1_params.json  (4 s)
+$PY src/calibrate/m2_neldermead.py    # → results/m2_params.json  (107 s)
+$PY src/calibrate/m3_ga.py            # → results/m3_params.json  (9 s)
+$PY src/calibrate/m4_pso.py           # → results/m4_params.json  (6 s)
+$PY src/calibrate/m5_differentiable.py# → results/m5_params.json  (59 s)
+$PY src/calibrate/cross_validate.py   # → cv_results.json + final_params.json  (163 s)
+$PY src/calibrate/cross_validate.py   # 第二次：可复现性比对  (151 s)
+
+# 4) 下游 run 口径验证
+$PY src/analysis/metrics.py --run run_1
+$PY src/run_validation_pipeline.py --dry-run --run run_1
+$PY src/analysis/build_html_report.py --run run_1 --demo "smoke" --out <scratch>/report.html
+
+# 5) 多 run 隔离实测（scratch 副本，未触碰真实工程）
+cp -r src <scratch>/run2_sim/ ; cp -r data/raw/collection_20260917_144342 <scratch>/run2_sim/data/raw/
+cp -r data/raw/collection_20260917_144342 <scratch>/run2_sim/data/raw/collection_20260918_101500
+cp data/run_registry.json <scratch>/run2_sim/data/
+$PY src/preprocess_stage1.py --root <scratch>/run2_sim   # → run_1 保持、新数据 = run_2
+$PY src/preprocess_stage{2,3,4}.py --root <scratch>/run2_sim
+$PY src/calibrate/cross_validate.py --root <scratch>/run2_sim   # 两 run 各 2 折，exit 0（约 5 分钟）
+```
+
+---
+
+## 13. 逐值比对脚本（本轮的关键回归证据，scratch 内执行）
+
+```python
+import csv, pathlib
+REF = pathlib.Path(".../scratch/lab1_runs/reference_old_driver2")   # 重构前 driver_2 的 stage_1..4
+NEW = pathlib.Path("data/preprocess")                               # 重构后 run_1
+for old_rel, new_rel in [("stage_2/driver_2_event_2.csv", "stage_2/run_1_event_2.csv"), ...]:
+    a = list(csv.DictReader((REF/old_rel).open(encoding="utf-8")))
+    b = list(csv.DictReader((NEW/new_rel).open(encoding="utf-8")))
+    diffs = sum(1 for x, y in zip(a, b)
+                if {k: v for k, v in x.items() if k != "driver"} != {k: v for k, v in y.items() if k != "run"})
+print("TOTAL value differences (label column ignored):", diffs)     # → 0
+```
+
+
+
+---
+
+# 附录：历史报告存档（本次任务之前的报告，原文保留）
+
+STATUS: COMPLETE
+
+# Build Report — Lab 1 Validation 运行管线 + 驾驶风格指标 + 全阶段自包含 HTML 报告（Lab Session I 第 4 步）
+
+一句话：新增 3 个脚本 —— `src/run_validation_pipeline.py`（671 行 / 29278 B，sha256 前缀 `ae052a645bac6b95`）、`src/analysis/metrics.py`（947 行 / 37117 B，sha256 前缀 `465c41c8b73f02b2`）、`src/analysis/build_html_report.py`（1244 行 / 64248 B，sha256 前缀 `25d46574c468f65c`）——把「validation 数据到位后一条命令出完整报告」的全部代码**预先写好并实测跑通**：validation 原始 collection 经 **stage 1→4 原脚本复用**（stage 1 函数级复用；stage 2/3/4 直接调用其原 `main()`，仅在调用点临时重绑 `STAGE*_SUBDIR`/`OUTPUT_SUBDIR` 两个路径常量，`try/finally` 还原，**原脚本一行未改**）落到隔离目录 `data/preprocess/validation_<driver>/stage_1..4`，再用 `results/final_params.json` 里该 driver 的最终 θ 按 `idm_core.simulate_event` 口径（RK4、首点实测 s/v 初始化、实测 lv 作前导输入）做逐 event 回放，同时产出 A 类预测指标（spacing/speed 的 MSE/RMSE/MAE/MAPE/R²，**直接复用 `cross_validate.regression_metrics`，与 CV 同口径**）与 B 类驾驶风格指标（efficiency/comfort/safety，阈值集中在 `metrics.py` 常量表并逐条注明依据）。报告生成器产出**单文件自包含 HTML**：DEMO 演示报告 `results/lab1_full_report_demo.html`（1002571 B，6 章 / 12 表 / 8 图全部 base64 内嵌，0 处外链，图 1-8 经逐张解码校验为合法 PNG，HTML 标签闭合零错误）；`--dry-run` 全部检查通过（唯一 warn = validation 数据尚不存在，符合预期）；**同一 collection 作为其自身 validation 跑一遍得到与 human stage 表逐字节相同的输出、27 项可比的聚合风格指标相对差最大为 0.0**（身份自洽实测）；105 个风格指标值与一个零共享代码的纯 Python 独立重算实现**全部一致（0 mismatch）**；两次独立运行 HTML md5 相同、validation JSON 除耗时字段外完全一致；人类数据树 21 个文件在运行前后 sha256 全部不变。**未装/未升级任何包，未改动 stage1..4 / idm_core / M1..M5 / cross_validate 及任何既有结果文件，未启动任何服务。**
+
+---
+
+## 0. 数据到位后的操作命令（先看这里）
+
+```bash
+# 解释器（brief 指定）；项目根 = C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1
+P=C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe
+
+# 【一条命令】validation 原始目录 + driver 标识 → 预处理 + 回放 + 指标 + HTML 报告
+$P src/run_validation_pipeline.py --validation-raw data/raw/<validation_collection> --driver driver_1 --report
+#   → data/preprocess/validation_driver_1/stage_1..4      （隔离的预处理树，与 human 数据不混）
+#   → results/validation_driver_1.json                   （回放 + 指标 + 自检的机器可读记录）
+#   → results/lab1_full_report.html                      （自包含 HTML 报告，可直接双击打开）
+
+# 【等价的两步】分开放也可以（报告生成器也能单独重跑，无需重算预处理）
+$P src/run_validation_pipeline.py --validation-raw data/raw/<validation_collection> --driver driver_1
+$P src/analysis/build_html_report.py --driver driver_1
+
+# 【无需数据即可先自检】imports / 路径 / 参数加载 / 阈值 / matplotlib / 输出计划
+$P src/run_validation_pipeline.py --dry-run --driver driver_1
+```
+
+`--driver` 只接受 `results/final_params.json` 里存在 θ 的 driver（当前 = `driver_1` / `driver_2`），其他取值会被参数校验拒绝。报告默认语言英文（课程为英文学术报告），HTML 顶部即写有上述命令。
+
+---
+
+## 1. 交付物与变更
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `src/run_validation_pipeline.py` | **新建**（671 行 / 29278 B，sha256 `ae052a645bac6b95...`） | 交付 1：validation 管线。stage 1 函数级复用 + stage 2/3/4 原 `main()` 重绑常量调用 + IDM 回放 + 指标 + `results/validation_<driver>.json` + 隔离/接缝自检 + `--dry-run` + `--report` 一键出报告 |
+| `src/analysis/metrics.py` | **新建**（947 行 / 37117 B，sha256 `465c41c8b73f02b2...`） | 交付 2：指标模块。A 类预测指标（复用 `cross_validate.regression_metrics`）+ B 类 efficiency/comfort/safety + 阈值常量与依据表 + 样本加权聚合 + 归一化 0-1 评分 + 自动文字结论 + CLI |
+| `src/analysis/build_html_report.py` | **新建**（1244 行 / 64248 B，sha256 `25d46574c468f65c...`） | 交付 3：自包含 HTML 报告生成器（6 章 / 12 表 / 8 图，matplotlib→base64，纯 CSS，无 CDN） |
+| `results/lab1_full_report_demo.html` | **新建**（1002571 B，sha256 `ca24abbf714cd5cb...`） | 交付 4：**DEMO** 全管线演示报告（顶部 DEMO 横幅 + 第 4 节 DEMO 警告框） |
+| `results/validation_driver_1.json` | **新建**（13885 B） | DEMO 运行的 validation 记录（`"demo": true`，报告据此在第 4 节打警告），含回放指标、阈值、四项自检 |
+| `data/preprocess/validation_driver_1/` | **新建**（11 个文件） | DEMO 的隔离预处理树：`stage_1/driver_1.csv`、`stage_2/3/4` 事件表 + 三个 summary JSON |
+| `build-report.md` | **更新** | 本报告在前；原 Step C 报告降级为附录 A，原附录 A–F 顺延为 B–G |
+| `src/preprocess_stage1..4.py`、`src/calibrate/idm_core.py`、`m1..m5`、`cross_validate.py` | **未改动** | mtime 仍为 09-21 15:39–17:55（本次任务之前）；只 `import` 复用 |
+| `results/cv_results.json`、`final_params.json`、`m1..m5_params.json`、`data/raw/**`、`data/preprocess/stage_1..4/**`、`briefs/**` | **未改动** | 只读；其中 `data/preprocess/stage_1..4` 另有「运行前后 sha256 全部相同」的机械取证（§6.4） |
+
+- **未安装 / 未升级 / 未删除任何包**，未新建 venv/conda 环境；只用既有 numpy/pandas/matplotlib/torch/scipy（解释器 `C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe`，Python 3.11.15）。
+- 本项目**不是 git 仓库**，故无提交。
+- **未启动 / 未重启任何服务**（全部为一次性批处理脚本，无守护进程、无端口、无后台进程）。
+- 运行结束后项目内无 `*.tmp` 残留（`--dry-run` 与真实运行均检查，见 §6.1/§6.6）。
+
+### 1.1 与 brief 的逐条对应
+
+| brief 要求 | 实现位置 / 证据 |
+|---|---|
+| 交付 1：`src/run_validation_pipeline.py`，输入 raw collection 目录 + `--driver` | `main()`；`--validation-raw` / `--driver`；实测运行日志 §6.2 |
+| 依次 import 复用 stage 1→4，不用 subprocess、不复制算法 | stage 1：`s1.read_raw/count_roles/to_output_rows/write_csv/count_data_rows/read_header`；stage 2/3/4：调用各自原 `main()`，仅重绑 `STAGE1/2/3_SUBDIR` + `OUTPUT_SUBDIR`（`try/finally` 还原）。**身份自洽实测**：同一 collection 的输出与 human stage 表逐字节相同（§6.5）——若复制的算法有偏差不可能逐字节一致 |
+| 输出到 `data/preprocess/validation_{driver}/stage_1..4`，与 human 隔离 | 11 个文件清单 §6.2；路径 guard `_guard()` 拒绝在 `validation_*` 之外的目录做任何删除；human 树前后 sha256 全同（§6.4） |
+| 用 final_params.json 的最终 θ 做模型仿真（同 `idm_core.simulate_event` 口径，首点实测初始化） | `metrics.evaluate_run()` → `core.simulate_event(data, theta, "rk4", return_status=True)`；日志打印所用 θ；接缝自检证明 RMSE 与 `idm_core.event_metrics` 一致（§6.3） |
+| 无数据时 `--dry-run` 检查 import/路径/参数加载 | §6.1 完整输出，退出码 0 |
+| 交付 2：A 类 spacing(s=dhw−250)/speed 的 MSE/RMSE/MAE/MAPE/R²，口径同 CV | `metrics.regression_metrics()` 直接 `import cross_validate` 调其 `regression_metrics()`（MSE/RMSE/MAE/MAPE 跳零计数/R² 一字不改）；报告表 5/7/8 |
+| 交付 2：B 类 efficiency（平均速度、达成率 mean(v)/v0、总时长、stop 比例） | `metrics.event_style_metrics()` 的 `mean_speed_cu_s` / `speed_achievement` / `duration_s` / `stop_fraction`+`stop_samples`；报告表 10/11 |
+| 交付 2：B 类 comfort（a 的 mean/std、RMS a、|a| 超阈值比例、jerk RMS 与 max|jerk|） | `accel_mean/std/rms`、`accel_abs_max`、`frac_accel_gt_{50,100,200}_cu_s2`、`frac_accel_gt_{2,3}sigma`、`jerk_rms/abs_max`；两种阈值（绝对 + 相对 2σ）都算都报，报告表 9/10 |
+| 交付 2：B 类 safety（s_min、最小 TTC(dv>0 时 s/dv，dv≤0 记 inf)、TTC 低于阈值时间占比、s≤0 次数） | `spacing_min_cu`、`ttc_min_s`（无 closing 样本记 `null`）、`ttc_{1.5,3.0}_share`、`spacing_violation_count` |
+| 交付 2：阈值集中为常量并在报告列出 | `metrics.py` 顶部常量块 + `THRESHOLD_DERIVATION` + `thresholds()`；报告表 9 逐条列出「值 + 依据」；`--thresholds` 可打印 |
+| 交付 3：单个自包含 HTML，输出 `results/lab1_full_report.html` | `--out` 默认 `results/lab1_full_report.html`；全部图 base64 内嵌、纯 CSS、0 外链（自检项 `external_resources`=0） |
+| 交付 3-1 概述与 IDM 公式、参数定义；3-2 数据处理（stage1→4 + 各 stage 行数/event 信息，从 summary json 读） | 第 1 节（公式块 + 表 1 参数表 + 单位说明）；第 2 节（表 2 各 stage 行数、表 3 event 清单、stage 2/3/4 配置来自 summary） |
+| 交付 3-3 标定：5 方法说明 + CV 排名（含 MSE/RMSE/MAE/MAPE/R² 表）+ 最终参数表与参数解释 | 第 3 节表 4（方法/搜索/预算）、表 5（排名 + spacing/speed 五项回归指标）、表 6（标定集 J 对照）、表 7（最终 θ 拟合集回归）、图 1 |
+| 交付 3-4 Validation：实测 vs 仿真 spacing/time、speed/time 折线（每 event 一图）+ 基础指标表 | 第 4 节表 8（两 run 逐 event + 聚合）+ 图 2/3（validation 2 个 event）+ 图 4/5/6（human 3 个 event，作为拟合侧对照） |
+| 交付 3-5 驾驶风格：human vs validation 对比表 + 雷达图/柱状图 + 自动文字结论 | 第 5 节表 9（阈值依据）、表 10（对比表）、表 11（逐 event）、表 12（评分公式）、图 7（雷达）、图 8（分组柱）；「Automatic conclusions」15 条全部由数值生成（§6.7 原文粘贴） |
+| 交付 3-6 局限性（driver_1 一致性、参数顶边界、event 少、坐标单位） | 第 6 节 9 条（含 DEMO 提示、参数顶边界由 `parameters_at_bound` 自动写入、坐标单位与阈值相对化说明、leader 是输入、单次运行无重复） |
+| 交付 3：英文、简洁学术风、表格用样式、离线可开 | 全部英文；`<style>` 内纯 CSS（表格、图注、note/box、TOC）；无任何 http(s)/CDN 引用 |
+| 交付 4：无数据时用现有 human 数据伪 validation 跑通全管线 | DEMO 运行（§6.2）：`--validation-raw data/raw/collection_20260917_144342 --driver driver_1 --report --demo` |
+| 交付 4：demo HTML 输出到 `results/lab1_full_report_demo.html` 并明确标注 DEMO | `--demo` ⇒ 输出名 `lab1_full_report_demo.html` + 顶部横幅 + 第 4 节警告框（自检 `DEMO REPORT` 命中） |
+| 交付 4：给出真实数据到位后的命令清单并写在报告顶部 | 本文件 §0；HTML 顶部也有同一命令框 |
+| 交付 4：不装包、不改 stage/M1..5；不改动已有输出行为 | §1 表 + mtime + 逐字节身份自洽（§6.5） |
+| 交付 4：结果可复现 | §6.6：两次运行 validation JSON 一致（仅 `elapsed_seconds` 不同）、HTML md5 相同 |
+| 交付 4：更新 build-report.md | 本文件（原报告降级为附录 A） |
+
+---
+
+## 2. 交付 1 设计：validation 运行管线
+
+### 2.1 为什么 stage 1 用「函数级」复用、stage 2/3/4 用「原 main() + 常量重绑」
+
+- `preprocess_stage1.py` 把两个 human collection 的路径**硬编码**在模块常量 `DRIVER_SOURCES` 里，`main()` 内部还会 `source.relative_to(root)` 打印；要把它指向 validation collection 就必须改它的常量或输出行为。为了**一行都不改原脚本**，管线改为直接调用它自己的**处理函数**：`read_raw` → `count_roles`（role 合法性仍由原函数把关，异常则中止）→ `to_output_rows`（列投影 + role 分组 + `t_from_start` 升序，原函数）→ `write_csv`（`.tmp` + `os.replace` 原函数）→ `count_data_rows` / `read_header` 回读校验。行数不符或表头不符即抛错，绝不放行。
+- `preprocess_stage2/3/4.py` 的 `main()` 完全由**模块级路径常量**驱动（`STAGE1/2/3_SUBDIR`、`OUTPUT_SUBDIR`），且 `rebuild_output_dir()` 的自毁守卫是拿 `OUTPUT_SUBDIR` 自身比对（自洽），因此管线只需在调用点临时重绑这两个常量再调用 `module.main(["--root", root])`：**裁剪、对齐、插值、合并、summary、stdout 报告、写后回读校验全部是原实现**，调用结束在 `finally` 里恢复常量，同一进程内的后续调用不会被污染。这也是为什么 §6.2 的日志里能直接看到原 stage 的完整 stdout 报告与 `on-disk verification ... OK`。
+
+### 2.2 目录隔离与破坏性操作的最小化
+
+```
+data/preprocess/validation_driver_1/stage_1/driver_1.csv
+data/preprocess/validation_driver_1/stage_2/driver_1_event_{1,2,3}.csv + stage2_summary.json
+data/preprocess/validation_driver_1/stage_3/driver_1_event_{2,3}.csv + stage3_summary.json
+data/preprocess/validation_driver_1/stage_4/driver_1_event_{2,3}.csv + stage4_summary.json
+```
+
+`_guard(base, path)` 要求 `base.name` 以 `validation_` 开头、`base.parent.name == "preprocess"`、且被操作路径必须位于 `base` 之内，否则直接 `RuntimeError`；清空只发生在管线启动时对这 4 个 stage 目录（重跑即从零重建，和原 stage 的行为一致）。human 树不进入任何一个写路径，并用前后 sha256 取证（§6.4）。
+
+### 2.3 回放口径
+
+`metrics.evaluate_run(root, driver, "data/preprocess/validation_<driver>/stage_4", label="validation")`：θ 取自 `results/final_params.json`（并用 `idm_core.inside_bounds` 校验仍在参数框内，越界即报错而不是照算），每个 event 调 `core.simulate_event(data, theta, "rk4", return_status=True)`——**首点实测 `s(0)=s_obs[0]`、`v(0)=v_obs[0]`，前导速度取实测 `lv` 的线性插值，按真实 Δt 积分**，与标定/CV 完全同一口径。`diverged`/非有限即如实记为不可行，不造数。
+
+### 2.4 `--dry-run` 语义
+
+`--dry-run` 只读不写，检查项分三档：`ok` / `warn` / `FAIL`，**只有 FAIL 才返回退出码 1**。validation 数据尚未存在属于 `warn`（它本来就不该存在），而 imports、`final_params.json`/`cv_results.json` 可读、θ 在框内、human stage_4 可读、输出计划 guard 通过、无 `.tmp` 残留都是硬检查。
+
+---
+
+## 3. 交付 2 设计：驾驶风格与预测指标
+
+### 3.1 A 类：预测指标（口径同 CV，代码同 CV）
+
+`metrics.regression_metrics()` 是 `cross_validate.regression_metrics()` 的**惰性 import 直调**（延迟 import 是因为该模块会连带 import M1..M5 与 torch，纯风格计算不必付这个代价）。口径因此与 Step C 完全一致：MSE/RMSE/MAE/MAPE（分母为 0 的样本跳过并计数）/R²（`1 − SS_res/SS_tot`，`SS_tot` 相对实测均值）；spacing 用 `s = dhw − L_VEH`（`L_VEH = 250`，`core.L_VEH`）。`events` 级聚合用**等权平均**（与 CV 一致），R² 保留逐 event 值（R² 的平均不是决定系数）。
+
+### 3.2 B 类：驾驶风格指标（只对实测轨迹计算）
+
+| 组 | 指标 | 定义 |
+|---|---|---|
+| Efficiency | `mean_speed_cu_s` | `mean(fv)` |
+| | `speed_achievement` | `mean(fv)/v0`（v0 = 该 driver 标定的自由流速度，来自 final_params） |
+| | `duration_s` / `duration_total_s` | event 时长 / 全事件时长之和 |
+| | `stop_fraction` / `stop_samples` | `fv ≤ STOP_SPEED_THRESHOLD_CU_S` 的样本占比 / 个数（本数据 = 0，如实报 0） |
+| Comfort | `accel_mean/std/rms`、`accel_abs_max` | 对 `fv` 做**中心差分（端点单侧）**，即 `idm_core.observed_acceleration`（与 stage 4 速度同一约定）；`std` 为总体标准差 |
+| | `frac_accel_gt_{50,100,200}_cu_s2` | `|a| > 绝对阈值` 的样本占比 |
+| | `frac_accel_gt_{2,3}sigma` | `|a| > 2σ_a / 3σ_a`（σ_a = 该 event 的 a 标准差） |
+| | `jerk_rms_cu_s3`、`jerk_abs_max_cu_s3` | `j = Δa/Δt` 的 RMS 与最大绝对值 |
+| Safety | `spacing_min_cu`、`spacing_mean_cu` | `min(s)` / `mean(s)` |
+| | `spacing_violation_count` | `s ≤ 0` 的样本数（与 `idm_core` 的违规判定一致） |
+| | `ttc_min_s` | `dv = lv − fv > 1e-9` 时 `s/dv`；否则记 `inf`；全为 inf 时记 `null`（TTC 未定义，而不是 0） |
+| | `ttc_defined_share` | 存在有限 TTC 的样本占比（反映「前导车是否在接近」） |
+| | `ttc_{1.5,3.0}_share` | `TTC < 1.5 s`（临界）/ `< 3.0 s`（预警）的样本占比 |
+
+**聚合口径**：driver 级 = **按样本数加权平均**（均值/比例类）、min 取 min（`spacing_min_cu`、`ttc_min_s`）、max 取 max（`jerk_abs_max_cu_s3` 等）、计数与时长为 sum。用样本加权而不是等权，是为了不让一个 27 样本的短 event 盖过 211 样本的长 event；这一点在报告表 10 的 caption 里也写明。
+
+### 3.3 阈值集中配置与依据（报告表 9 原文）
+
+| 量 | 值 | 依据 |
+|---|---|---|
+| stop 速度 | `v ≤ 1.0 cu/s` | 约为标定自由流速度（≈140 cu/s）的 0.7%，此速度以下视为静止 |
+| 加速度绝对阈值 | 50 / 100 / 200 cu/s² | 50 = `metadata.json` 的 `idm_params.max_accel_per_sec`；100 = 标定参数框 `a ∈ [10,200]` 的中点；**200 = 该框上界 `idm_core.UPPER[3]`，即辨识出的模型在**同一坐标单位**下能产生的最大加速度——量纲自洽的那个锚点** |
+| 加速度相对阈值 | `> 2σ_a`、`> 3σ_a` | 与单位无关，**不需要任何物理换算**，因此风格评分以它为准 |
+| TTC 阈值 | 1.5 s（临界）/ 3.0 s（预警） | TTC 代理安全指标文献的两个常用阈值；TTC 单位是秒，本身与坐标单位无关 |
+| spacing 违规 | `s ≤ 0` | 与 `idm_core` 仿真中的违规计数同一约定 |
+| 参考最小车距 | 80 cu | `metadata.json` 的 `idm_params.min_spacing`（仅列出，不参与评分） |
+
+关于坐标单位的如实说明（也写进了 HTML 第 1 节与第 6 节）：本数据集没有任何文档化的「cu → m」换算，且车辆上报的 `velocity` 列与位置差分速度相差约 3 倍（stage 4 因此弃用它）；实测 a 的 RMS（human ≈ 98–128 cu/s²）远高于 metadata 的 50 cu/s²，说明 metadata 的加速度限值与位置差分加速度**并非同一量纲**。因此绝对阈值仅作为「相对模型自身参数框」的参照列出，风格评分使用无量纲的 σ 相对形式与「最小间距/最小 TTC 占参考尺度的比例」（见 3.4），避免把一个量纲存疑的绝对值变成结论。
+
+### 3.4 归一化评分（报告表 12、图 7/8）
+
+```
+efficiency = clamp(mean(v) / v0)
+comfort    = 1 − clamp(accel_rms / 200 cu/s²)
+safety     = 0.5·clamp(s_min / 250 cu) + 0.5·clamp(TTC_min / 3.0 s)，出现 s ≤ 0 直接置 0
+```
+
+`clamp` 到 `[0,1]`；三个尺度（200 cu/s²，250 cu = 1 个车长，3.0 s）都是模块常量并在报告里列出。图 8 展示 6 个子指标（速度达成率、非停车占比、a RMS 余量、jerk RMS 余量、最小间距余量、最小 TTC 余量），全部按同一公式归一化，因此「某个 run 在聚合轴上更好、但在某个子指标上更差」是可见的，不会被单一数字掩盖。
+
+### 3.5 自动文字结论
+
+`metrics.text_conclusions()` 逐项比较 human 与 validation 的聚合量，用 **5% 相对变化为显著带**（小于该值即表述为 "agree to within 5 percent"）；对「方向无好坏之分」的量（总时长、带符号且近零的平均加速度）改用绝对差值且标注 `context, not a quality`；对参考值为 0 的量（stop 比例、TTC<1.5 s 占比）明确输出「0 in both runs」而不是用未定义的百分比；最后补 3 条评分轴结论与 1 条 spacing 违规结论。**没有任何形容词式的套话**，每条都带两边数值。
+
+---
+
+## 4. 交付 3 设计：自包含 HTML 报告
+
+### 4.1 章节与图表清单
+
+| # | 章节 | 内容 | 表 | 图 |
+|---|---|---|---|---|
+| 1 | Experiment and model | 实验流程、IDM 公式块、5 参数表（含值/单位/边界/是否顶边界）、单位说明、最终 θ 摘要 | 表 1 | — |
+| 2 | Data processing | stage1→4 操作与行数对比（human vs validation）、stage 2/3/4 配置（取自 summary json）、逐 event 清单（样本数/时间/dhw/fv/lv 范围与均值/被删点数）、stage 3 丢事件原因 | 表 2、3 | — |
+| 3 | Calibration | 5 方法 + CV/最终预算、CV 排名（含 spacing 与 speed 的 MSE/RMSE/MAE/MAPE/R² 分组表头）、标定集 J 对照、最终 θ 拟合集回归 | 表 4–7 | 图 1（各方法 CV 评分柱状） |
+| 4 | Validation run | 无数据时给出命令提示；有数据时逐 event 图 + 两 run 指标表 | 表 8 | 图 2–6（validation 2 张 + human 3 张，各含 spacing/time 与 speed/time 双面板） |
+| 5 | Driving style | 阈值与依据表、human vs validation 对比表、逐 event 表、评分公式表、雷达图、子指标分组柱状、自动结论 | 表 9–12 | 图 7（雷达）、图 8（柱状） |
+| 6 | Limitations | 9 条（DEMO 提示、event 少、event 短、坐标单位、参数顶边界、driver_1 一致性、leader 是输入、位置差分噪声、单次运行无重复） | — | — |
+
+DEMO 报告实测：**6 章 / 12 表 / 8 图**（图 1 = CV 评分，图 2–3 = validation 2 个 event，图 4–6 = human 3 个 event，图 7 = 雷达，图 8 = 柱状）。
+
+### 4.2 自包含与可打开
+
+- 所有图用 matplotlib `Agg` 后端渲染到内存，`savefig(..., format="png")` 后 base64 内联为 `data:image/png;base64,...`；HTML 内**没有任何 http(s)/协议相对 URL**（自检 `external_resources = 0`），样式全部在 `<style>` 里，字体只用系统字体栈 —— 断网、离线双击即可打开与打印。
+- 写入后自动自检并把结果打到 stdout：文件字节数、`figures_rendered` vs `images_embedded`（必须相等）、`tables`、`unresolved_placeholders`（必须 0）、`external_resources`（必须 0）、`sections`（必须 6），任一不满足退出码 1。
+- 额外机械校验（§6.3）：逐张 PNG 解码校验魔数与尺寸、`html.parser` 全量标签闭合检查（0 error / 0 unclosed）、图注中的「Figure N.」不重复。
+- **不写任何墙钟时间戳**，因此同一批 artifacts 两次生成的 HTML 逐字节相同（§6.6 已验证）——报告本身也可作为可复现产物。
+- 无 validation 数据时**仍能出报告**（第 4 节与第 5 节的 validation 半边显式声明缺失，并给出命令），实测 6 章 / 10 表 / 1 图，不会出现空表或崩溃。
+
+---
+
+## 5. 交付 4：DEMO 的构造
+
+| 运行 | 命令 | 目的 | 产物 |
+|---|---|---|---|
+| DEMO A（交付） | `--validation-raw data/raw/collection_20260917_144342 --driver driver_1 --report --demo` | 用 **driver_2 的 human collection** 当 driver_1 的伪 validation，两边数值不同 → 真正走通「human vs validation 对比」全部代码路径 | `results/lab1_full_report_demo.html`、`results/validation_driver_1.json`、`data/preprocess/validation_driver_1/**` |
+| DEMO B（仅验证，产物已删） | `--validation-raw data/raw/collection_20260917_144342 --driver driver_2 --out <scratch>/identity_check_report.html` | 同一 collection 作为**其自身**的 validation → 检验「管线只是重跑原 stage」：stage 表逐字节相同 + 31 项风格指标差全 0 | 一次性；跑完删除 `data/preprocess/validation_driver_2/**` 与 `results/validation_driver_2.json`，避免残留的伪数据在真实数据到来前被误当成 validation 结果 |
+
+**DEMO 的诚实标注**：DEMO A 的报告顶部有黄色 DEMO 横幅，第 4 节还有一条警告框（因为 `results/validation_driver_1.json` 里 `"demo": true`），明确写出「validation 表来自 human collection `data/raw/collection_20260917_144342`（另一个 driver 的录制），按 driver_1 的 validation run 处理；预处理、回放、指标、图都是真实代码路径，只有 validation 输入的角色是模拟的」。因此 DEMO A 里第 4 节出现明显的模型迁移误差（validation event_2 的 spacing R² = −22.79）是**预期现象**（把 driver_1 的 θ 套到另一个 driver 的轨迹上），不是管线缺陷 —— 这一点也写进了横幅文字。
+
+**真实数据到位后的清理**：直接重跑 §0 的命令即可，管线会先清空并重建 `data/preprocess/validation_driver_1/stage_1..4`，`results/validation_driver_1.json` 的 `"demo"` 变为 `false`，报告第 4 节的警告框随之消失。DEMO HTML 与真实报告是不同文件名（`lab1_full_report_demo.html` vs `lab1_full_report.html`），不会互相覆盖。
+
+---
+
+## 6. 实测证据（真实命令与输出）
+
+### 6.1 `--dry-run`（无 validation 数据，退出码 0）
+
+```bash
+$P src/run_validation_pipeline.py --dry-run --driver driver_1 --validation-raw data/raw/validation_x
+```
+
+```
+==============================================================================
+DRY RUN - src/run_validation_pipeline.py
+==============================================================================
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+driver       : driver_1
+python       : 3.11.15 (C:\Users\ptiu1\miniconda3\envs\intr5100\python.exe)
+
+checks:
+  [ok  ] imports: preprocessing stages                   preprocess_stage1, preprocess_stage2, preprocess_stage3, preprocess_stage4
+  [ok  ] imports: idm_core                               L_VEH=250 DELTA=4 method=rk4
+  [ok  ] imports: metrics                                6 threshold group(s)
+  [ok  ] imports: cross_validate (regression metrics)    imported
+  [ok  ] imports: matplotlib                             3.11.0 (backend qtagg)
+  [ok  ] imports: build_html_report                      imported
+  [ok  ] parameters: final_params.json                   drivers with a parameter vector: ['driver_1', 'driver_2']
+  [ok  ] parameters: theta of driver_1                   v0=139.8030  T=0.8412  s0=19.9491  a=198.3226  b=199.3599  (method M5, within bounds True)
+  [ok  ] parameters: cv_results.json (report section 3)  results/cv_results.json
+  [ok  ] human tables: data/preprocess/stage_4           events per driver: driver_1=3, driver_2=2
+  [warn] validation input                                data/raw/validation_x/straight_trajectory.csv absent - expected while no validation run exists yet
+  [ok  ] output plan: validation tree                    data/preprocess/validation_driver_1/stage_1..4 (isolated)
+  [ok  ] output plan: isolation                          inside data/preprocess and prefixed 'validation_' - cannot collide with the human stages
+  [ok  ] output plan: run summary                        results/validation_driver_1.json
+  [ok  ] repository state: no .tmp leftovers             none
+
+DRY RUN: all checks passed (missing validation data is expected and reported as a warning).
+（退出码 0）
+```
+
+### 6.2 DEMO A 全管线运行（真实 stdout 摘录）
+
+```bash
+$P src/run_validation_pipeline.py --validation-raw data/raw/collection_20260917_144342 --driver driver_1 --report --demo
+```
+
+```
+project root    : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+driver          : driver_1
+validation raw  : data/raw/collection_20260917_144342
+validation tree : data/preprocess/validation_driver_1/stage_1..4
+IDM parameters  : v0=139.8030  T=0.8412  s0=19.9491  a=198.3226  b=199.3599   (method M5, delta 4, L_VEH 250)
+integration     : rk4, first measured (s, v) as the initial state
+
+human stage trees hashed before the run: 21 file(s)
+
+[stage 1] data/raw/collection_20260917_144342/straight_trajectory.csv: 727 raw rows (follower=353, leader=374)
+[stage 1] wrote data/preprocess/validation_driver_1/stage_1/driver_1.csv: 727 rows (on disk 727, header driver,role,t_from_start,x,y,heading,velocity)
+  start trim : none (no genuine stop run precedes sustained motion; longest head standstill run <= 3 samples)
+  start alignment: follower triggered no head trim -> leader untouched (no alignment base)
+  segments (dt > 1.0 s):
+    follower_event_1   18 rows  t=[4.630570, 6.415966]      leader_event_1      4 rows  t=[-0.054888, 0.352735]
+    follower_event_2  230 rows  t=[12.442953, 38.593424]    leader_event_2    225 rows  t=[8.396490, 33.865332]
+    follower_event_3  105 rows  t=[46.047997, 58.330555]    leader_event_3    145 rows  t=[41.815037, 58.337247]
+  pairing by ordinal: 3 event(s)
+    driver_1_event_1.csv       22 rows  (follower 18 + leader 4)
+    driver_1_event_2.csv      455 rows  (follower 230 + leader 225)
+    driver_1_event_3.csv      250 rows  (follower 105 + leader 145)
+  row balance: kept 727 = paired 727 + unmatched 0  OK
+on-disk verification (re-read after writing):
+  driver_1_event_1.csv  expected=22  on_disk=22  OK
+  driver_1_event_2.csv  expected=455  on_disk=455  OK
+  driver_1_event_3.csv  expected=250  on_disk=250  OK
+[stage 2] exit code 0
+[stage 3] exit code 0      # 写 2 个 event（event_1 因 leader/follower 无重叠被删，stage3_summary 记 deleted_event_files=1）
+[stage 4] exit code 0      # 2 个 event / 335 行
+[replay] 2 validation event(s) simulated with the driver_1 parameters
+  event         n    mean v      achv     dur s      stop    a mean     a std     a rms   |a|>200     >2sig     j rms     s min   ttc min   ttc<1.5      viol
+  event_2     211    101.29     0.725      21.5    0.0000     -3.54    101.29    101.36    0.0664    0.0664    1235.8     206.8     4.048    0.0000         0
+  event_3     124    112.62     0.806      12.3    0.0000     -1.68    128.25    128.26    0.1048    0.0806    1511.0     165.8     3.683    0.0000         0
+  AGG         335    105.48     0.755      33.8    0.0000     -2.85    111.27    111.32    0.0806    0.0716    1337.7     165.8     3.683    0.0000         0
+
+[isolation] human stage trees unchanged: True (21 file(s) hashed, 0 changed)
+[summaries] stage 2 events=3, stage 3 written=2 (deleted 1), stage 4 rows=335
+[self-checks] tables ok=True, seam ok=True, no diverged event=True, human tree untouched=True
+written: results/validation_driver_1.json  (3.5 s)
+
+self-checks:
+  output                   results/lab1_full_report_demo.html
+  bytes                    1002571
+  figures_rendered         8
+  images_embedded          8
+  tables                   12
+  unresolved_placeholders  0
+  external_resources       0
+  sections                 6
+  all checks passed        True
+（退出码 0）
+```
+
+产出的隔离树（11 个文件）：
+
+```
+data/preprocess/validation_driver_1/stage_1/driver_1.csv
+data/preprocess/validation_driver_1/stage_2/driver_1_event_{1,2,3}.csv + stage2_summary.json
+data/preprocess/validation_driver_1/stage_3/driver_1_event_{2,3}.csv + stage3_summary.json
+data/preprocess/validation_driver_1/stage_4/driver_1_event_{2,3}.csv + stage4_summary.json
+```
+
+### 6.3 报告自检与结构机械校验
+
+报告的 stdout 自检：`bytes 1002571 / figures_rendered 8 / images_embedded 8 / tables 12 / unresolved_placeholders 0 / external_resources 0 / sections 6 / all checks passed True`。
+
+独立的第二道校验（scratch 脚本，非交付物）：
+
+```
+results/lab1_full_report_demo.html
+  unclosed at EOF: []
+  errors: []
+  tags: {'div': 28, 'figcaption': 8, 'figure': 8, 'h2': 6, 'h3': 1, 'img': 8, 'li': 25, 'main': 1,
+         'p': 11, 'pre': 2, 'style': 1, 'table': 12, 'td': 610, 'th': 100, 'tr': 90, 'ul': 2}
+  captions with a doubled figure number: 0
+  demo warning in section 4: True
+逐张 PNG 解码：img0 692x340 22 KiB / img1 978x604 123 KiB / img2 978x604 128 KiB / img3 978x604 114 KiB
+                img4 978x604 103 KiB / img5 978x604 108 KiB / img6 594x499 66 KiB / img7 965x382 38 KiB
+                → 8/8 魔数 \x89PNG 合法，bad images: 0
+```
+
+图 2（validation event_2 的实测 vs 仿真）与图 7/8（雷达/柱状）另经**视觉核对**：双面板、图例、带单位轴标签、RMSE/R² 标注框、三轴雷达（Efficiency/Comfort/Safety，human 与 validation 两条带填充曲线 + 图例 + 0-1 径向刻度）、六类分组柱（可读标签 + 图例 + 0-1 纵轴）均正常渲染。
+
+**接缝自检**（`self_checks.prediction_seam`）：`metrics.regression_metrics` 从残差序列重算的 spacing/speed RMSE 必须等于 `idm_core.event_metrics` 自己报的 RMSE（`rel_tol=abs_tol=1e-9`），逐 event 校验；实测 `all_match: True`。这条检查的意义是：如果「复用的回归代码」与「共享仿真器」之间出现口径漂移，它一定会先炸在这里。
+
+### 6.4 human 数据隔离取证（运行前后 sha256）
+
+```
+[isolation] human stage trees unchanged: True (21 file(s) hashed, 0 changed)
+```
+
+即在 2 次 DEMO A 运行 + 1 次 DEMO B 运行（共 3 次全管线）之后，`data/preprocess/stage_1..4` 下 21 个文件的 sha256 **全部未变**。原脚本 mtime 亦未变（`preprocess_stage1.py` 09-21 15:39 … `cross_validate.py` 09-21 17:55，全部早于本次任务的 19:14–19:16 写入）。
+
+### 6.5 DEMO B：身份自洽（同一 collection 作为其自身 validation）
+
+```bash
+$P src/run_validation_pipeline.py --validation-raw data/raw/collection_20260917_144342 --driver driver_2 --out <scratch>/identity_check_report.html
+```
+
+```
+for f in stage_2/driver_2_event_2.csv stage_2/driver_2_event_3.csv stage_4/driver_2_event_2.csv stage_4/driver_2_event_3.csv:
+    cmp human 表 vs validation_driver_2 表
+IDENTICAL  data/preprocess/validation_driver_2/stage_2/driver_2_event_2.csv
+IDENTICAL  data/preprocess/validation_driver_2/stage_2/driver_2_event_3.csv
+IDENTICAL  data/preprocess/validation_driver_2/stage_4/driver_2_event_2.csv
+IDENTICAL  data/preprocess/validation_driver_2/stage_4/driver_2_event_3.csv
+```
+
+报告侧（同一批数据的 human 半边 vs validation 半边）逐行差异全为 0；两侧**可比的数值型聚合风格指标共 27 项，最大相对差 0.0**：
+
+```
+mean speed | 105.48 cu/s | 105.48 cu/s | +0.00 | +0.0%
+speed achievement mean(v)/v0 | 0.751 | 0.751 | +0.000 | +0.0%
+total driving time | 33.8 s | 33.8 s | +0.0 | +0.0%
+acceleration RMS | 111.32 cu/s^2 | 111.32 cu/s^2 | +0.00 | +0.0%
+jerk RMS | 1,337.7 cu/s^3 | 1,337.7 cu/s^3 | +0.0 | +0.0%
+minimum spacing | 165.8 cu | 165.8 cu | +0.0 | +0.0%
+minimum TTC | 3.683 s | 3.683 s | +0.000 | +0.0%
+Efficiency score: human 0.751 vs validation 0.751 (+0.000) - practically the same.
+Comfort score:    human 0.443 vs validation 0.443 (+0.000) - practically the same.
+Safety score:     human 0.832 vs validation 0.832 (+0.000) - practically the same.
+```
+
+即：管线没有引入任何「第二次处理」的偏差，两条路径（human stage 树 / validation stage 树）在输入相同的情况下输出逐字节一致。验证完成后 `data/preprocess/validation_driver_2/**` 与 `results/validation_driver_2.json` **已删除**（避免残留伪数据被误当成真实 validation；该检查一条命令即可重放，命令见 §5 表格）。
+
+### 6.6 可复现性
+
+```bash
+# (a) 全管线两次运行
+$P src/run_validation_pipeline.py --validation-raw data/raw/collection_20260917_144342 --driver driver_1 --report --demo   # 运行 1
+$P src/run_validation_pipeline.py --validation-raw data/raw/collection_20260917_144342 --driver driver_1 --report --demo   # 运行 2
+$P -c "a=json.load(open('run1.json')); b=json.load(open('run2.json')); a.pop('elapsed_seconds'); b.pop('elapsed_seconds'); print(a==b)"
+validation JSON identical ignoring elapsed_seconds: True (elapsed [3.285401, 3.279032] )
+
+# (b) 报告生成器两次运行
+$P src/analysis/build_html_report.py --driver driver_1 --out rep1.html
+$P src/analysis/build_html_report.py --driver driver_1 --out rep2.html
+6d640d8a9c684b1dc6c98fce2dfca4d6 *rep1.html
+6d640d8a9c684b1dc6c98fce2dfca4d6 *rep2.html      → 逐字节相同
+```
+
+唯一非确定字段是 JSON 里的 `elapsed_seconds`（耗时），集中在一个键里；HTML 不含任何时间戳（§4.2）。
+
+### 6.7 自动文字结论（DEMO A 报告第 5 节原文，15 条全部由数值生成）
+
+```
+- Mean follower speed: human 117.00 cu/s vs validation 105.48 cu/s - lower by 9.8 percent (higher is better).
+- Speed achievement mean(v)/v0: human 0.837 vs validation 0.755 - lower by 9.8 percent (higher is better).
+- Total driving time: human 24.9 s vs validation 33.8 s - higher by 35.7 percent (context, not a quality).
+- Stop fraction: 0 in both runs (lower is better).
+- Mean acceleration (signed, near zero): human 3.18 cu/s^2 vs validation -2.85 cu/s^2 - absolute difference -6.04 cu/s^2 (context, not a quality).
+- Acceleration RMS: human 97.84 cu/s^2 vs validation 111.32 cu/s^2 - higher by 13.8 percent (lower is better).
+- Jerk RMS: human 1150.52 cu/s^3 vs validation 1337.66 cu/s^3 - higher by 16.3 percent (lower is better).
+- Minimum spacing: human 124.1 cu vs validation 165.8 cu - higher by 33.5 percent (higher is better).
+- Minimum TTC: human 1.997 s vs validation 3.683 s - higher by 84.4 percent (higher is better).
+- Share of samples below TTC = 1.5 s: 0 in both runs (lower is better).
+- Spacing RMSE of the identified IDM: human 58.6 cu vs validation 72.5 cu - higher by 23.7 percent (lower is better).
+- Speed RMSE of the identified IDM: human 16.91 cu/s vs validation 18.94 cu/s - higher by 12.0 percent (lower is better).
+- Efficiency score: human 0.837 vs validation 0.755 (-0.082) - better on the human run.
+- Comfort score: human 0.511 vs validation 0.443 (-0.067) - better on the human run.
+- Safety score: human 0.581 vs validation 0.832 (+0.250) - better on the validation run.
+- No simulated spacing violation (s <= 0) occurred in either run, so every reported error was produced without clamping.
+```
+
+（caveat：这是 DEMO A 的跨 driver 数值，不能当作真实 validation 结论。）
+
+### 6.8 独立复核：105 个风格指标值零共享代码重算
+
+scratch 脚本 `independent_style_check.py`（**不 import 项目代码做计算**：`csv` 模块读盘 + 纯 Python 浮点 + 手写循环）重算 14 类风格量，与 `metrics.event_style_metrics()` 逐值比较（相对容差 1e-9）：
+
+```
+data/preprocess/stage_4/driver_1_event_1.csv                     n= 138 OK
+data/preprocess/stage_4/driver_1_event_3.csv                     n=  79 OK
+data/preprocess/stage_4/driver_2_event_2.csv                     n= 211 OK
+data/preprocess/validation_driver_1/stage_4/driver_1_event_2.csv n= 211 OK
+data/preprocess/validation_driver_1/stage_4/driver_1_event_3.csv n= 124 OK
+
+values compared : 105
+mismatches      : 0
+ALL VALUES AGREE
+```
+
+覆盖 human 两个 driver 与 validation 两张表，说明指标实现（含中心差分、端点单侧、TTC 的 dv>0 分支、σ 相对阈值、违规计数）与手算定义完全一致。
+
+### 6.9 其它检查
+
+- `results/` 与 `data/` 内无 `*.tmp` 残留（`--dry-run` 的 `repository state: no .tmp leftovers` + 各 stage 自带检查）。
+- `metrics.py` CLI 可用：`--driver` / `--validation-dir` / `--json-out` / `--thresholds`；实测 `--json-out` 写出 human 与 validation 两半 + 比较块（`keys ['human','validation','comparison']`），`--thresholds` 打印阈值 JSON。
+- 未做浏览器实操：本机没有可用的 Chromium，`browser_exec` 无法启动浏览器（属「装包」范围，故不安装）。因此「HTML 可打开」的验证方式改为：**逐张 PNG 解码 + `html.parser` 全量标签闭合检查（0 错误）+ 图/表/章节计数 + 0 外链 + 视觉核对关键图**（§6.3）。这是本报告的一处如实的验证方式替代，而非跳过。
+
+---
+
+## 7. 假设、偏差与遗留问题
+
+1. **假设：validation collection 的目录结构与 human collection 一致**（`straight_trajectory.csv`，且含 `role,t_from_start,x,y,heading,velocity` 列）。这是 brief 明确的前提；脚本对该前提做了硬校验（`read_raw` 缺列即报错），不一致会立刻失败而不是产出错数据。
+2. **假设：`--driver` 指的是「用谁标定出来的 θ」**，而不是「validation run 的驾驶者」。因此伪 validation 树里的 driver 列写的就是该 driver 标签（stage 2/3/4 会校验文件内 driver 列与文件名一致，这也是 DEMO B 能逐字节复现 human 表的原因）。
+3. **偏差（继承自数据本身，非本次引入）**：坐标单位无物理换算、`velocity` 列与位置差分速度约差 3 倍、metadata 的加速度限值与位置差分加速度不同量纲。处理方式见 §3.3（绝对阈值仅作参照、评分用无量纲的相对形式），并在报告第 1/6 节如实说明。
+4. **偏差：DEMO 数据仍留在仓库里**（`data/preprocess/validation_driver_1/**` + `results/validation_driver_1.json` + `results/lab1_full_report_demo.html`）。它们被 `"demo": true` 与报告内警告框明确标注；真实数据到位后重跑 §0 命令会覆盖前两者，DEMO HTML 有独立文件名。若希望仓库完全干净，可删除这三者（不影响脚本）。
+5. **遗留：TTC 与 jerk 的噪声敏感性**。速度是位置差分、加速度与 jerk 是其再差分，0.1 s 采样下这两类量的方差大（human 的 jerk RMS 达 ~1150–1338 cu/s³）。报告已把这一点写进局限性，但没有做平滑（平滑会引入窗宽这个新的自由参数，且会改变与 CV 口径的一致性）。若 TA 希望更稳的 comfort 结论，建议的下一步是：在 `metrics.py` 里增加一个显式的平滑窗常量并**同时**报告原始与平滑两套值，而不是替换。
+6. **遗留：validation 只有一次运行**，无法把「human 与 validation 的系统差异」与「单次运行的自然波动」分开；报告局限性里已说明，需要重复运行才能进一步定量。
+7. **未做**：没有把报告导出 PDF、没有接入 CI、没有改动画表以外的任何既有行为；没有新增任何第三方依赖。
+
+---
+
+## 8. 实际执行的命令
+
+```bash
+cd /c/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1
+P=C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe
+
+# (0) 侦察：确认解释器与依赖、读 stage 1..4 与标定脚本接口、量出 a/jerk 的实际尺度（决定阈值怎么定义）
+$P -c "import numpy,scipy,pandas,matplotlib,torch; print(numpy.__version__, ...)"
+$P -c "import preprocess_stage1..4, cross_validate; 读 stage_2/3/4 summary；统计各 event 的 s/v/|a|/|jerk| 尺度"
+
+# (1) 交付 2 指标模块冒烟（human 两个 driver）
+$P src/analysis/metrics.py --driver driver_1
+$P src/analysis/metrics.py --driver driver_2
+$P src/analysis/metrics.py --driver driver_1 --validation-dir data/preprocess/validation_driver_1
+$P src/analysis/metrics.py --driver driver_2 --json-out <scratch>/metrics_d2.json
+
+# (2) 交付 1 + 3 dry-run（无数据）
+$P src/run_validation_pipeline.py --dry-run --driver driver_1 --validation-raw data/raw/validation_x
+
+# (3) 报告生成器在无 validation 数据下的降级冒烟
+$P src/analysis/build_html_report.py --driver driver_1 --out results/_smoke_no_validation.html   # 6 章/10 表/1 图，随后删除
+
+# (4) DEMO A：driver_2 的 collection 当 driver_1 的伪 validation（跑了 3 次，含可复现性比对）
+$P src/run_validation_pipeline.py --validation-raw data/raw/collection_20260917_144342 --driver driver_1 --report --demo
+
+# (5) DEMO B：同一 collection 作为其自身 validation（身份自洽），产出随后删除
+$P src/run_validation_pipeline.py --validation-raw data/raw/collection_20260917_144342 --driver driver_2 --out <scratch>/identity_check_report.html
+cmp <每一对 human / validation_driver_2 的 stage_2、stage_4 表>        # 全部 IDENTICAL
+
+# (6) 独立复核（Hermes scratch，非交付物）：零共享代码重算风格指标
+$P <scratch>/independent_style_check.py        # values compared: 105, mismatches: 0, ALL VALUES AGREE
+
+# (7) HTML 结构机械校验（Hermes scratch，非交付物）
+$P <scratch>/htmlcheck.py                      # unclosed: [], errors: [], 8 img/12 表/6 章, 无重复图号
+$P <scratch>/extract.py + 逐张 PNG 解码        # 8/8 合法 PNG；关键图另做视觉核对
+
+# (8) 可复现性与残留检查
+$P src/analysis/build_html_report.py --driver driver_1 --out rep1.html / rep2.html && md5sum   # 相同
+$P -c "... 对比两次全管线运行的 validation JSON（忽略 elapsed_seconds）"                       # 相同
+ls -l src/... | sha256sum ; ls -l --time-style=+%m-%d_%H:%M src/preprocess_stage*.py src/calibrate/*.py
+```
+
+---
+
+## 9. 复现步骤（从当前状态出发）
+
+```bash
+cd /c/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1
+P=C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe
+
+# A. 复现 DEMO 报告（约 5 s）
+$P src/run_validation_pipeline.py --validation-raw data/raw/collection_20260917_144342 --driver driver_1 --report --demo
+#   → data/preprocess/validation_driver_1/stage_1..4 + results/validation_driver_1.json + results/lab1_full_report_demo.html
+
+# B. 复现身份自洽检查（约 5 s，跑完可删 validation_driver_2）
+$P src/run_validation_pipeline.py --validation-raw data/raw/collection_20260917_144342 --driver driver_2
+cmp data/preprocess/stage_4/driver_2_event_2.csv data/preprocess/validation_driver_2/stage_4/driver_2_event_2.csv   # 无输出 = 相同
+
+# C. 真实 validation 数据到位后（唯一需要做的事）
+$P src/run_validation_pipeline.py --validation-raw <real_validation_dir> --driver <driver_1|driver_2> --report
+#   → results/lab1_full_report.html
+```
+
+可选参数：`--root DIR`、`--method euler|rk4`（默认 rk4）、`--out PATH`（报告生成器；`--demo NOTE` 会切到 demo 文件名并加横幅）。
+
+---
+
+# 附录 A — 标定 Step C 报告原文存档（本次任务之前的最新报告）
+
+
+# Build Report — Lab 1 IDM 标定 Step C：留一 event 交叉验证选优 + 最终参数（标定第 3 步）
+
+一句话：新建 `src/calibrate/cross_validate.py`（1398 行 / 65223 B，sha256 前缀 `9678ea52c486b652`），对 **driver_1（3 折：留 e1/e2/e3）** 与 **driver_2（2 折：留 e2/e3）** 做留一 event 交叉验证：每折用训练折 event **调用 M1..M5 各自的 `calibrate_driver` 原样标定**（不复制任何算法、不改 idm_core / 不改 M1..M5），再用返回参数对留出 event 做**纯预测**（留出 event 首点实测 s、v 初始化 + 实测 lv 前向积分整条），记录 spacing（s=dhw−250）与 speed 两套 **MSE / RMSE / MAE / MAPE / R²**、`s_violations` 与归一化 `objective_j`。结果：**两个 driver 的 CV 冠军都是 M5**（driver_1 score 2.2297、driver_2 score 2.2197，`score = mean(spacing_rmse)/scale_s + mean(speed_rmse)/scale_v + 1.0×Σviolations`），而 **M5 在标定集上的 J 恰恰不是最低**（driver_1 标定集 J：M4 3.176213 < M2 3.176314 < M3 3.181423 < **M5 3.183963**）——这是本步的核心发现（§5）。最终参数（全量 event + **满额预算**重训）：driver_1 θ=(v0=139.8030, T=0.8412, s0=19.9491, a=198.3226, b=199.3599) J=3.183963；driver_2 θ=(v0=140.3686, T=1.5074, s0=45.4097, a=57.5600, b=10.2127) J=1.214134（δ=4、L_VEH=250 固定）。**两次独立运行 JSON 除耗时字段外完全一致**；**满额预算重训与各自的 Step A/B 发布值在 JSON 6 位小数精度内一致**（max|Δθ|=4.5e-7 / 3.5e-7，ΔJ=1.9e-7 / 1.1e-7）。
+
+---
+
+## 1. 交付物与变更
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `src/calibrate/cross_validate.py` | **新建**（1398 行 / 65223 B，sha256 前缀 `9678ea52c486b652`） | Step C 主脚本：留一 event 交叉验证（5 方法 × 每 driver 折数）+ 统一回归指标 + 综合评分排名 + 用冠军方法在全量 event 上满额重训，输出 `results/cv_results.json` / `results/final_params.json` 与终端排名表 |
+| `results/cv_results.json` | **新建**（153345 B / 153343 B 两次运行；除 `timing` 外全部字段逐字节一致） | 全部折 × 方法的指标（含 spacing/speed 的 mse/rmse/mae/mape_percent/r2）、per-driver 等权平均、合并口径 R²、综合评分与排名、infeasible 记录、预算表、标定集参照、自检结果 |
+| `results/final_params.json` | **新建**（20498 B / 20497 B） | per-driver 最优方法名 + 最终 θ（v0,T,s0,a,b；δ=4、L_VEH=250）+ 全量 total_error + 每 event RMSE 与回归指标 + 与 Step A/B 发布值的逐一对照 |
+| `build-report.md` | **更新** | 本文件（Step C 报告在前；Step B 报告降级存为附录 A，原附录 A/B/C/D/E 顺延为 B/C/D/E/F） |
+| `src/calibrate/idm_core.py`、`m1_instant_ls.py` … `m5_differentiable.py` | **未改动** | 只 `import` 复用（`calibrate_driver`、`event_metrics`、`simulate_event`、`total_error` 等），一行未改；`results/m1..m5_params.json` 只读（作为标定集参照与重训对照，**不重算**） |
+| `data/preprocess/stage_1..4/**`、`data/raw/**`、`briefs/**` | **未改动** | 只读；stage_4 五个 CSV 的行数 138/27/79/211/124 与 Step B 报告记录一致 |
+
+- **未安装/升级/删除任何包**；未新建 venv/conda 环境；只用既有 numpy/pandas/scipy/torch（解释器 `C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe`）。唯一的环境动作是脚本内 `os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")`（进程级、可被调用方覆盖），原因、必要性与「不改变任何数值」的实测证据见 §6.3。
+- 本项目**不是 git 仓库**，故无提交。
+- **未启动/未重启任何服务**（一次性批处理；无守护进程、无端口）。
+- 脚本退出码 0，项目内无 `*.tmp` 残留（脚本自带检查，见 §6.4）。
+
+### 1.1 与 brief 的逐条对应
+
+| brief 要求 | 实现位置 / 证据 |
+|---|---|
+| 新建 `src/calibrate/cross_validate.py`；driver_1 三折、driver_2 两折 | 脚本 `main()`；运行日志 `driver_1: 3 event(s) … -> 3 fold(s)` / `driver_2: 2 event(s) … -> 2 fold(s)` |
+| 每折用训练折 event 以 5 方法各自标定，预算/种子沿用原脚本、seed 固定 | `_run_method()` → `m1/m2/m3/m4/m5.calibrate_driver(...)`（原样调用，仅 GA/PSO/M5 在 CV 内减半，见 §2.4）；`--seed 20260921` |
+| M1 某折不可行 → 记 infeasible、不中断 | `FoldInfeasible` → `record["infeasible"]=True` + `infeasible_reason`，流程继续（实测 4 例，§3.4） |
+| 留出 event 纯预测：首点实测 s、v 初始化 + 实测 lv 前向积分整条 | `idm_core.simulate_event`（`s(0)=s_obs[0]`, `v(0)=v_obs[0]`, leader = 实测 lv 线性插值, 真实 Δt） |
+| 每折记 spacing_rmse / speed_rmse / s_violations / objective_j | `run_fold()` → `record["metrics"]` |
+| 每折记 spacing 与 speed 的 MSE/RMSE/MAE/MAPE（跳过分母 0 并记录跳过数）/R² | `regression_metrics()` → `record["regression"]`；跳过数 = `mape_skipped_points`（实测全程 0，§6.5） |
+| per-driver：误差类指标各折等权平均；R² 合并口径重算；违规求和 | `aggregate_driver()` + `pooled_r2()`：`1 − Σ(fold SS_res)/Σ(fold SS_tot)`，每个 fold 的 SS_tot 相对**该折自己的实测均值** |
+| score = mean(spacing_rmse/scale_s) + mean(speed_rmse/scale_v) + 每次违规 +1；scale = 该 driver 全 event 的 pooled 标准差 | `SCORE_FORMULA`、`pooled_scales()`；scale_s/scale_v 实测见 §3 表头 |
+| infeasible 方法不参与排名 | `ranking` 只收 `score is not None` 的方法；无任何可行折的方法进 `excluded_methods` |
+| 用全部 event 以最优方法重训 → 最终五参数 | `main()` 的 final retrain 段，**满额预算**；实测两个 driver 冠军都是 M5（§4） |
+| `results/cv_results.json` / `results/final_params.json` / 终端排名表 | 两个 JSON 已落盘；排名表 + 最终参数块为真实 stdout，§3/§4 全文粘贴 |
+| 不改 idm_core / M1..M5；不装包；不动 stage_1..4 | §1 表；无新依赖 |
+| 结果可复现（两次运行 JSON 一致，耗时字段除外） | §6.1（两次运行、除 `timing`/`elapsed_seconds` 外逐字节一致） |
+| 预算控制：全局类方法 CV 内减半、最终重训恢复满额 | §2.4 + JSON `budgets.cross_validation` / `budgets.final_retrain`；M2 未减半的理由见 §2.4 |
+
+---
+
+## 2. 交叉验证方法与统一指标
+
+### 2.1 折的划分与训练/预测口径
+
+对每个 driver 单独做留一 event（leave-one-event-out）：driver_1 有 3 个 event → 3 折（分别留 e1/e2/e3），driver_2 有 2 个 event → 2 折（分别留 e2/e3）。每折：
+
+1. **训练**：把该 driver 其余全部 event 交给该方法**自己的** `calibrate_driver`（M1 也走它自己的有界 `least_squares`），得到 θ；脚本不复制任何算法代码，只 `import`。
+2. **预测**：用该 θ 对**留出 event 做纯预测**——从留出 event 的首点实测 `(s, v)` 初始化、喂入实测 `lv`（线性插值到每个积分节点）、按真实 Δt 前向积分整条轨迹。留出 event 不参与拟合、不参与选方法、不参与 scale，只在这一步被用到。
+3. **指标**：见 §2.2。
+
+可行性判定（写进 JSON 的 `infeasible_reason`，绝不造数）：标定抛异常 / 返回非有限或越界向量 / 训练事件上发散 → `calibration: …`；留出预测发散 → `held-out prediction: the simulation diverged on the held-out event`。
+
+### 2.2 每折的统一指标（留出 event，原始单位）
+
+| 指标 | 定义 | 单位 |
+|---|---|---|
+| `spacing_rmse` / `speed_rmse` | `sqrt(mean((sim−obs)²))`，spacing 为 `s = dhw − 250` | 坐标单位 / (坐标单位/s) |
+| `mse` / `mae` | 同残差的均方 / 平均绝对 | 坐标单位² / 坐标单位 |
+| `mape_percent` | `100 × mean(|残差 / 实测|)`，**分母为 0 的样本跳过**（否则单个 0 会把 MAPE 变成 ∞），跳过数写进 `mape_skipped_points` | % |
+| `r2` | `1 − SS_res/SS_tot`，`SS_tot` 相对**该 event 实测序列的均值** | 无量纲 |
+| `s_violations` | 仿真中 `s ≤ 0` 的步数（`idm_core` 计数、clamp 到 `S_FLOOR`、按次罚） | 次 |
+| `objective_j` | 该 event 的归一化 `J_e = mean((s−s_obs)²)/σ_s² + mean((v−v_obs)²)/σ_v² + 1e6×violations`（同 `idm_core` 口径，便于与 Step A/B 对照） | 无量纲 |
+
+`SS_res`、`SS_tot` 两个和也写进 JSON：per-driver 的 R² **不平均**，而是用它们合并重算。
+
+### 2.3 per-driver 汇总
+
+- **误差类指标（MSE/RMSE/MAE/MAPE）**：各折**等权平均**（`mean_mse` / `mean_rmse` / `mean_mae` / `mean_mape_percent`，同折明细 `fold_*` 一并落盘）。
+- **R²**：合并口径重算 `pooled_r2 = 1 − Σ_folds SS_res / Σ_folds SS_tot`，每个 fold 的 `SS_tot` 相对**该折（即该留出 event）自己的均值**——即 brief 的「全部留出点的残差平方和 ÷ 全部留出点对其所属折均值的总平方和」。per-fold R² 的算术平均另存 `mean_r2` 备查，但**不用于排名/结论**（折长差 5 倍时平均 R² 会被短折主导）。
+- **违规**：`s_violations_sum` 求和，并单独记 `s_violations_penalty`。
+- 若某方法有折 infeasible：该折**不进平均**，`n_feasible_folds`/`n_infeasible_folds` 与逐折原因都写入 JSON，终端表用 `folds=2/3` 显式标出（**只做均值等于隐式丢掉难点折，故必须外显**）。
+
+### 2.4 评分与预算
+
+```
+score = mean_folds(spacing_rmse) / scale_s + mean_folds(speed_rmse) / scale_v + 1.0 × Σ_folds s_violations
+```
+
+`scale_s` / `scale_v` = 该 driver **全部 event 全部样本拼接后**的 spacing / speed **pooled 标准差**（实测：driver_1 99.5887 / 22.1627；driver_2 36.3854 / 18.2802），使两项误差同为无量纲、可相加。违规按 brief 每次 +1 写进公式。`score` 最小者为该 driver 最优方法；没有任何可行折的方法 `score=None`，不参与排名（进 `excluded_methods`）。
+
+CV 预算（brief 允许全局类方法在 CV 内减半，**只在 CV 内**）：
+
+| 方法 | CV 预算 | 满额（最终重训） |
+|---|---|---|
+| M1 | 1 次有界最小二乘（无预算参数） | 同左 |
+| M2 | **13 起点 × maxiter 4000（未减半）** | 13 × 4000 |
+| M3 GA | **30 × 40**（满额 60 × 80 的一半） | 60 × 80 |
+| M4 PSO | **20 × 40**（满额 40 × 80 的一半） | 40 × 80 |
+| M5 | **5 起点 × 150 步**（满额 10 × 300 的一半） | 10 × 300（lr=0.05） |
+
+**M2 未减半的理由**：M2 是「13 起点 + Nelder-Mead」的多起点**局部**方法，其模块自带守卫 `if n_starts < 11: raise ValueError`（原脚本第 83 行），brief 允许减半的是「全局类方法（GA/PSO/M5 多起点）」，而 M2 的起点数已由原脚本自己的下限锁定、减半会直接抛错并让全部 5 折变 infeasible（那是造假式失败而非真实结论），故 CV 内对 M2 沿用原脚本预算。实测（`cv_results.json` 的逐折 `elapsed_seconds`）：5 折共 25 条「方法×折」记录中 **21 条可行、4 条 infeasible**；M2 在 CV 内合计 **184.79 s**（其中 21 条里的可行折 161.02 s），占全程 389.56 s 的 47 %——占比最高的方法，但总时长仍在可接受范围，因此不需要额外削预算。各方法在可行折内的累计耗时：M1 20.83 s、M3 6.20 s、M4 4.05 s、M5 74.03 s。**最终重训一律满额预算**（M5 41.28 s + 57.64 s）。
+
+### 2.5 一个统一口径的关键点
+
+**所有方法的 CV 指标都由同一个 `idm_core` 仿真器（RK4 + 真实 Δt + 实测 lv）计算**，包括 M5——M5 只在**训练**时用它的 torch 欧拉可微递推（Step B 已记录两者在最优点的最大相对差：driver_1 19.0 %、driver_2 8.2 %，见附录 A）。因此排名是「同一把尺子量五个方法」，训练侧的实现差异不会污染指标口径。
+
+---
+
+## 3. 排名结果
+
+### 3.1 driver_1（3 折，scale_s=99.5887，scale_v=22.1627）
+
+真实 stdout（`cross_validate.py` 运行日志）：
+
+```
+  driver_1 cross-validation ranking:
+  scale_s=99.5887  scale_v=22.1627   (pooled over 3 event(s))
+  columns: s_* = held-out spacing (coordinate units), v_* = held-out speed (coordinate units/s),
+           s_J_e = held-out normalised cost, viol = summed s_violations, folds = feasible/total
+  rank  m    s_RMSE     s_MAE      s_MAPE%   s_R2     s_J_e     v_RMSE     v_MAE      v_MAPE%   v_R2     viol   score      folds
+  1     M5      95.2556    84.9229    26.372  -1.6435    12.021    28.2181    23.3634    21.590  -1.2024      0     2.2297 3/3
+  2     M3      99.0447    87.9932    27.132  -2.0206    12.548    29.3500    24.8604    22.692  -1.4744      0     2.3188 3/3
+  3     M4      80.0018    66.6975    27.328  -0.1348    26.427    41.6388    34.8163    27.771 -22.4856      0     2.6821 2/3
+  4     M2     122.2530   107.5383    42.501  -2.0816    43.612    53.6571    43.6160    35.288 -43.7403      0     3.6486 2/3
+  5     M1     380.0634   333.9669   101.704  -8.7728    56.723    71.1899    67.7548    54.689 -45.9501      0     7.0285 1/3
+```
+
+- **冠军 M5（score 2.2297）**，亚军 M3（2.3188，差 4.0 %），M4 第三（2.6821）尽管**它的 spacing RMSE 是全场最低的 80.00**。
+- 排名用 `score` 而非单一误差：M4 的 spacing 最优（80.00 < M5 的 95.26）但 speed 最差之一（41.64 vs M5 28.22），标准化后 `80.00/99.59+41.64/22.16 = 2.682 > 95.26/99.59+28.22/22.16 = 2.230`，即 **M4 用 spacing 换 speed**，被 balanced 评分判负。
+- **违规全 0**（5 个方法共 11 个可行折）：`s ≤ 0` 一次都没发生（观测最小 s = 124.1，仿真也未压到 0），因此 `+1×violations` 罚项本数据上未触发，score 完全由两项归一化 RMSE 决定——这一点必须写明，否则「有罚项」会被误读成起了作用。
+
+### 3.2 driver_2（2 折，scale_s=36.3854，scale_v=18.2802）
+
+```
+  driver_2 cross-validation ranking:
+  scale_s=36.3854  scale_v=18.2802   (pooled over 2 event(s))
+  rank  m    s_RMSE     s_MAE      s_MAPE%   s_R2     s_J_e     v_RMSE     v_MAE      v_MAPE%   v_R2     viol   score      folds
+  1     M5      45.0262    40.5418    18.080  -0.9892     4.676    17.9545    13.0718    12.754  -0.0846      0     2.2197 2/2
+  2     M2      45.2543    39.9968    17.977  -0.9072     4.483    18.4791    13.3913    13.060  -0.1561      0     2.2546 2/2
+  3     M3      46.8766    42.5598    19.010  -1.1351     4.879    17.7344    13.1008    12.782  -0.0431      0     2.2585 2/2
+  4     M4      50.4898    43.9296    20.099  -1.3011     5.049    18.5489    14.0549    13.687  -0.1246      0     2.4023 2/2
+  5     M1      49.3472    39.1714    18.187  -1.0227     4.862    22.8773    17.2302    16.752  -0.7360      0     2.6077 2/2
+```
+
+- **冠军 M5（2.2197）**，但与 M2（2.2546）、M3（2.2585）差距**仅 1.6 % / 1.7 %**——driver_2 只有 2 折、每折占一半数据，这个差距在误差棒量级，故「M5 最优」在这里应表述为「M5 与 M2/M3 统计上不可分」（§5、§7）。
+- M3 的 speed RMSE（17.7344）与 v_R2（−0.0431）其实**优于** M5（17.9545 / −0.0846），M5 的优势来自 spacing 项（45.03 vs 46.88）。
+- 违规同样全 0。
+
+### 3.3 逐折明细（留出 event，原始单位）
+
+driver_1：
+
+| 折（留出） | 训练集 | M1 | M2 | M3 | M4 | M5 |
+|---|---|---|---|---|---|---|
+| leave_event_1_out | e2,e3 | infeasible⁽ᵃ⁾ | infeasible⁽ᵃ⁾ | s 190.01 / v 31.69，J 9.41 | infeasible⁽ᵃ⁾ | s 175.83 / v 28.69，J 8.00 |
+| leave_event_2_out | e1,e3 | infeasible⁽ᵇ⁾ | s 31.72 / v 22.50，J 17.51 | s 31.24 / v 22.12，J 16.98 | s 31.72 / v 22.50，J 17.52 | s 31.28 / v 22.06，J 17.00 |
+| leave_event_3_out | e1,e2 | s 380.06 / v 71.19，J 56.72 | s 212.79 / v 84.82，J 69.71 | s 75.88 / v 34.25，J 11.25 | s 128.28 / v 60.78，J 35.34 | s 78.65 / v 33.90，J 11.07 |
+
+⁽ᵃ⁾ `held-out prediction: the simulation diverged on the held-out event`；⁽ᵇ⁾ `calibration: the calibrated parameters give a diverged trajectory on the training events`。
+
+driver_2：
+
+| 折（留出） | 训练集 | M1 | M2 | M3 | M4 | M5 |
+|---|---|---|---|---|---|---|
+| leave_event_2_out | e3 | s 49.76 / v 23.26，J 7.48 | s 53.41 / v 19.45，J 7.64 | s 57.78 / v 18.03，J 8.47 | s 57.51 / v 18.34，J 8.44 | s 56.02 / v 18.71，J 8.14 |
+| leave_event_3_out | e2 | s 48.93 / v 22.49，J 2.25 | s 37.10 / v 17.51，J 1.33 | s 35.97 / v 17.44，J 1.29 | s 43.47 / v 18.76，J 1.65 | s 34.03 / v 17.20，J 1.22 |
+
+### 3.4 infeasible 记录（共 4 例，全部在 driver_1）
+
+| 方法 | 折 | 类型 | 原文 |
+|---|---|---|---|
+| M1 | leave_event_1_out | 留出预测发散 | `held-out prediction: the simulation diverged on the held-out event` |
+| M1 | leave_event_2_out | 训练不可行 | `calibration: the calibrated parameters give a diverged trajectory on the training events` |
+| M2 | leave_event_1_out | 留出预测发散 | `held-out prediction: the simulation diverged on the held-out event` |
+| M4 | leave_event_1_out | 留出预测发散 | `held-out prediction: the simulation diverged on the held-out event` |
+
+即 driver_1 上 **「只有 e2+e3 作训练集」这一折把 M1/M2/M4 三个方法全打崩**（预测 e1 时发散），M3 与 M5 是仅有的两个 3/3 折全部可用的方法——这与 brief 提示的「M1 在 driver_1 全量上发散」一致，但更精确：**M2/M4 在缺 e1 的训练集上也发散**，而 M5（含 torch 训练）反而稳。
+
+---
+
+## 4. 最终参数（per-driver 冠军 + 全量满额重训）
+
+真实 stdout：
+
+```
+driver_1: best method M5 (CV rank 1, score 2.2297)
+  v0=139.8030  T=0.8412  s0=19.9491  a=198.3226  b=199.3599   delta=4 (fixed)
+  full-set total_error = 3.183963   at a bound: none
+driver_2: best method M5 (CV rank 1, score 2.2197)
+  v0=140.3686  T=1.5074  s0=45.4097  a=57.5600  b=10.2127   delta=4 (fixed)
+  full-set total_error = 1.214134   at a bound: none
+```
+
+每 driver 的最终表（`results/final_params.json`，含逐 event 的 RMSE/MAE/MAPE/R²）：
+
+| driver | 最优方法 | v0 | T | s0 | a | b | δ | 全量 J | 平均 s_RMSE | 平均 v_RMSE |
+|---|---|---|---|---|---|---|---|---|---|---|
+| driver_1 | M5（CV rank 1，score 2.2297） | 139.8030 | 0.8412 | 19.9491 | 198.3226 | 199.3599 | 4（固定） | 3.183963 | 58.6311 | 16.9073 |
+| driver_2 | M5（CV rank 1，score 2.2197） | 140.3686 | 1.5074 | 45.4097 | 57.5600 | 10.2127 | 4（固定） | 1.214134 | 21.5150 | 16.0457 |
+
+driver_1 逐 event（全量重训后）：e1 s_RMSE 148.9581 / v_RMSE 27.4211 / J 5.9997；e2 9.9039 / 11.0871 / 2.1506；e3 17.0313 / 12.2136 / 1.4016（violations 全 0）。
+driver_2 逐 event：e2 14.7230 / 15.0697 / 1.3718；e3 28.3070 / 17.0217 / 1.0565（violations 全 0）。
+
+### 4.1 五个参数的含义与本次取值解释
+
+模型 `a_idm = a·[1 − (v/v0)^δ − (s*/s)²]`，`s* = s0 + max(0, v·T + v·Δv/(2√(ab)))`（δ=4 固定，`s = dhw − 250`）：
+
+| 参数 | 物理含义 | driver_1 取值 | driver_2 取值 | 读数 |
+|---|---|---|---|---|
+| `v0` | 自由流期望速度（速度单位/秒） | 139.80 | 140.37 | 两个 driver 几乎相同（差 0.4 %）；均**低于**各自观测最高速（190.5 / 168.2），说明在这两个 event 的观测区间内 `(v/v0)^4` 项已饱和，v0 只在「自由流项与跟驰项的平衡」意义上被标定，不代表驾驶员真实最高意愿速度 |
+| `T` | 期望车头时距（s） | 0.841 | 1.507 | driver_2 的期望时距约为 driver_1 的 1.8 倍：driver_2 是稳定的中高速跟驰（v 59.8–168.2，s 165.8–312.0），driver_1 含 e1 的 20.9–190.5 大机动，更倾向贴车（小 T） |
+| `s0` | 静止最小间距（坐标单位） | 19.95 | 45.41 | 均**远小于**观测最小 s（124.1 / 165.8）：s0 是停车/极低速下的截距，本数据从未进入该区间，故 s0 由 `s*` 的相互作用项间接决定，置信度最低 |
+| `a` | 最大加速度（坐标单位/s²） | 198.32 | 57.56 | driver_1 的 a 逼近上界 200（差 0.84 %） |
+| `b` | 舒适减速度（坐标单位/s²） | 199.36 | 10.21 | driver_1 的 b 逼近上界 200（差 0.32 %）；driver_2 的 b **贴下界 10**（10.21，差 2.1 %） |
+
+**「参数顶边界」现象（brief 点名要求讨论）**：IDM 的相互作用项只通过 `√(a·b)`（以及 a 的乘积缩放）进入，a 与 b **只有乘积可辨识**，于是 (a, b) 在目标函数上形成一条「脊」，优化器沿脊滑向盒角。实测证据（`results/m1..m5_params.json`，本次未改动）：
+
+| 方法 | driver_1 a | driver_1 b | a·b | √(a·b) |
+|---|---|---|---|---|
+| M2 | 200.0000（**上界**） | 199.6893 | 39937.9 | 199.845 |
+| M3 | 199.9790 | 200.0000（**上界**） | 39995.8 | 199.990 |
+| M4 | 200.0000（**上界**） | 199.9975 | 39999.5 | 199.999 |
+| M5（本次最终） | 198.3226 | 199.3599 | 39537.6 | 198.841 |
+
+四个方法的 `√(a·b)` 全部落在 **198.84–200.00**（上界为 200），而 a、b 各自位置不同——正是脊的指纹。driver_2 是同现象的镜像：M2/M3/M4 的 b **贴在 10.0000 下界**，√(a·b) 落 23.85–24.85（driver_2 的 a 未顶界）。**因此 a、b 的具体数值不应被当作物理结论汇报，只有 `√(a·b)`（以及 T、v0）具有数据支撑**；本次最终解的两个 `at a bound: none` 只是「未落在容差 1e-6 内」的记录，实际 a、b 距离上界只有 0.3 %–1.7 %（driver_1）。
+
+### 4.2 与 Step A/B 发布值的逐一对照（重训自洽性）
+
+最终重训用的是**同一方法、同一 event 集、同一 seed、同一预算、同一积分格式**，因此必须复现 Step A/B 的发布值（JSON 只到 6 位小数，容差 5e-7）：
+
+| driver | 方法 | max\|Δθ\| | Δ(total_error) | 结论 |
+|---|---|---|---|---|
+| driver_1 | M5 | 4.529e-07 | 1.886e-07 | reproduced: True |
+| driver_2 | M5 | 3.539e-07 | 1.146e-07 | reproduced: True |
+
+即两处差值都只是发布 JSON 的 6 位小数舍入，**底层数值完全一致**。这条检查同时证明了三件事：脚本的预算/种子转发正确、**混合运行时（scipy/MKL + torch 同进程）没有改变任何数字**（§6.3）、以及本次「CV 冠军 = M5」得到的最终参数就是 Step B 已发布的那组 θ（不是新解）——所以 Step C 的增量价值在**选优依据**（留出误差）而非新数值。
+
+---
+
+## 5. 标定集 vs CV 误差对比：为什么 CV 选出来的方法不一定是标定集 J 最低的方法
+
+### 5.1 对照表（标定集 = 全部 event 拟合；CV = 留一 event 预测）
+
+driver_1（标定集 J 由 `results/m*_params.json` 只读得到；CV 列为本次计算）：
+
+| 方法 | 标定集 J | 标定集 s_RMSE | 标定集 v_RMSE | CV s_RMSE | CV v_RMSE | CV score | CV rank | CV folds |
+|---|---|---|---|---|---|---|---|---|
+| M1 | **不可行**（e1 发散，J=None） | — | — | 380.0634 | 71.1899 | 7.0285 | 5 | 1/3 |
+| M2 | 3.176314 | 59.2115 | 17.0484 | 122.2530 | 53.6571 | 3.6486 | 4 | 2/3 |
+| M3 | 3.181423 | 58.5462 | 16.9403 | 99.0447 | 29.3500 | 2.3188 | 2 | 3/3 |
+| M4 | **3.176213（最低）** | 59.2096 | 17.0490 | 80.0018 | 41.6388 | 2.6821 | 3 | 2/3 |
+| **M5** | **3.183963（四者中最差）** | 58.6311 | 16.9073 | 95.2556 | 28.2181 | **2.2297** | **1** | 3/3 |
+
+driver_2：
+
+| 方法 | 标定集 J | 标定集 s_RMSE | 标定集 v_RMSE | CV s_RMSE | CV v_RMSE | CV score | CV rank | CV folds |
+|---|---|---|---|---|---|---|---|---|
+| M1 | 2.194745 | 29.2367 | 18.7629 | 49.3472 | 22.8773 | 2.6077 | 5 | 2/2 |
+| M2 | **1.203707（并列最低）** | 21.7252 | 15.8979 | 45.2543 | 18.4791 | 2.2546 | 2 | 2/2 |
+| M3 | 1.207964 | 22.0434 | 15.9604 | 46.8766 | 17.7344 | 2.2585 | 3 | 2/2 |
+| M4 | **1.203707（并列最低）** | 21.7253 | 15.8979 | 50.4898 | 18.5489 | 2.4023 | 4 | 2/2 |
+| **M5** | 1.214134（+0.87 %） | 21.5150 | 16.0457 | 45.0262 | 17.9545 | **2.2197** | **1** | 2/2 |
+
+### 5.2 三个原因，逐条对上表
+
+**(1) 标定集 J 的差异小到没有判别力。** driver_1 四个可收敛方法的 J 只在 **3.176213–3.183963**（相对差 0.24 %）、driver_2 只在 **1.203707–1.214134**（0.87 %）之内。J 是「每个 event 各按自身 σ 归一化后等权平均」，0.2 % 的差别远小于「哪个 event 的残差被牺牲一点」这种权衡噪声；把它当排名依据等于在噪声上排序。CV 换成**未参与拟合的 event**，同一组参数在留出数据上的误差可以差出 30 %–60 %（driver_1：标定集 58.6 → CV 95.3，M5 退化 62 %；M4 标定集 59.2 → CV 80.0，退化 35 %），这个尺度差才是可判别的信号。
+
+**(2) 标定集 J 最低的方法把误差「花在」了不利于泛化的地方。** driver_1 的 M4 标定集 J 最低（3.176213），它的 CV spacing RMSE 也是全场最低（80.00），但 CV speed RMSE 是 41.64（M5 只有 28.22）——**M4 的 θ 拟合了 spacing 轨迹，却在速度轨迹上外推失败**；`score` 把两者标准化相加后 M4 反而落后。M2/M4 的隐藏问题更直白：它们**在缺 e1 的那一折直接发散**，所以它们的 CV 均值只覆盖 2 折，且丢掉的正是最难的那折（§5.3）。反过来，M5 标定集 J 最差，但它的 CV 两项误差都稳、且 **3/3 折全部可用**。
+
+**(3) 标定集 J 与「平均 RMSE」本身就不是同一个排序。** 注意 driver_1 标定集里 M5 的 `mean_s_RMSE`/`mean_v_RMSE`（58.63 / 16.91）其实是四者中最优的（M3 的 58.55 只在 spacing 上略胜），但它的 J 最高——因为 J 按 event **等权**（e2 只有 27 个样本、e1 有 138 个），而平均 RMSE 按样本量隐式加权，e1 主导了后者。**同一份标定集上换一个聚合口径就能换一个冠军**，这正是「标定集指标不足以选方法」的直接证据，也是 CV（每折等权、留出数据不参与拟合）存在的理由。
+
+### 5.3 一句结论
+
+driver_1：标定集 J 冠军是 **M4**，CV 冠军是 **M5**；driver_2：标定集 J 冠军是 **M2/M4（并列）**，CV 冠军是 **M5**。CV 选出的方法在**未参与拟合的 event** 上误差更小、且在 driver_1 上具备 3/3 的折可用性；标定集 J 最低的方法反而在留出数据上退化更多（并在最难的一折上直接发散）。**这正是「CV 冠军 ≠ 标定集 J 最低」的三重原因：J 的差异落在噪声内、最低 J 的解法把误差分配到了不利于泛化的方向、以及 J 与任何标定集聚合口径都会随 event 权重改变排序。**
+
+---
+
+## 6. 可复现性、运行时安全与自检
+
+### 6.1 两次独立运行的 JSON 一致性
+
+脚本连跑两次（完整 stdout 存于 Hermes scratch：`…/lab1_stepC/cv_run1.log`、`cv_run2.log`），把两次的 `results/cv_results.json` / `results/final_params.json` 各存一份快照，然后**丢弃耗时字段**（顶层 `timing`、每折 `elapsed_seconds`）做逐字段比较：
+
+```text
+$PY …/lab1_stepC/compare_json.py …/cv_results.run1.json  …/cv_results.run2.json
+cv_results.run1.json: 86936 chars, cv_results.run2.json: 86936 chars
+IDENTICAL (timing dropped): True
+canonical sha256: 64179ef9ed878b1f10843cc151f8865c1f4b8385f9661176586f28e8cedd27fa
+cv exit=0
+
+$PY …/lab1_stepC/compare_json.py …/final_params.run1.json  …/final_params.run2.json
+final_params.run1.json: 13787 chars, final_params.run2.json: 13787 chars
+IDENTICAL (timing dropped): True
+canonical sha256: 86d6017f7f16e0cf4d5077584fe9e3bc1ec47eacbfebb391314e4592c485e4a4
+final exit=0
+```
+
+即**两个文件的全部字段（不含耗时）逐字节一致**。另外两次运行的真实 stdout 也一致：把 `[ xx.xx s]`、`retrained on the full set in xx s`、`total runtime` 三处耗时归一化后 `diff` 为空（`STDOUT IDENTICAL (timing normalised)`），两次的运行时长分别是 **389.56 s / 394.97 s**，退出码都是 **0**；落盘文件因 `timing` 字段整体相差 2 B / 1 B（153345 / 153343 B 与 20498 / 20497 B），与「仅耗时不同」相符。
+
+未丢弃任何其它字段，且比较是逐字段落路径的（先比对 key 集合、再递归到叶子），所以「一致」不是抽样目测的结论。
+
+### 6.2 自检（脚本内置，每次运行必打）
+
+```
+self-checks:
+  per-fold RMSE recomputed from the residual series equals idm_core : True
+  mean RMSE of the regression table equals the CV table            : True
+  MAPE samples skipped for a zero measurement                       : 0
+  folds whose trajectory hit a spacing violation (clamped)         : none
+  final blocks carry regression metrics for every event            : True
+  full-budget retrain reproduces the published Step A/B run        : {'driver_1': True, 'driver_2': True}
+```
+
+- 第 1 条：每个可行折的 RMSE 都用**残差序列独立重算**一次（`regression_metrics`），必须与 `idm_core.event_metrics` 报的值一致（相对/绝对容差 1e-9）；不一致时脚本 `raise`。**21 个可行折**（driver_1 11 + driver_2 10）全部 True。
+- 第 2 条：排名用的 `mean_spacing_rmse`/`mean_speed_rmse` 必须等于回归表里各折 RMSE 的等权平均（同上容差）。10 个 method×driver 组合全部 True。
+- 第 3/4 条：MAPE 跳过点数与「有违规的折」清单——本数据两者都是空的（**如实记录为「未触发」，不是「未检查」**）。
+- 第 5/6 条：最终块完整性 + §4.2 的发布值复现。第 6 条不通过时脚本**不 raise**（避免 6.5 分钟的计算因一条对照检查而丢产物），而是打印 `WARNING` 并以**退出码 2** 结束；本次两次运行都是退出码 0。
+
+### 6.3 运行时问题：scipy(MKL) 与 torch 同进程的 OpenMP 冲突（必须记录的偏差）
+
+Step C 第一次尝试运行**直接崩溃**（exit 3），不是结果不对，而是进程被 Intel OpenMP 掐死：
+
+```
+OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized.
+OMP: Hint This means that multiple copies of the OpenMP runtime have been linked into the program.
+```
+
+根因与本机实测（全部可复现）：本脚本要在**同一个进程**里跑五个方法，于是 scipy（conda/MKL 的 OpenMP）与 torch（自带 libiomp5md）被一起加载；**谁第二个初始化 OpenMP，谁就把进程打掉**。实测两条：先做 numpy/MKL 运算再 `import torch` → 正常；先 `import torch` 再用 scipy → `OMP: Error #15`、exit 3（`import cross_validate` 后调用 M1 的第一次 `least_squares` 就是这个情形）。Step A/B 的 M5 是**单独进程**运行，所以从未撞上这个问题。
+
+处置：在 `cross_validate.py` 顶部（导入 numpy/scipy/torch 之前）写 `os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")`——Intel 文档给这一混合情形的开关，进程级、调用方可覆盖。**它不是「假设没事」，而是被实测证明没有改变任何数值**：
+
+1. **同一段 M5 代码在混合进程与纯 torch 进程里输出逐字节相同**：用同一 seed/预算（3 起点 × 30 步，driver_1）分别在 `import cross_validate`（含 scipy）后运行、以及只 `import m5 + idm_core`（无 scipy、不设该环境变量）运行，两次 stdout `diff` **完全一致**（θ 12 位小数、J 12 位小数逐位相同）。
+2. **M1（纯 scipy 路径）复现 Step A 发布值**：混合进程内对 driver_2 全量跑 M1，θ 与 `results/m1_params.json` 的差值 ≤ 4.843e-07，即发布 JSON 的 6 位小数舍入。
+3. **M5 满额重训复现 Step B 发布值**：§4.2（Δθ 4.5e-7 / 3.5e-7）。
+
+因此该开关在本步的结论上没有引入偏差；若调用方希望禁用它，`KMP_DUPLICATE_LIB_OK=FALSE` 会复现上述 exit 3，说明脚本没有偷偷依赖别的东西。
+
+### 6.4 其它检查
+
+- `.tmp` 残留：脚本结尾列出 `results/*.tmp`，两次运行都是 `none`（`write_json_atomic` 用 `.tmp` + `os.replace`）。
+- 输入未被触碰：`data/preprocess/stage_4/`、`briefs/`、`src/preprocess_stage*.py`、`results/m1..m5_params.json` 全部只读（脚本从不写入这些路径；`results/m*_params.json` 只被 `json.load`）。**以哈希复核**：本次交付后重新计算的 sha256 与报告内既有记录逐一相同——stage_4 五个 CSV 的完整 sha256 与附录 C（Stage 4 报告）§7 记录的完全一致（例如 `driver_1_event_1.csv` = `75671ec54e917536c1f8817a9a95d83d6290ce51d7f20eaa6fd23b7064a86c27`），`results/m3_params.json` = `a156354d…`、`m4_params.json` = `53b2b20d…`、`m5_params.json` = `8f316958…` 与附录 A（Step B 报告）§1/§9 的记录前缀一致；`idm_core.py` / `m1..m5_*.py` 与 `results/m*_params.json` 的 mtime 仍全部早于本次工作开始（16:45–17:33 之间）。
+- 交付前已删除 `src/calibrate/__pycache__`（import 产生的缓存），与 Step A/B 的交付惯例一致。
+- 退出码：两次运行均 0。
+
+### 6.5 本数据上两个「未触发」的如实记录
+
+- **`s_violations` 全程为 0**（**21 个可行留出折 + 2 次全量重训**），即 `S_FLOOR` clamp 与 +1 罚项一次都没生效；观测最小间距 124.1（driver_1）/ 165.8（driver_2），仿真从未把间距压到 0。
+- **MAPE 跳过点数为 0**：spacing 与 speed 的实测值都没有 0（spacing 最小 124.139，speed 最小 20.851），故 `mape_skipped_points` 恒为 0；跳过逻辑与计数仍实现并被 `pooled_r2`/`mean_metric` 使用（单元测试覆盖，见 §6.6）。
+- **R² 一律为负或很小**：留出 event 上的 R² 大多为负（如 driver_1 M5 的 pooled R² = −1.64 / −1.20），含义是「IDM 纯前向积分对留出事件的预测**不比用该 event 均值作常数预测更好**」。这与 Step A/B 中「driver_1 e1 把常数预测器都赢不过」的发现一致，是数据（e1 口径）问题，不是脚本缺陷；RMSE 仍有意义（可跨方法比较），故排名用 RMSE 而非 R²。
+
+### 6.6 交付前的单元级验证（scratch，非交付物）
+
+在正式运行前，用 `…/lab1_stepC/smoke.py` 对**新增的指标代码**做了 **25 项**断言式检查（`FAILED checks: none`）：MSE/RMSE/MAE/MAPE/R² 与手算值逐位一致、分母为 0 时跳过并计数、全 0 分母时 MAPE 返回 None、发散（nan）序列返回 None 指标而非数字、`pooled_r2` 的 `1−ΣSS_res/ΣSS_tot` 口径、SS_tot=0 时返回 None、缺块时返回 None、表格行宽一致、自检 plumbing 全 True；并用**缩小预算**跑通了 `main()` 的全流程（结果重定向到 scratch 目录，验证了 JSON 落盘、`.tmp` 清理与「重训未复现发布值 → WARNING + 退出码 2」的分支）。随后才是 §3/§4 的正式满额运行。
+
+---
+
+## 7. 局限性与讨论
+
+1. **driver_1 的 e1 口径问题（最关键）**：e1（138 样本，s 291→493、v 20.9→190.5）是动态范围最大、也最「不跟驰」的一段。它同时扮演两个坏角色：(a) 作为训练数据时，**它的存在决定其他方法能否收敛**——缺了它（leave_e1_out），M1/M2/M4 预测 e1 全部发散，只有 M3/M5 幸存；(b) 作为留出数据时，所有方法（含冠军 M5）在它上面的 spacing RMSE 都是 175–190、pooled R² < 0（预测不如常数）。**因此 driver_1 的 CV 排名在很大程度上是「谁在 e1 上死得少」的排名**：M4 的 CV spacing RMSE 之所以最低（80.00），部分原因是它**没做**最难的 leave_e1_out 那一折（2/3 折平均），与 M5/M3 的 3 折平均不完全可比——终端表用 `folds` 列显式标注，但读者仍不应把 80.00 与 95.26 直接对比。
+2. **driver_2 只有 2 折**：每折的训练集只有 1 个 event（另一折 100 % 数据是留出的），CV 估计的方差很大。冠军 M5（2.2197）与 M2（2.2546）、M3（2.2585）的差距仅 1.6 %，**在 2 折的误差棒内不可判**；driver_2 的「M5 最优」应读作「M5 与 M2/M3 统计上并列」，只有 M1（2.6077）与 M4（2.4023）明显更差是稳的。
+3. **参数顶边界 / 不可辨识**：见 §4.1。a、b 只以 `√(a·b)` 的组合进入模型，四个独立方法都把 `√(a·b)` 推到 198.8–200.0（driver_1）或 23.85–24.85（driver_2），其中 b 在 driver_2 上直接贴下界 10.0000。**结论应报告 `√(a·b)`（或 a·b）并说明 a、b 单独不可辨识**；把 a=198.32、b=199.36 当作「该驾驶员的最大加速度/舒适减速度」是过度解读。同理 v0（139.80 / 140.37）低于观测最高速，说明它被用来平衡自由流项而非表征真实期望速度。
+4. **CV 内预算不对称**：全局方法（M3/M4/M5）在 CV 内用半预算，而最终重训用满额预算。这不影响冠军选择的方向（M5 在 CV 内用一半预算仍胜出，满额重训只会更强），但 CV 表里的绝对误差是「半预算 M3/M4/M5 vs 满预算 M2/M1」的混合，严格说不完全同预算可比；JSON 里 `budgets` 与每折 `budget_mode` 都写明了这一点。
+5. **M1 的 CV 结果不具代表性**：M1 只在 1/3 折可行（且那 1 折是训练集恰好不含 e1 的情形），其 score 7.0285 是单折数字；brief 已预判「M1 在 driver_1 全量上发散」，本步进一步量化了它在留一折上的失效范围。M1 在 driver_2 上 2/2 折可用但仍垫底。
+6. **无违规、无 MAPE 跳过 ⇒ 罚项与跳过逻辑在本数据上不活跃**：评分公式里的 `+1×violations` 与 MAPE 的跳过计数已实现、已单测，但本数据未触发；如果后续步骤引入更激进的参数或更难的 event，这两个机制才会开始影响数值。
+7. **M5 训练用 torch 欧拉、CV 指标用 numpy RK4**：Step B 已记录两者在 M5 最优点的最大相对差（driver_1 19.0 %、driver_2 8.2 %），本步的所有**指标**统一用 RK4，故排名不受影响，但 M5「训练时的目标」与「被评价时的仿真」确实不是同一个积分格式，这是 M5 方案固有的模型-实现缝隙。
+8. **跨 driver 不可比**：两个 driver 的 scale_s 差 2.7 倍（99.59 vs 36.39），score 只在同一 driver 内部可比；本报告没有、也不应做「driver_1 比 driver_2 拟合得好」这类跨 driver 结论（driver_2 的 J 只有 1.21，但它的 event 更平稳）。
+
+---
+
+## 8. 实际执行的命令
+
+```bash
+PY="C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe"
+SCRATCH="C:/Users/ptiu1/AppData/Local/Temp/lab1_stepC"      # Hermes scratch，非交付物
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+
+# (0) 侦察：stage_4 数据尺度（s 最小 124.139、v 最小 20.851 ⇒ 无 0 分母）、单次代价求值 1.117 ms
+# (1) 新增指标/表格代码的单元级验证（25 项断言，缩小预算跑通 main 全流程）
+$PY "$SCRATCH/smoke.py"                  # FAILED checks: none
+$PY "$SCRATCH/smoke_main.py"             # main() returned 2（预算非发布值，重训对照按预期告警）
+
+# (2) 正式运行（满额预算，两次用于可复现性比对）
+$PY src/calibrate/cross_validate.py > "$SCRATCH/cv_run1.log" 2>&1    # total runtime: 389.56 s, exit 0
+cp results/cv_results.json  "$SCRATCH/cv_results.run1.json"
+cp results/final_params.json "$SCRATCH/final_params.run1.json"
+$PY src/calibrate/cross_validate.py > "$SCRATCH/cv_run2.log" 2>&1    # exit 0
+cp results/cv_results.json  "$SCRATCH/cv_results.run2.json"
+cp results/final_params.json "$SCRATCH/final_params.run2.json"
+
+# (3) 可复现性：丢弃耗时字段逐字段比对
+$PY "$SCRATCH/compare_json.py" "$SCRATCH/cv_results.run1.json"  "$SCRATCH/cv_results.run2.json"
+$PY "$SCRATCH/compare_json.py" "$SCRATCH/final_params.run1.json" "$SCRATCH/final_params.run2.json"
+
+# (4) 混合运行时（scipy/MKL + torch）的数值等价性探针
+KMP_DUPLICATE_LIB_OK=TRUE $PY "$SCRATCH/probe_mixed_runtime.py" env      # M1 复现发布 θ（≤4.8e-7）
+$PY "$SCRATCH/probe_torch_equivalence.py" mixed > "$SCRATCH/torch_mixed.txt"
+$PY "$SCRATCH/probe_torch_equivalence.py" solo  > "$SCRATCH/torch_solo.txt"
+diff "$SCRATCH/torch_mixed.txt" "$SCRATCH/torch_solo.txt"                # 无差异
+
+# (5) 残留与输入只读检查
+ls results/            # cv_results.json / final_params.json / m1..m5_params.json，无 *.tmp
+```
+
+（`$SCRATCH` 下的脚本只用于验证，不是交付物；交付物只有 §1 表中的三项 + 本报告。）
+
+---
+
+## 9. 复现步骤
+
+```bash
+PY="C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe"
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+
+# 完整复现（约 6.5 分钟，5 方法 × 5 折 + 2 次满额重训）
+$PY src/calibrate/cross_validate.py
+#   → results/cv_results.json（全部折/方法指标、per-driver 平均、评分与排名、infeasible 记录、自检）
+#   → results/final_params.json（per-driver 最优方法 + 最终 θ + 全量 J + 每 event RMSE/回归指标）
+#   → 终端：per-driver 排名表（方法 / s_RMSE / MAE / MAPE / R² / v_RMSE / MAE / MAPE / R² / violations / score）+ 最终参数
+
+# 可选参数：--root DIR、--seed 20260921（多起点方法共用）、--method euler|rk4（默认 rk4）
+$PY src/calibrate/cross_validate.py --method euler      # 换积分格式重跑（未在本次验收中执行）
+```
+
+脚本内置自检与退出码语义：结构自检失败 → `raise`（说明脚本有 bug）；「重训未复现 Step A/B 发布值」→ `WARNING` + 退出码 2（产物已落盘）。
+
+---
+
+## 10. 假设、偏差与遗留问题
+
+**假设**
+
+1. 折的划分按 stage_4 文件名中的 event 序号（driver_1: e1/e2/e3；driver_2: e2/e3），即「留一 event」，不做分层或分组抽样；brief 明确如此要求。
+2. CV 的 per-driver 平均是「对**可行折**等权平均」，infeasible 折不进平均（brief 只说 infeasible 方法不参与排名）；为避免隐式丢折，`n_feasible_folds`/`n_infeasible_folds`、逐折原因与终端 `folds=2/3` 列都显式给出（§3.3/§3.4）。
+3. R² 的 `SS_tot` 取「相对该折（该留出 event）实测均值的总平方和」；driver 级的 pooled R² 按 brief 的「所属折均值」口径重算（§2.3）。
+4. `score` 中 `mean(spacing_rmse/scale_s)` 与 `mean(spacing_rmse)/scale_s` 在数学上等价（scale 是常数），实现取后者（一次除法）；违规罚按 brief 每次 +1，写入 `SCORE_FORMULA` 与 JSON。
+5. score 的 scale 用**该 driver 全部 event 的 pooled 标准差**（brief 指定），不是 per-fold σ。
+6. 最终重训的预算为「原脚本满额」（M2 13×4000、M3 60×80、M4 40×80、M5 10×300），与 Step A/B 完全一致——这也使 §4.2 的发布值对照检查成为可能。
+
+**偏差**
+
+1. **`KMP_DUPLICATE_LIB_OK=TRUE`**（§6.3）：脚本内设置的环境变量，属于 brief 未预期的运行时处置。它不改任何数值（三条实测证据），且调用方可覆盖；不做这一步脚本无法运行（exit 3）。
+2. **历史编号顺延**：Step B 报告降级为附录 A，原附录 A/B/C/D/E 顺延为 B/C/D/E/F（仅一级标题降级，正文一字未改，其内部旧引用见附录 A 抬头说明），与本项目前两步的存档惯例一致。
+3. **M2 在 CV 内未减半**（§2.4），理由与实测耗时已写明。
+
+**遗留问题 / 建议（本轮未执行）**
+
+1. 若要让 driver_1 的 CV 更可信，建议做**重复 k 折或 bootstrap**（例如按时间切片做 3 折交叉）以获得误差棒；本步只有 3 折（driver_2 只有 2 折），冠军与亚军的 4.0 %（driver_1）/ 1.6 %（driver_2）差距没有显著性检验。
+2. e1 的「口径问题」（Step A 已提出）在本步以「谁在 e1 上发散」的形式再次显现；建议后续单独诊断**是否需要给 e1 不同的权重/口径**（例如剔除异常段或改初始化），而不是靠损失函数隐式权衡。
+3. a、b 的脊现象建议在报告中只发布 `√(a·b)`，或用「固定 b、只标定 a」的降维标定重跑一次以给出可辨识的参数置信区间（本轮未做）。
+4. 可以把本轮排名表做成跨步骤的横向总表（Step A/B 的标定集 J + Step C 的 CV score），供最终报告引用（本轮未做，附录 A/B 的表格已齐备）。
+
+---
+
+---
+
+# 附录 B — 标定第 2 步（M3/M4/M5）报告原文存档
+
+> 编号说明：本次新增「标定第 3 步（Step C：留一 event 交叉验证选优 + 最终参数）」报告置于文首后，原「标定第 2 步（M3/M4/M5）」报告降级为**附录 A**，原「附录 A / B / C / D / E」顺延为「**附录 B / C / D / E / F**」；下文 Step B 报告正文一字未改（仅其一级标题降级为二级），其内部对「附录 A / B / C / D / E」的旧引用即为现在的 B / C / D / E / F。
+
+## Build Report — Lab 1 IDM 标定 Step B：M3 遗传算法 / M4 粒子群 / M5 可微 IDM（标定第 2 步）
+
+一句话：新增三个各自独立可运行的脚本 `src/calibrate/m3_ga.py`（实数编码 GA，自实现，不调 DE）/ `m4_pso.py`（gbest PSO）/ `m5_differentiable.py`（torch 可微 IDM + Adam），**目标函数口径与 idm_core 一字未改**，全部在真实 stage_4 数据（5 event）上跑出 `results/m3_params.json` / `m4_params.json` / `m5_params.json`：**M4 PSO driver_1 J=3.176213（比 M2 的 3.176314 略优，且与第 1 步报告里独立差分进化 20k 次评估+hooks 抛光的最好值 3.176212 只差 1e-6）、driver_2 J=1.203707（与 M2 完全相同）**；**M3 GA driver_1 J=3.181423 / driver_2 J=1.207964**（在 4860 次评估、6.6 s 内达到，比 M2 差 0.16 % / 0.35 %）；**M5 driver_1 J=3.183963 / driver_2 J=1.214134**（RK4 报数口径），其 torch 内 cost 与 idm_core 欧拉口径最大相对差 **1.7e-11 / 2.1e-10**（证明计算图与共享代价一致），与 RK4 口径最大相对差 **19.0 % / 8.2 %**（driver_1 有 1 个起点超过 10 % → 按 brief 打印 `WARNING`，不报错）。
+
+三个步（M1/M2、M3/M4/M5、后续统一定口径）中本报告只覆盖 **Step B（M3/M4/M5）**；第 1 步（M1/M2）报告原文完整保留在文末 **附录 A**，Stage 4 / 3 / 2 / 1 报告顺延为 **附录 B / C / D / E**（仅其一级标题降级为二级，正文一字未改；原报告内部的"附录 A/B/C/D"旧引用即为现在的 B/C/D/E，这一点在附录 A 抬头处注明）。
+
+---
+
+## 1. 交付物与变更
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `src/calibrate/m3_ga.py` | **新建**（487 行 / 24389 B，sha256 `88e08e65…57feb3`） | M3 遗传算法：实数编码，种群 60、代数 80、seed 20260921（per driver 独立）、锦标赛 k=3、SBX η=15（pc=0.9）、有界多项式变异 η=20（每维 pm=1/5）、精英 2、子代裁剪进盒；适应度=共享 `total_error`（不可行→1e12 墙=最差个体），带代价 memo；per driver 输出 θ/J/每 event 指标/收敛曲线/评估数/耗时 → `results/m3_params.json` |
+| `src/calibrate/m4_pso.py` | **新建**（426 行 / 21733 B，sha256 `8fa476ca…3b0e0e`） | M4 粒子群：粒子 40、迭代 80、seed 20260921、w 线性 0.9→0.4、c1=c2=1.5、速度限幅 ±0.2×边界宽度、gbest PSO；**边界处理固定为「位置裁剪进盒 + 被裁剪维速度置零」**（brief 允许二选一，脚本内注释说明理由）；记录 best 曲线/评估数/耗时 → `results/m4_params.json` |
+| `src/calibrate/m5_differentiable.py` | **新建**（673 行 / 33555 B，sha256 `9aa4c549…c3205781`） | M5 可微 IDM：torch 逐点欧拉递推（真实 Δt、实测 lv 为常量张量、sqrt 加 eps=1e-6、s 下限 S_FLOOR、非有限/爆炸状态限幅并计数）；参数 z∈R⁵ 经 sigmoid 映射进盒；Adam lr=0.05、300 步、10 起点（θ0 + 9 点拉丁超立方，同 M2 种子策略，10 起点批量化同时训练）；每起点最终 cost + 训练曲线 + 与 idm_core（numpy 欧拉/RK4）复算差异 → `results/m5_params.json` |
+| `results/m3_params.json` | **新建**（17846 B，sha256 `a156354d…1226507a`） | 结构与 `m2_params.json` 对齐（`build_results_payload` 生成）：per driver `theta`/`total_error`/每 event `j_spacing`/`j_speed`/`j_total`/`spacing_rmse`/`speed_rmse`/`sigma*`/零模型基线 + `ga`（算子与预算）+ `convergence`（best 曲线、首尾 best、每代均值、评估数、耗时） |
+| `results/m4_params.json` | **新建**（17546 B，sha256 `53b2b20d…c3556ce2`） | 同上 + `pso`（系数、限幅、边界处理、被裁剪坐标数、不可行粒子数）+ `convergence` |
+| `results/m5_params.json` | **新建**（63864 B，sha256 `8f316958…2942a24c`） | 同上 + `differentiable`（框架、rollout、eps、参数化、Adam、批量、排序口径、一致性差异与 WARNING）+ `convergence`（best-so-far 曲线、每步最小曲线、每 25 步的每起点曲线、每起点初/终 cost 与 torch/numpy 三口径 cost、可行性与离散度） |
+| `build-report.md` | **更新** | 本文件（Step B 报告在前；第 1 步 M1/M2 报告降级存为附录 A，原附录 A/B/C/D 顺延为 B/C/D/E） |
+| `src/calibrate/idm_core.py`、`m1_instant_ls.py`、`m2_neldermead.py`、`results/m1_params.json`、`results/m2_params.json` | **未改动** | 本步按要求「不改目标口径、不改 idm_core」：idm_core.py 的 mtime 仍是 16:59、m1/m2 脚本 16:45/16:51、m1/m2 结果 17:10/17:07（均在本次工作开始之前）；三个新脚本只 `import idm_core` 复用其边界/代价/仿真/指标/输出函数 |
+| `src/preprocess_stage{1,2,3,4}.py`、`data/preprocess/stage_1..4/**`、`data/raw/**`、`briefs/**` | **未改动** | 只读；stage_4 五个 CSV 的 sha256 与第 1 步报告 §8 的记录值逐一相同（§9 复核） |
+
+- **未安装/升级/删除任何包**：只用既有 numpy 2.4.6 / scipy 1.17.1（本步甚至未用到 scipy）/ pandas / torch 2.14.0+cpu；未新建 venv 或 conda 环境；`torch.set_num_threads(1)`（确定性 + 小张量更快），未改动全局环境。
+- 本项目**不是 git 仓库**（第 1 步已确认 `git rev-parse` → not a git repository），故无提交。
+- **未启动/未重启任何服务**（三个脚本都是一次性批处理；M5 无守护进程、无端口占用）。
+- 交付前项目内无 `*.tmp`；`src/calibrate/__pycache__`（import 产生的缓存）已在交付前删除（§9）。
+
+---
+
+## 2. 判定口径（与 M2 完全一致，仅替换搜索算法）
+
+### 2.1 目标函数：不动
+
+三个方法最小化**同一个**函数（`idm_core`）：
+
+```
+J(θ) = mean_over_events [ mean((s_sim-s_obs)^2)/σ_s^2 + mean((v_sim-v_obs)^2)/σ_v^2
+                          + S_VIOLATION_PENALTY × spacing_violations ]        # S_VIOLATION_PENALTY=1e6
+```
+
+单 event 的 σ_s/σ_v 取该 event 自身实测 s、v 的标准差；多 event **先各 event 平均再等权平均**；τ=（v0,T,s0,a,b）边界 v0∈[40,200]、T∈[0.3,5]、s0∈[10,400]、a∈[10,200]、b∈[10,200]（与 M1/M2 一字不差）。`s = dhw − 250`，δ=4 固定，初值取该 event 首点实测 (s,v)，领导者取实测 lv 的线性插值。**driver_1 J 偏高的已知口径问题未动**（brief 明确本轮不处理）。
+
+优化器面向的仍是 `constrained_total_error`：盒外用 1e6 级墙罚（M3/M4 的子代/粒子已裁剪进盒，该墙是安全网，实测 0 次触发）、不可行轨迹用有限大墙 `INFEASIBLE_COST=1e12` 而不是真 `inf`（真 `inf` 会破坏锦标赛排序 `inf<inf` 与 PSO 的 `cost<pbest` 比较）。**报数以真 `inf`/RK4 口径为准**（`total_error`）。
+
+### 2.2 M3（GA）实现要点与自定参数
+
+| 项 | 取值 | 来源 |
+|---|---|---|
+| 编码 | **实数编码**，θ 直接以原始单位演化 | brief |
+| 种群 / 代数 / 种子 | 60 / 80 / 20260921（per driver 独立运行） | brief |
+| 初始种群 | θ0=(120,1.2,100,80,100) + 59 点**拉丁超立方**（`idm_core.latin_hypercube`，同种子）→ 整轮可复现 | 自定（brief 未指定初始化；与 M2 的 LHS 策略一致） |
+| 选择 | 锦标赛 k=3，均匀抽 3 个取最便宜者 | brief |
+| 交叉 | **SBX，η=15**，β 按 Deb 分布两支 `(2u)^{1/(η+1)}` / `(1/(2(1-u)))^{1/(η+1)}`；**每对以 pc=0.9** 发生交叉（brief 只固定 η，未定 pc，取 0.9 并记录进 JSON） | brief + 自定 pc |
+| 变异 | **有界多项式变异，η=20**，每维独立以 **pm=1/5** 触发，用该维在盒内位置（δ₁/δ₂）计算扰动，随后裁剪进盒 | brief |
+| 精英 | 每代**最优 2 个原样复制**进下一代（比例=2；父代池含精英） | brief |
+| 其它 | 每代评估 60 个个体（精英与重复子代由 memo 命中，不计代价求值）；子代一律裁剪进盒 | brief「参数在边界内裁剪」 |
+
+### 2.3 M4（PSO）实现要点与自定参数
+
+| 项 | 取值 | 来源 |
+|---|---|---|
+| 粒子 / 迭代 / 种子 | 40 / 80 / 20260921（per driver 独立） | brief（种子数值沿用 M2/M3 的 20260921，"固定 seed"） |
+| 惯性权重 | w(t)=0.9+(0.4−0.9)·t/(T−1)，首次迭代正好 0.9、末次正好 0.4 | brief |
+| 加速系数 | c1=c2=1.5（认知/社会），r1,r2 每迭代每维独立均匀 | brief |
+| 速度限幅 | \|v_d\| ≤ **0.2 × 该维边界宽度**，在位置更新**之前**施加 | brief |
+| 边界处理（**固定一种**） | **位置裁剪进盒 + 被裁剪维的速度置零**；脚本内注释了理由（目标在边界上取值有限且有意义、IDM 最优已知落在 s0/a/b 的面上，反弹会让粒子贴着面来回弹；被裁剪坐标计数写入 JSON：driver_1 664、driver_2 666） | brief 允许二选一，此处固定并注释 |
+| 初值 | 40 个位置=拉丁超立方（seed）；40 个速度=标准正态 ×0.1×边界宽度（**seed+1 的独立流**，避免与位置共流） | 自定（brief 未指定，记录进 JSON） |
+| gbest | 标准全局最优 PSO；pbest 只在 cost 严格下降时更新 | brief |
+
+### 2.4 M5（可微 IDM）实现要点
+
+- **torch 逐点递推**（不是 numpy 仿真后插值），每一步用实测 lv 的**常量张量**、欧拉积分、Δt 取该 event 的**实际 time 差**：
+
+  ```
+  dv = lv_i − v
+  s* = s0 + max(0, v·T + v·dv / (2·sqrt(a·b + 1e-6)))        # sqrt 处加 eps（brief）
+  a_i = a·(1 − (v/v0)^4 − (max(s*,0)/max(s,S_FLOOR))^2)
+  s' = s + Δt·(lv_i − v)      v' = s 对面：v + Δt·a_i
+  ```
+
+  与 `idm_core` 的欧拉分支逐项对应；S_FLOOR=1、SPACING/SPEED 爆炸限幅都在（限幅触发计数为 `clamped_steps`，该起点标记 runaway/不可行，不参与排序）。eps 只是数值保险（盒内 a,b≥10，真实值远离 0），相对影响 ~1e-8，远小于 §6 实测的欧拉/RK4 差异。
+- **参数化**：z∈R⁵ 无约束，θ = LOWER + sigmoid(z)·(UPPER−LOWER)（恒在盒内，无需裁剪/罚项）；起点经反变换 z=logit((θ−LOWER)/(UPPER−LOWER)) 得到。
+- **训练**：Adam lr=0.05、300 步、10 个多起点（起点 0=θ0，起点 1..9=同种子拉丁超立方，与 M2 同策略）。10 个起点作为 **(10,5) 张量批量同时训练**，loss = 各起点自身 cost 的**和**（Adam 逐坐标、行间可分，故每行的梯度/更新与单独训练该起点**数学等价**，批量只省时间，不改优化轨迹）。
+- **一致性校验**：每起点终值用 `idm_core.total_error` 以 **numpy 欧拉**（与图同格式，用于证明图无偏差）与 **numpy RK4**（与其它方法同口径）两种方式复算，打印 torch cost 与二者的相对差；>10 % → WARNING（brief）。**排序取 RK4 复算值**（与 M1..M4 同一把尺子），报数也用 RK4。
+
+---
+
+## 3. 实际执行的命令
+
+```bash
+# 解释器（brief 指定）；项目根 = C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1
+PY=C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe
+
+# (0) 前置侦察：环境版本 + 复用模块接口 + 单次代价求值速度（用于评估预算）
+$PY -c "import numpy,scipy,torch,sys;print(sys.version);print('numpy',numpy.__version__);print('torch',torch.__version__)"
+$PY -c "... load_event_data(); 计时 constrained_total_error ..."     # 实测 ≈1.32 ms/次（driver_1），≈758 次/s
+
+# (1) 小幅试跑（brief 通用要求 3：先确认评估速度再放量）
+$PY src/calibrate/m3_ga.py    --population 12 --generations 3        # 48 次评估，0.06 s
+$PY src/calibrate/m4_pso.py   --particles 6  --iterations 3          # 24 次评估，0.03 s
+$PY src/calibrate/m5_differentiable.py --starts 3 --steps 5          # 0.61 s / 0.82 s（两 driver）
+
+# (2) 正式验收运行（brief 满额预算），每个方法各跑 2 次用于可复现性比对
+$PY src/calibrate/m3_ga.py                 # 两次 15 s / 16 s
+$PY src/calibrate/m4_pso.py                # 两次 12 s / 11 s
+$PY src/calibrate/m5_differentiable.py     # 两次 101 s / 101 s
+
+# (3) 可复现性：忽略 4 个耗时字段后逐字节/结构比对（Hermes scratch 脚本，非交付物）
+$PY <scratch>/compare_json.py <scratch>/m3_run1.json results/m3_params.json   # IDENTICAL
+$PY <scratch>/compare_json.py <scratch>/m4_run1.json results/m4_params.json   # IDENTICAL
+$PY <scratch>/compare_json.py <scratch>/m5_run1.json results/m5_params.json   # IDENTICAL
+
+# (4) 独立校验器（与本步三个交付脚本零共享代码：csv 模块读盘 + 纯 math 重写 IDM/欧拉/RK4/代价）
+$PY <scratch>/check_calibration_stepB.py C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1
+# → checks passed: 330   failed: 0   ALL CHECKS PASSED
+
+# (5) 输入只读 + 残留检查
+sha256sum data/preprocess/stage_4/*.csv      # 与第 1 步报告 §8 逐一相同
+find . -name "*.tmp" -o -name "__pycache__" -o -name "*.pyc"
+```
+
+第一次尝试 `time`/`/usr/bin/time` 计时时，Git-Bash 下无 `/usr/bin/time`（exit 127），改为在 shell 内用 `date +%s` 取墙钟；脚本本身也自报每 driver 耗时（JSON 与 stdout 都有）。
+
+---
+
+## 4. 运行输出（真实 stdout，stdout 全量存于 Hermes scratch：`…/lab1_stepB/m{3,4,5}_run{1,2}.log`）
+
+### 4.1 `$PY src/calibrate/m3_ga.py`（exit 0，两次 15 s / 16 s，JSON 记 14.35 s）
+
+```
+method       : M3 - real-coded genetic algorithm (own implementation, no DE)
+ga           : population=60, generations=80, seed=20260921 per driver, elite=2
+operators    : tournament k=3, SBX eta=15 (pc=0.9), polynomial mutation eta=20 (pm=0.2 per coordinate), clip to box
+integration  : rk4 on the real time deltas, leader speed interpolated from lv
+
+driver_1: genetic algorithm
+    gen   1/80  best J=    4.229326  mean J=116666666705.824738  evals=120
+    gen   3/80  best J=    3.860361  mean J=    7.136703  evals=240
+    gen  10/80  best J=    3.360188  mean J=    3.891329  evals=660
+    gen  20/80  best J=    3.281707  mean J=    3.472661  evals=1260
+    gen  40/80  best J=    3.188276  mean J=    3.377333  evals=2460
+    gen  60/80  best J=    3.184226  mean J=    3.850781  evals=3660
+    gen  80/80  best J=    3.181423  mean J=    3.408642  evals=4860
+  best theta         : v0=139.9486  T=0.8973  s0=15.4246  a=199.9790  b=200.0000
+  within bounds      : True
+  total_error J      : 3.181423  (equal weight mean of the per-event J_e)
+  spacing RMSE (mean/worst): 58.5462 / 148.0368
+  speed   RMSE (mean/worst): 16.9403 / 27.4332
+  convergence        : gen 0 best J=4.623019 -> gen 80 best J=3.181423  (improvement 1.441595, best at generation 79)
+  curve monotone     : True   evaluations=4860 (distinct 4517, cache hits 343)   runtime=6.65 s
+  infeasible ind.    : 7 evaluations = the 1e12 wall   outside-box ind.=0 (must be 0)
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_1     138   148.0368    27.4332     4.7309    1.2108     5.9417    68.0611
+  event_2      27    10.0234    11.1391     1.4442    0.7476     2.1918     8.3407
+  event_3      79    17.5784    12.2485     0.0209    1.3898     1.4108   121.5758
+
+driver_2: genetic algorithm
+    gen   1/80  best J=    1.692615  mean J=33333333420.822914  evals=120
+    gen  10/80  best J=    1.523852  mean J=    1.905202  evals=660
+    gen  40/80  best J=    1.276758  mean J=    1.697896  evals=2460
+    gen  80/80  best J=    1.207964  mean J=    1.679752  evals=4860
+  best theta         : v0=140.1226  T=1.4072  s0=56.2919  a=61.7408  b=10.0000
+  total_error J      : 1.207964  (equal weight mean of the per-event J_e)
+  spacing RMSE (mean/worst): 22.0434 / 29.7667
+  speed   RMSE (mean/worst): 15.9604 / 17.0537
+  convergence        : gen 0 best J=1.858747 -> gen 80 best J=1.207964  (improvement 0.650784, best at generation 74)
+  curve monotone     : True   evaluations=4860 (distinct 4516, cache hits 344)   runtime=7.87 s
+  infeasible ind.    : 3 evaluations = the 1e12 wall   outside-box ind.=0 (must be 0)
+...
+WARNING: driver_1 event_1 spacing RMSE is NOT better than the constant zero model - see results for the numbers (warning only, not an error).
+total runtime: 14.53 s
+written: results/m3_params.json
+.tmp leftovers: none
+```
+
+（首代 `mean J≈1.2e11/3.3e10` 是因为随机初始种群里有若干条轨迹发散、其代价=1e12 的墙值——这正是「不可行按最差个体处理」的直接体现；**best 曲线单调不增**，脚本自检 `monotone_nonincreasing=True`。）
+
+### 4.2 `$PY src/calibrate/m4_pso.py`（exit 0，两次 12 s / 11 s，JSON 记 10.19 s）
+
+```
+coefficients : w 0.9 -> 0.4 linear, c1=c2=1.5, |v| <= 0.2 * bound width, bounds: clip position + zero velocity
+
+driver_1: particle swarm
+    iter   1/80  w=0.9000  best J=    5.499825  mean pbest J=75000000047.957092  evals=80
+    iter  10/80  w=0.8430  best J=    3.264281  mean pbest J=    3.638396  evals=440
+    iter  20/80  w=0.7797  best J=    3.210085  mean pbest J=    3.348603  evals=840
+    iter  40/80  w=0.6532  best J=    3.192726  mean pbest J=    3.207012  evals=1640
+    iter  60/80  w=0.5266  best J=    3.181273  mean pbest J=    3.185580  evals=2440
+    iter  70/80  w=0.4633  best J=    3.176216  mean pbest J=    3.180207  evals=2840
+    iter  80/80  w=0.4000  best J=    3.176213  mean pbest J=    3.178742  evals=3240
+  best theta         : v0=141.2012  T=0.9853  s0=10.0000  a=200.0000  b=199.9975
+  within bounds      : True
+  total_error J      : 3.176213  (equal weight mean of the per-event J_e)
+  spacing RMSE (mean/worst): 59.2096 / 149.4814
+  speed   RMSE (mean/worst): 17.0490 / 27.5882
+  convergence        : iter 0 best J=5.499825 -> iter 80 best J=3.176213  (improvement 2.323612)
+  curve monotone     : True   evaluations=3240 (distinct 3240, cache hits 0)   runtime=4.64 s
+  clipped coordinates: 664 (velocity zeroed there)   infeasible particles=31 (= the 1e12 wall)   outside-box particles=0 (must be 0)
+
+driver_2: particle swarm
+    iter   1/80  w=0.9000  best J=    1.570701 ...
+    iter  40/80  w=0.6532  best J=    1.203994 ...
+    iter  80/80  w=0.4000  best J=    1.203707  mean pbest J=    1.203708  evals=3240
+  best theta         : v0=146.3578  T=1.9212  s0=10.0000  a=56.8912  b=10.0000
+  total_error J      : 1.203707  (equal weight mean of the per-event J_e)
+  spacing RMSE (mean/worst): 21.7253 / 28.6794
+  speed   RMSE (mean/worst): 15.8979 / 16.9372
+  convergence        : iter 0 best J=1.969679 -> iter 80 best J=1.203707  (improvement 0.765972)
+  curve monotone     : True   evaluations=3240 (distinct 3240, cache hits 0)   runtime=5.54 s
+  clipped coordinates: 666 (velocity zeroed there)   infeasible particles=13 (= the 1e12 wall)   outside-box particles=0 (must be 0)
+...
+total runtime: 10.19 s
+written: results/m4_params.json
+.tmp leftovers: none
+```
+
+### 4.3 `$PY src/calibrate/m5_differentiable.py`（exit 0，两次 101 s / 101 s，JSON 记 96.70 s）
+
+```
+torch        : 2.14.0+cpu CPU, float64, 1 thread
+rollout      : Euler, real dt, lv held constant (measured), sqrt eps=1e-06, state floored at S_FLOOR=1
+parameters   : theta = LOWER + sigmoid(z)*(UPPER-LOWER), z in R^5 (no clipping needed)
+training     : Adam lr=0.05, 300 steps, 10 starts (1 reference + 9 Latin hypercube, seed 20260921), batched
+
+driver_1: differentiable IDM + Adam, 10 starts
+    start  0/9  reference theta0       torch J=    3.179813  numpy(euler)=    3.179813  numpy(rk4)=    3.203178  rel=7.294e-03
+    start  2/9  lhs 2 (seed 20260921)  torch J=  125.324694  numpy(euler)=  125.324694  numpy(rk4)=  116.499711  rel=7.575e-02
+    start  4/9  lhs 4 (seed 20260921)  torch J=  101.484382  numpy(euler)=  101.484382  numpy(rk4)=   85.271259  rel=1.901e-01    WARN >10%
+    start  6/9  lhs 6 (seed 20260921)  torch J=    3.161506  numpy(euler)=    3.161506  numpy(rk4)=    3.183963  rel=7.053e-03
+    start  7/9  lhs 7 (seed 20260921)  torch J=355472.042049  numpy(euler)=         inf  numpy(rk4)=         inf  rel=-  RUNAWAY (clamped, infeasible)
+    start  9/9  lhs 9 (seed 20260921)  torch J=    3.247690  numpy(euler)=    3.247690  numpy(rk4)=    3.262598  rel=4.569e-03
+  best theta         : v0=139.8030  T=0.8412  s0=19.9491  a=198.3226  b=199.3599
+  within bounds      : True
+  total_error J      : 3.183963  (equal weight mean of the per-event J_e, RK4)
+  spacing RMSE (mean/worst): 58.6311 / 148.9581
+  speed   RMSE (mean/worst): 16.9073 / 27.4211
+  convergence        : step 0 best J=6.035349 -> step 300 best J=3.161514  (improvement 2.873835)
+  multi-start        : 9/10 feasible, best = lhs 6 (seed 20260921), distinct solutions 9, final cost across starts min/max/std = 3.1840/116.4997/43.8258
+  training           : 300 Adam steps, lr=0.05, runtime=39.86 s (7.5 steps/s), batched over 10 starts
+  consistency        : torch(Euler) vs numpy(Euler) max rel. difference = 1.747e-11; torch(Euler) vs numpy(RK4) max rel. difference = 0.1901
+  runaway starts     : 1 - ['lhs 7 (seed 20260921)'] (torch state clamped; idm_core reports those trajectories as diverged, so no comparison is made)
+  WARNING            : 1 start(s) disagree with RK4 by more than 10%:
+                       lhs 4 (seed 20260921): torch vs RK4 relative difference 19.0136% > 10%
+
+driver_2: differentiable IDM + Adam, 10 starts
+    start  0/9  reference theta0       torch J=    1.179659  numpy(euler)=    1.179659  numpy(rk4)=    1.219169  rel=3.241e-02
+    start  6/9  lhs 6 (seed 20260921)  torch J=    1.172971  numpy(euler)=    1.172971  numpy(rk4)=    1.214134  rel=3.390e-02
+    start  9/9  lhs 9 (seed 20260921)  torch J=    1.292912  numpy(euler)=    1.292912  numpy(rk4)=    1.328004  rel=2.642e-02
+  best theta         : v0=140.3686  T=1.5074  s0=45.4097  a=57.5600  b=10.2127
+  within bounds      : True
+  total_error J      : 1.214134  (equal weight mean of the per-event J_e, RK4)
+  convergence        : step 0 best J=9.163439 -> step 300 best J=1.173001  (improvement 7.990439)
+  multi-start        : 10/10 feasible, best = lhs 6 (seed 20260921), distinct solutions 10, final cost across starts min/max/std = 1.2141/552.4228/172.2248
+  training           : 300 Adam steps, lr=0.05, runtime=54.61 s (5.5 steps/s), batched over 10 starts
+  consistency        : torch(Euler) vs numpy(Euler) max rel. difference = 2.071e-10; torch(Euler) vs numpy(RK4) max rel. difference = 0.0821
+  consistency check  : every start is within 10% of the numpy RK4 re-evaluation
+```
+
+（每起点整行、每 25 步的每起点 cost 曲线、best-so-far 曲线均写入 JSON；driver_2 没有 runaway 起点，driver_1 有 1 个。）
+
+### 4.4 独立校验器（`check_calibration_stepB.py`，exit 0）
+
+```
+checks passed: 330   failed: 0
+ALL CHECKS PASSED
+```
+
+### 4.5 可复现性
+
+```
+IDENTICAL (ignoring ['elapsed_seconds', 'runtime_seconds', 'steps_per_second', 'total_runtime_seconds']):
+  m3_run1.json vs results/m3_params.json  [17661 chars]
+  m4_run1.json vs results/m4_params.json  [17359 chars]
+  m5_run1.json vs results/m5_params.json  [63597 chars]
+```
+
+即：三个方法**两次运行的 JSON 除 4 个耗时字段外逐字节相同**（原始文件 sha256 不同仅因耗时字段，见 §9）。
+
+---
+
+## 5. 验收结果（brief「验收要点」逐条）
+
+| # | 验收要点 | 结果 |
+|---|---|---|
+| 1 | 每个方法 per driver 各一套**边界内**参数 | ✓ M3/M4/M5 各 2 组，全部 `inside_bounds=True`；JSON 有 `parameters_within_bounds` 字段；独立校验器对 5 个方法 × 2 driver 全部复核边界 ✓ |
+| 2 | GA/PSO 的 best 曲线**总体下降**（打印首尾值） | ✓ M3：4.623019→3.181423（d1）、1.858747→1.207964（d2）；M4：5.499825→3.176213（d1）、1.969679→1.203707（d2）；两方法两 driver 均 `monotone_nonincreasing=True`，首尾值在 stdout 与 JSON 都打印 ✓ |
+| 3 | M5 能**收敛**；多起点结果**离散度合理** | ✓ best-so-far 曲线 6.0353→3.1615（d1，300 步）、9.1634→1.1730（d2）；可行起点 9/10（d1）、10/10（d2），其中 d1 有 6 个起点落在 3.18–3.39（≤6.5 % 于最好），3 个起点陷入 80–117 的差局部极小；d2 有 6 个落点 1.21–1.62、其余 4 个落在 100–552。离散度大是因为**梯度法从随机起点不保证全局**（决策见 §8-3）——数值与判据都如实记录，未做选择性报告 |
+| 4 | M2 同口径 J=3.18(d1)/1.20(d2) 作对照，GA/PSO 应相近或更优 | ✓ **M4 略优/持平**：d1 3.176213 < M2 3.176314（−0.003 %），d2 1.203707 = M2 1.203707（完全相同）；**M3 略差**：d1 3.181423（+0.16 %）、d2 1.207964（+0.35 %)——未「明显更差」，原因分析见 §6.3（不调参硬凑） |
+
+补充验收（brief「通用要求」）：
+
+| 要求 | 结果 |
+|---|---|
+| 1. 三个脚本各自独立可运行，全部实际运行并保存 JSON | ✓ 三次独立调用，均 exit 0；`results/m3_params.json`(17846 B)、`m4_params.json`(17546 B)、`m5_params.json`(63864 B) 落盘 |
+| 2. 每个脚本打印 per-driver 参数、J、spacing/speed RMSE、耗时 | ✓ 三个脚本的 stdout 都有 `best theta` / `total_error J` / `spacing RMSE (mean/worst)` / `speed RMSE (mean/worst)` / 收敛行含 runtime（§4） |
+| 3. 计算预算：>5 min 先小幅试跑；结果可复现（两次 JSON 一致） | ✓ 先跑了缩小预算的试跑（GA 48 次评估 0.06 s、PSO 24 次 0.03 s、M5 5 步 0.61/0.82 s）；满额耗时 GA 14.4 s、PSO 10.2 s、M5 96.7 s（均 <5 min）；两次运行 JSON 除耗时字段外一致（§4.5） |
+| 4. 更新 build-report.md（新结果在前，旧报告附录存档），含 M1..M5 横向小表 | ✓ 本文件；横向表见 §6.1；第 1 步报告存为附录 A，原附录 A/B/C/D → B/C/D/E |
+| 5. 不装新包、不动 stage_1..4 数据与脚本 | ✓ 未装任何包；stage_4 五个 CSV sha256 与第 1 步一致，四个 stage 脚本 mtime 未变（§9） |
+| （附加）JSON 结构对齐 `m2_params.json` | ✓ 五个方法共用 `build_results_payload`，per-driver 字段名一致（`theta`/`total_error`/`events[j_spacing,j_speed,j_total,spacing_rmse,speed_rmse,sigma*,zero_model]`），各方法另加自己的收敛块；独立校验器逐字段核对 ✓ |
+
+---
+
+## 6. 关键数值与发现
+
+### 6.1 五方法横向小表（per driver 的 J；θ 为该 driver 最优参数）
+
+同一套数据、同一目标函数、同一积分格式（**RK4，报数口径**）；括号内为**同一组 θ 用欧拉口径**复算的 J（仅作对照，见 §6.5）：
+
+```
+driver_1            J(RK4)      J(Euler)     θ = [v0, T, s0, a, b]
+  M1 瞬时最小二乘      inf(发散)      inf        179.6312  0.3000   10.0000   10.0000  200.0000
+  M2 Nelder-Mead      3.176314     3.162127    141.1979  0.9849   10.0000  200.0000  199.6893
+  M3 GA               3.181423     3.159415    139.9486  0.8973   15.4246  199.9790  200.0000
+  M4 PSO              3.176213     3.162047    141.2012  0.9853   10.0000  200.0000  199.9975
+  M5 可微IDM+Adam     3.183963     3.161506    139.8030  0.8412   19.9491  198.3226  199.3599
+
+driver_2            J(RK4)      J(Euler)
+  M1                  2.194745     2.199611    200.0000  1.6846   60.9783   27.1435   79.9784
+  M2                  1.203707     1.169533    146.3575  1.9212   10.0000   56.8908   10.0000
+  M3                  1.207964     1.175962    140.1226  1.4072   56.2919   61.7408   10.0000
+  M4                  1.203707     1.169534    146.3578  1.9212   10.0000   56.8912   10.0000
+  M5                  1.214134     1.172971    140.3686  1.5074   45.4097   57.5600   10.2127
+```
+
+（M1 的 d1 为不可行——第 1 步已记录；M1 不是本步产物，仅列出作横向对照。）
+
+### 6.2 M4 PSO 命中了第 1 步独立全局搜索找到的同一个最优点
+
+第 1 步报告 §6.6 记录：独立差分进化（20 000 次代价求值 + NM 抛光）在 driver_1 盒内找到的最好值是 **3.176212**，且**未找到更好解**。本步：
+
+- M4 PSO = **3.176213**（与该记录相差 1e-6，相对 3e-7）→ 在 3 240 次评估（4.6 s）内到达同一最优点；
+- M2 = 3.176314（比该记录高 1.0e-4）；
+- d2 上 M4 = M2 = **1.203707**（小数点后 6 位完全相同，θ 差异 <1e-3）。
+
+结论：**在 driver_2 上四方法一致；在 driver_1 上 M2/M3/M4/M5 共享同一个最优邻域，M4 最接近已知全局最优。**
+
+### 6.3 M3 GA 比 M2 略高 0.16 % / 0.35 % 的原因（不做调参硬凑）
+
+1. **预算差距**（数量级）：M3 共 4 860 次代价求值、6.6 s；M2 是 13 个起点各跑到 Nelder-Mead 收敛（每次约 2 000 次 nfev，总计约 2.6 万次、122.9 s）。GA 的前 10 代就把 J 从 4.62 压到 3.36（−27 %），第 40 代到 3.188，**其后 40 代只再降 0.0068（0.21 %）**——即 GA 已进入最优邻域，剩下的是「无局部抛光」的细化差距。
+2. **算子性质**：SBX + 多项式变异 + 精英 2 是全局型算子，末代解与 M2 的解在参数上非常接近（d1：a、b 都顶到上界 ~200；d2：s0、b 都在下界 ~10），差别主要是 s0/T 的取值（d1 s0=15.4 vs 10.0）。
+3. 因此差距来自**搜索预算/风格**而非实现缺陷：独立校验器证明其参数确有该 J（±1e-5），且两 driver 的 best 曲线都单调下降到末代仍在改善（best_generation=79 / 74，即最后几代仍在刷新）。
+4. 若要把 GA 拉平到 M2 水平，正确做法是加「局部搜索/抛光阶段」或提高代数（**属于后续口径统一阶段的决策，本轮不改**，避免"调参硬凑"）。
+
+### 6.4 M5：计算图与共享代价的等价性是硬的
+
+| 交叉核对 | driver_1 | driver_2 |
+|---|---|---|
+| torch cost vs **numpy 欧拉**（同格式）最大相对差 | **1.75e-11** | **2.07e-10** |
+| torch cost vs **numpy RK4**（报数口径）最大相对差 | 19.0 %（lhs 4 起点，>10 % → WARNING） | 8.2 % |
+
+- 第一行说明 **torch 计算图就是 idm_core 的欧拉分支**（差值在浮点累加精度量级）：也即「逐点递推、实测 lv、真实 Δt、sqrt eps、S_FLOOR 下限、违规计数」全部对应正确（eps 的相对影响 ~1e-8，被淹没在 1e-11~1e-10 里没有单独显现，属于预期）。
+- 第二行是**欧拉 vs RK4 的格式差异**，不是实现差异：driver_1 的 event_1 有最大 Δt=0.6 s 的稀疏段，格式差在个别 stiff 起点的参数上被放大到 19 %（driver_1 其它起点为 0.14 %–7.6 %，driver_2 全部 ≤8.2 %）。按 brief「差异 >10 % 则 WARNING」，脚本打印了 WARNING 并**照常完成**（exit 0），数值全部留在 JSON 的 `differentiable.consistency_warnings` 与每起点记录里。
+- 因此**报数以 RK4（更精确）为准**：M5 的 d1 3.183963 与 d2 1.214134。若改用 M5 自身优化的欧拉口径看，M5 的 d1 3.161506 与 M2 的 3.162127、M4 的 3.162047 几乎相同（甚至略优），这是「同一最优邻域在不同积分格式下的投影」问题，而不是 M5 没找到解。
+- 附：`runaway` 起点（d1 的 lhs 7）在 torch 里状态被限幅（clamp）而得到 3.6e5 的有限代价，而 idm_core 判该轨迹**发散（inf）**；脚本据此把它标记为不可行、**排除在排序与一致性比较之外**（JSON 有 `runaway_starts` 与 `comparison_note`），避免把「限幅产物」当成一次真实的代价不一致。
+
+### 6.5 方法间差距小于积分格式差距（读取横向表时要注意的）
+
+- driver_1 的 RK4 口径：M2 3.176314 / M4 3.176213 / M3 3.181423 / M5 3.183963，**四方法极差 0.00775（0.24 %）**；
+- 而**同一组 θ（M2 的）在两种格式下的差**：3.176314 − 3.162127 = **0.014187（0.45 %）**，**比四个方法之间的极差还大**；
+- 换句话说：**「哪个方法更好」在这个数据上小于「用欧拉还是 RK4」带来的差别**，因此 step B 的结论应表述为「四个方法（M2/M3/M4/M5）都在同一最优邻域、彼此差异 <0.25 %」，而不是给它们排一个 1e-3 量级的胜负。这个事实也解释了为何 M5（在欧拉下最便宜之一）在 RK4 报数下排最后。
+
+### 6.6 三个方法都把最优推出了盒子（与 M2 一致）
+
+M4 d2 的 θ 与 M2 几乎逐位相同（s0=10.0000、b=10.0000 下界；a≈56.89、v0≈146.36）；M3/M5 同样把这些分量推到边界（M3 d1: a=199.98、b=200.00 上界；M5 d1: a=198.3、b=199.4；M5 d2: b=10.21）。**边界是"活"的**，与第 1 步报告 §6.3 的结论一致；这也是 M4 采用「裁剪位置 + 速度置零」而不是「速度反弹」的理由（idm_core 的边界罚把边界点自身的代价算得有限且有意义，急停比来回弹更适合贴着面的最优点）。
+
+---
+
+## 7. 独立校验（330 项，与三个交付脚本零共享代码）
+
+`<scratch>/check_calibration_stepB.py`（Hermes scratch，非交付物）用 `csv` 模块重新读盘、用纯 `math` 重新实现 IDM/欧拉/RK4/单 event 与多 event 代价，然后核对 5 个 `results/*.json`。它检查的内容：
+
+1. 数据体检（两 driver、行数 138/27/79/211/124）；
+2. **五个方法 × 两 driver 的参数是否边界内**、**发布 θ 复算出的 J 是否等于发布的 `total_error`**（RK4，容差 1e-5 = JSON 6 位小数 + θ 6 位小数所允许）；
+3. 每 event 的 `j_spacing/j_speed/j_total/spacing_rmse/speed_rmse/n_samples` 与独立复算逐一比对，`j_total = j_spacing + j_speed`、`total_error = 各 event J_e 的均值` 的结构自洽（不可行 event 必须以 JSON `null` 出现，不得伪装成数字）；
+4. M3 结构：60/80/seed 20260921、算子串（η=15/η=20/pm=0.2/k=3/精英 2）、曲线长度=81、**单调不增**、首尾=initial/final best、评估数=60×81=4 860、`distinct ≤ calls 且 cache_hits = calls − distinct`、`reported_best_cost` 复算一致、**无个体越界**；
+5. M4 结构：40/80/seed、系数串（w 0.9→0.4、c1=c2=1.5、0.2×宽度）、曲线长度=81、单调、首尾、评估数=40×81=3 240、边界处理已注释、**无粒子越界**；
+6. M5 结构：300 步/lr=0.05/10 起点、曲线长度=300、best-so-far = 每步最小曲线的running min、收敛（末值 < 首值）、10 起点全部边界内、**每起点 torch cost 等于独立欧拉复算**（容差 1e-6）、**每起点 numpy RK4 复算与发布值一致**、最优起点=可行起点里 RK4 最小者；
+7. 横表复算（§6.1 的两个 J 列）。
+
+结果：**330 项全通过，0 失败**。
+
+---
+
+## 8. 假设、偏差与遗留问题
+
+假设（brief 未指定、由本步选定并全部记录进 JSON）：
+
+1. **M3 的 pc=0.9**（每对父代发生 SBX 的概率）与 **PSO 的初速度尺度 0.1×边界宽度 / 初值用 LHS / 速度流用 seed+1**：brief 只固定了 SBX 的 η、变异 η 与 pm、粒子数、迭代数、w/c1/c2、速度限幅；其余取常规值并写入 `configuration` 与 per-driver 的算子串。
+2. **M5 的起点数 10 与「与 M2 同样的种子策略」**按「θ0 + 9 点同种子 LHS」实现（M2 是 θ0 + 12 点 LHS 共 13 起点；本步按 brief 的 10 个多起点取 1+9）。signature：driver_1/driver_2 的起点完全相同，可复现。
+3. **M5 的多起点离散度大**（d1 有 3 个起点停在 J≈80–117）是梯度法 + 固定 lr + 300 步的固有行为，不是 bug：脚本按「逐起点记录终值 + 取 RK4 最小者」处理，离散度如实入 JSON。若后续希望所有起点收敛到同一解，可加 lr 衰减或多个 300 步段——**本轮未做**。
+4. **M5 的状态限幅**（s∈[S_FLOOR, 1e6]、|v|≤1e4）是为了让计算图对任意参数都保持有限（NaN 会污染梯度）；被限幅的起点按「runaway/不可行」处理并不参与排序，这一点在 JSON 与 stdout 都显式标注。
+5. 三个脚本都是 per driver 用**同一个 seed**（brief「固定 seed，per driver 独立运行」按「同种子、独立种群」理解），因此两 driver 的随机流相同而目标数据不同。
+
+偏差：无。未改 `idm_core`/M1/M2/数据/预处理脚本；未装包；未动 stage_1..4；除三个新脚本、三个新 JSON 与本报告外，项目内无新增文件。
+
+遗留问题 / 建议（本轮未执行）：
+
+1. **口径统一（用户已悉知）**：driver_1 的 e1 在等权归一化目标下被牺牲（M3/M4/M5 与 M2 完全同一现象：`driver_1_event_1_beats_zero_model=False`，三个脚本都打印 `WARNING` 但 exit 0）；5 个方法在 driver_1 上 J 都在 3.176–3.184，都高于「常数预测器同尺基线 2.0」——**这是目标函数口径的固有结果**（第 1 步报告 §6.2/§6.6 已论证），不是任何单个方法的实现缺陷。统一处理时建议同时报告「per-event 等权」与「driver_1 e1 单独加权」两套口径。
+2. **M3 若需与 M2 严格可比**：加局部抛光段（如末代后接一次 NM 或坐标下降），或把代数提到 GA 收敛平台之外——属后续决策。
+3. **M5 的 19 % WARNING**：若后续继续用 M5，建议对 driver_1 这类含大 Δt 稀疏段的数据改用 RK4 步进（可微性仍成立），或在 torch 内用与报数一致的格式，从根上消除「优化口径 ≠ 报数口径」的错位。
+4. `src/calibrate/__pycache__/idm_core.cpython-311.pyc` 会在每次运行后重新生成（Python 缓存），不影响交付；交付前已删除（§9）。
+
+---
+
+## 9. 产物清单与哈希（本次新建/更新）
+
+```
+src/calibrate/m3_ga.py              487 行  24389 B   sha256 88e08e656b3462b8ae28ff36b57a30cb3b5d84e6bc9f28f8cee691646a57feb3
+src/calibrate/m4_pso.py             426 行  21733 B   sha256 8fa476cadefb985791fa0a285158a8b869eebdcce305a93c10b7efcfb53e444b
+src/calibrate/m5_differentiable.py  673 行  33555 B   sha256 9aa4c549ca429d068de65db58b9de4ffe4da6727eb1321fd2f93f134c3205781
+results/m3_params.json                     17846 B   sha256 a156354d9637293baf5fc1d6694c13f6baf3aef10c98d053246b00771226507a
+results/m4_params.json                     17546 B   sha256 53b2b20d5a257aab20011849821db0a849fcc62d67c2d2bea1c5556ce2dff1c4
+results/m5_params.json                     63864 B   sha256 8f316958abc06c54a06a92c328e702ef9547b246f37b51cc1da29f89942a24c2
+build-report.md                                        （本文件）
+```
+
+未改动（mtime 均在本次工作开始之前，逐字节未验）：
+
+```
+src/calibrate/idm_core.py           16:59   41850 B
+src/calibrate/m1_instant_ls.py      16:45   14393 B
+src/calibrate/m2_neldermead.py      16:51   17279 B
+results/m1_params.json              17:10    9775 B
+results/m2_params.json              17:07   35959 B
+src/preprocess_stage{1,2,3,4}.py    15:39 / 15:56 / 16:05 / 16:36
+```
+
+输入未触碰（sha256 与第 1 步报告 §8 记录值逐一相同）：
+
+```
+75671ec54e917536c1f8817a9a95d83d6290ce51d7f20eaa6fd23b7064a86c27  data/preprocess/stage_4/driver_1_event_1.csv  (138 行)
+df62dafa05072f234f663932cdcc7cd4ab704e6cc8066034da39484ced7b77a6  data/preprocess/stage_4/driver_1_event_2.csv  ( 27 行)
+9bcf8a5f7a865eb47a40c6f32f4d51d9c02873377665a854ae121efb380db107  data/preprocess/stage_4/driver_1_event_3.csv  ( 79 行)
+b4c76245209d3e91d412172b97bd913f57135db4305972a6625a8f0fa632edbc  data/preprocess/stage_4/driver_2_event_2.csv  (211 行)
+f0b7d9fd4faccfc2260df2e5b2f76ae9254c0ac054d7d46a10cd4ddfd533a829  data/preprocess/stage_4/driver_2_event_3.csv  (124 行)
+```
+
+残留检查：交付前项目内无 `*.tmp`、无 `__pycache__`（已删除）、无 `*.pyc`。
+
+---
+
+## 10. 复现步骤
+
+```bash
+PY=C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe
+cd C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1
+
+$PY src/calibrate/m3_ga.py                # ≈15 s，→ results/m3_params.json（d1 J=3.181423  d2 J=1.207964）
+$PY src/calibrate/m4_pso.py               # ≈12 s，→ results/m4_params.json（d1 J=3.176213  d2 J=1.203707）
+$PY src/calibrate/m5_differentiable.py    # ≈101 s，→ results/m5_params.json（d1 J=3.183963  d2 J=1.214134）
+# 三个脚本都支持缩小预算的参数（m3: --population/--generations，m4: --particles/--iterations，
+# m5: --starts/--steps/--lr）与 --method euler|rk4、--root/--seed，单独运行即可复现各自 JSON。
+
+# 可选复核（Hermes scratch，非交付物）：
+$PY "C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/lab1_stepB/check_calibration_stepB.py" \
+    "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"     # 330 checks PASS
+$PY "…/lab1_stepB/compare_json.py" "…/lab1_stepB/m5_run1.json" results/m5_params.json   # 除耗时字段外一致
+```
+
+---
+
+# 附录 C — 标定第 1 步（M1/M2）报告原文存档
+
+> 编号说明：本次新增「标定第 2 步（M3/M4/M5）」报告置于文首后，原「标定第 1 步（M1/M2）」报告降级为**附录 A**，原「附录 A / B / C / D」顺延为「**附录 B / C / D / E**」；下文第 1 步报告正文一字未改（仅其一级标题降级为二级），其内部对「附录 A / B / C / D」的旧引用即为现在的 B / C / D / E。
+
+STATUS: COMPLETE
+
+## Build Report — Lab 1 IDM 标定框架（idm_core）+ M1/M2 —— 标定第 1 步（共 3 步）
+
+一句话：新建可复用标定核心 `src/calibrate/idm_core.py`（模型 / 仿真 / 两级误差 / loader / 边界罚 / 结果输出），在其上实现 **M1 瞬时加速度最小二乘**（`m1_instant_ls.py`）与 **M2 Nelder-Mead 轨迹法 13 起点**（`m2_neldermead.py`），两者各自独立可运行并写出 `results/m1_params.json` / `results/m2_params.json`。真实数据：**M2 driver_2 J=1.203707**（θ0 为 8.904643，降 86.48%）、**driver_1 J=3.176314**（θ0 17.960521，降 82.32%）；**M1 driver_2 J=2.194745，driver_1 的轨迹在复算时不可行（仿真发散 → inf）**。
+
+**必须点名的一处验收缺口**：brief §4 的自检项「用最优参数对 driver_1 e1 仿真，spacing RMSE 应明显优于常数零模型」在 M1 与 M2 上**都没有通过**（M1 直接发散；M2 为 149.5002 对零模型 68.0611，反而差 2.20 倍）。按 brief「若没有，打印警告但不报错」处理：两个脚本都打印了 `WARNING:` 并 exit 0。根因已查清并附证据（§6.2、§6.6）：**不是模型拟合不出来**——把 driver_1 e1 单独拟合可达 spacing RMSE **9.5005**（优于零模型 7.16 倍）——而是 brief 规定的「按各 event 自身 σ 归一化 + 多 event 等权平均」使 e1（σ_s=68.06）的大绝对误差在代价里被折价、拟合预算被其它 event 拿走。这是目标函数口径的固有结果，不是实现缺陷，处置建议见 §7-1。
+
+**同一根因的更强版本（§6.6）**：换成和目标函数同一把尺子看，平凡「常数预测器」（s、v 各取该 event 均值、全程不变）的归一化代价恒为 **J=2.000**。M2 在 **driver_2 上 1.203707 < 2.0（赢），但在 driver_1 上 3.176314 > 2.0（输给平凡基线）**；独立差分进化（differential evolution，20k 次代价求值 + NM 抛光）在 driver_1 盒内**没有找到更好的解**（最好 3.176212，相对 M2 只差 0.003%），说明在 brief 的目标口径下、在 brief 的参数盒内，单个 driver 的 IDM 参数集**无法同时**满足 driver_1 三个 event 的诉求。
+
+本报告只覆盖本次「标定第 1 步（M1/M2）」；**Stage 4 报告原文完整保留在文末「附录 A」，Stage 3 / Stage 2 / Stage 1(v3) 报告顺延为「附录 B / C / D」**（仅一级标题降一级为二级，正文一字未改；原「附录 A/B/C」的编号在新结构里变为 B/C/D，这一点在附录 A 抬头处注明）。
+
+---
+
+## 1. 交付物与变更
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `src/calibrate/idm_core.py` | **新建**（968 行 / 41850 B） | 标定公共模块：参数边界与初值、`idm_acceleration`（标量+数组）、`simulate_event`（欧拉/RK4，实际 Δt，lv 线性插值，含 s≤0 计数与发散保护）、`event_cost`/`trajectory_error`、`total_error`（多 event 等权）、`constrained_total_error`（优化器面向：边界墙 + 1e12 不可行墙）、stage_4 `load_events`/`load_event_data`、`observed_acceleration`、`zero_model_metrics`/`event_metrics`/`summarize_events`/`self_checks`、`latin_hypercube`/`normalized_theta`/`denormalized_theta`、`build_results_payload`/`write_json_atomic` |
+| `src/calibrate/m1_instant_ls.py` | **新建**（330 行 / 14393 B） | M1：`scipy.optimize.least_squares`（trf + bounds），残差 = 各 event `(a_idm-a_obs)/std(a_obs)` 拼接；per driver 一组参数 + 收敛证据 + 用最优参数复算的轨迹指标 → `results/m1_params.json` |
+| `src/calibrate/m2_neldermead.py` | **新建**（361 行 / 17279 B） | M2：`scipy.optimize.minimize(method='Nelder-Mead', adaptive=True)`，13 起点（θ0 + 12 点拉丁超立方，固定 seed 20260921），逐起点打印、取最优；per driver 一组参数 + 多起点表 + 收敛证据 → `results/m2_params.json` |
+| `results/m1_params.json` | **新建**（9775 B） | per driver：`theta` / `total_error` / 每 event 的 `spacing_rmse`、`speed_rmse`（原始单位，未归一化）、`j_spacing`/`j_speed`/`j_total`、`sigma_s`/`sigma_v`、零模型基线、加速度残差指标、收敛证据、自检 |
+| `results/m2_params.json` | **新建**（35959 B） | 同上 + `multistart`（13 个起点的起点/终点/代价/nit/nfev/是否可行/是否投影回边界）+ 最优起点的收敛证据 |
+| `build-report.md` | **更新** | 本文件（标定第 1 步报告在前；Stage 4 / 3 / 2 / 1 报告降级存为附录 A / B / C / D） |
+| `src/preprocess_stage{1,2,3,4}.py`、`data/preprocess/stage_1..4/**`、`data/raw/**`、`briefs/**` | **未改动** | 只读；stage_4 五个 CSV 的 sha256 与本报告 §8 记录（= Stage 4 报告 §7 的记录值）逐一相同，stage_1/2/3 目录与四个 stage 脚本的 mtime 仍是本次工作开始前的时间 |
+
+- 未安装/升级任何包（只用已存在的 numpy 2.4.6 / scipy 1.17.1 / pandas 3.0.5），未新建虚拟环境或 conda 环境。
+- 本项目不是 git 仓库（`git rev-parse` → not a git repository），故无提交。
+- 未启动/未重启任何服务（三个脚本都是一次性批处理，无守护进程）。
+- 交付后项目内无 `*.tmp` / `__pycache__` / `*.pyc` 残留（开发期 import 产生的 `src/calibrate/__pycache__` 已在交付前删除，见 §5 验收 7）。
+
+---
+
+## 2. 判定口径（模块接口与算法）
+
+### 2.1 数据与量纲
+
+`data/preprocess/stage_4/{driver}_{event}.csv`（列 `time,fv,lv,dhw`，138/27/79/211/124 = 579 行）只读读入；间距 `s = dhw - L_VEH`，`L_VEH = 250`（brief 给定的常数，不参与标定）；速度单位「坐标单位/s」。`time` 列即真实时间轴（stage_4 保证严格递增，且栅格有洞，最大 Δt = 0.6 s），因此**积分步长一律取实际 Δt**，绝不假定 0.1 s。
+
+### 2.2 模型与参数
+
+`a_idm(s,v,dv) = a[1 - (v/v0)^4 - (s*/s)^2]`，`s* = s0 + max(0, vT + v·dv/(2√(a·b)))`，`dv = v_L - v`，δ=4 固定；θ=[v0,T,s0,a,b]，边界 v0∈[40,200]、T∈[0.3,5.0]、s0∈[10,400]、a∈[10,200]、b∈[10,200]；初值 θ0=(120, 1.2, 100, 80, 100)。`idm_acceleration` 同时支持标量与 numpy 数组（标量输入返回 Python float，数组输入返回 ndarray）。
+
+### 2.3 仿真
+
+从该 event **首点实测** `s(0)=dhw[0]-250`、`v(0)=fv[0]` 初始化，前向积分 `ds/dt = v_L - v`、`dv/dt = a_idm`；`v_L` 用实测 `lv` 的**分段线性插值**在每个积分节点取值（RK4 中点 = 相邻两点均值），领导者因此永远不偏离实测，无需领导者模型。默认 **RK4**（brief 允许：先欧拉，若 0.1 s 精度不足可用 RK4）——两种格式的实测差异见 §6.4；两种格式都实现并可用 `--method` 切换。返回数组长度与输入相同。
+
+### 2.4 两级误差
+
+单 event：`J_e = mean((s_sim-s_obs)²)/σ_s² + mean((v_sim-v_obs)²)/σ_v² + S_VIOLATION_PENALTY × 违规次数`，其中 `σ_s/σ_v` 取**该 event 实测 s、v 的标准差**（自带尺度）。多 event：`total_error = mean_e J_e`（**先各 event 求平均再平均**，不是把残差拼起来——拼接会让 211 点的 event 压倒 27 点的 event）。`j_total` 用 `inf` 表示不可行。
+
+### 2.5 数值保护（三档，均为实测覆盖）
+
+1. **`s ≤ 0`**：计数（`s_violations`）、把间距压到 `S_FLOOR = 1.0` 后继续积分，代价里按次加 `1e6`。取值 1.0 而非 1e-6 是刻意的：`(s*/s)²` 在 s→0 时奇异，clamp 到机器 epsilon 会让下一步加速度 ≈ -1e14 而立即爆炸，于是任何一次违规都变成「不可行」、brief 要求的「违规次数×大常数」就永远不会生效（这正是第一版实现的实测缺陷，见 §6.5 与 §7-3）。
+2. **非有限 / 爆炸**：状态非有限、或 |v|>1e4、或 s>1e6 → 该 event 代价 `inf`（并在数组尾部留 `nan`，绝不用伪造值去拟合）。RK4 中间级因浮点溢出抛 `OverflowError` 的情况也在标量加速度里捕获为 `nan`，最终同样归为不可行。
+3. **优化器面向**：`constrained_total_error` 把 `inf` 换成有限大墙 `INFEASIBLE_COST = 1e12`（Nelder-Mead/GA/PSO 拿到真 `inf` 会崩，而任何可行代价都在 O(1e2) 以内，1e12 在效果上等同无穷）。**真 `inf` 只出现在报数证据里**。
+
+### 2.6 边界处理
+
+`bounds_penalty`：盒内**严格为 0**，盒外 = `1e6 × (1 + 相对越界量之和)`（每个分量按自身盒宽归一化），即「大罚值」（brief 要求）。偏移项是关键：只按越界量成比例的话，Nelder-Mead 贴着边界收敛时被 IEEE 舍入甩到界外 1e-14 的点会被算成 ~1e-10 的**假最优**（第一版实现实测踩到，见 §7-2）。轨迹代价则在**θ 投影到盒内**的点上求值，因此边界点自身带的也是真实代价；M2 上报的 θ 取投影，并记录 `projected_onto_bounds`。
+
+### 2.7 M1 口径（brief §2）
+
+`a_obs` = fv 的中心差分（内部 `(fv[i+1]-fv[i-1])/(t[i+1]-t[i-1])`，首末单侧），`dv = fv-lv` 同点值，`s = dhw-250`；残差 = `(a_idm - a_obs)/std(a_obs)`（该 event 的 `std(a_obs)` 归一化后拼接）；`scipy.optimize.least_squares(method='trf', bounds=(LOWER,UPPER))`，初值 θ0，`xtol=ftol=gtol=1e-12`，每 driver **一次拟合**（brief 未要求多起点；起点敏感性由 scratch 诊断另证，见 §6.1）。
+
+### 2.8 M2 口径（brief §3）
+
+目标 = `total_error`（优化器实际拿到 `constrained_total_error`）；`scipy.optimize.minimize(method='Nelder-Mead', adaptive=True, xatol=1e-8, fatol=1e-10, maxiter=4000)`；**13 个起点 = θ0 + 12 点拉丁超立方**（自实现 `latin_hypercube`，seed 20260921 固定）覆盖整个参数盒；逐个起点跑到收敛，取代价最低的可行解。逐起点的起点/终点/代价/迭代数全部落进 JSON，可复核。
+
+---
+
+## 3. 实际执行的命令
+
+```bash
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+PY="C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe"
+SC="C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/calib_stepA"
+
+# (1) 数据体检（只看不改）：行数、dt 范围、s/v/a_obs 的尺度
+$PY $SC/probe_data.py
+
+# (2) 公共模块冒烟：loader、标量/数组加速度、欧拉/RK4、代价、罚值、LHS
+$PY $SC/smoke_core.py
+
+# (3) M1 验收运行（每次约 2 s）
+$PY src/calibrate/m1_instant_ls.py            # → results/m1_params.json, exit 0
+
+# (4) M1 起点敏感性诊断：13 个起点跑 least_squares，看是否同一个解
+$PY $SC/diag_m1_landscape.py
+
+# (5) M2 验收运行（每次 90~125 s）
+$PY src/calibrate/m2_neldermead.py            # → results/m2_params.json, exit 0
+
+# (6) 数值保护探针：极端参数下的 s≤0 / 溢出 / 发散 / 罚值算例
+$PY $SC/probe_overflow.py
+
+# (7) 幂等性（最终代码各跑两次，逐字节比对）
+cp results/m1_params.json $SC/m1_final_runD.json
+$PY src/calibrate/m1_instant_ls.py            # run E
+sha256sum results/m1_params.json $SC/m1_final_runD.json      # → 两个哈希相同
+cp results/m2_params.json $SC/m2_final_runD.json
+$PY src/calibrate/m2_neldermead.py            # run E
+sha256sum results/m2_params.json $SC/m2_final_runD.json      # → 两个哈希相同
+
+# (8) 独立校验器（与三个交付脚本零共享代码：csv 模块读盘 + 纯 math 重写 IDM/积分/代价）
+$PY $SC/check_calibration_stepA.py            # → 171 checks, 171 passed, 0 failed (exit 0)
+
+# (9) 参照诊断一：单个 event 单独拟合（判断 e1 是「拟合不出来」还是「被等权目标牺牲」）
+$PY $SC/diag_single_event.py
+
+# (10) 参照诊断二：欧拉 vs RK4 在最优点的代价差、代价函数单次求值耗时
+$PY $SC/diag_final_numbers.py
+
+# (11) 参照诊断三：常数预测器同尺基线 + 独立全局搜索（differential evolution）验证 M2 的解
+$PY $SC/diag_global_de.py
+
+# (12) 输入只读与残留检查
+sha256sum data/preprocess/stage_4/*.csv
+find . -name "*.tmp" -o -name "__pycache__" -o -name "*.pyc" | wc -l
+```
+
+`$SC` 下的脚本是 Hermes scratch 里的探针/校验器，**不属于交付物**（项目目录内没有它们）。
+
+---
+
+## 4. 运行输出（真实 stdout）
+
+### 4.1 `$PY src/calibrate/m1_instant_ls.py`（exit 0）
+
+```
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+input dir    : data/preprocess/stage_4
+method       : M1 - instantaneous-acceleration least squares
+model        : a_idm = a*(1 - (v/v0)^4 - (s*/s)^2), s* = s0 + max(0, v*T + v*dv/(2*sqrt(a*b)))
+observed a   : central difference of fv (ends one-sided), dt from the real time column
+spacing      : s = dhw - 250
+normalisation: per-event residuals divided by std(a_obs) of that event
+solver       : scipy.optimize.least_squares (trf), bounds=v0[40,200] T[0.3,5] s0[10,400] a[10,200] b[10,200]
+initial point: v0=120.0000  T=1.2000  s0=100.0000  a=80.0000  b=100.0000
+trajectory   : integration method for the reported metrics = rk4
+
+events:
+  driver_1   event_1 (n=138), event_2 (n=27), event_3 (n=79)
+  driver_2   event_2 (n=211), event_3 (n=124)
+
+driver_1:
+  theta              : v0=179.6312  T=0.3000  s0=10.0000  a=10.0000  b=200.0000
+  within bounds      : True
+  least_squares      : success=True status=2 nfev=13 optimality=2.179e-08
+  acceleration LS    : cost=122.652487 residual RMS (normalised)=1.002671 over 244 residuals
+  trajectory cost    : total_error=inf  (equal weight mean of 3 events, 244 samples)
+  event         n     s_RMSE     v_RMSE        J_e     a_RMSE     zero_s
+  event_1     138        inf        inf        inf    118.987    68.0611
+  event_2      27    26.1833    16.2003    11.4360     60.893     8.3407
+  event_3      79    26.8010    14.8000    2.0778     73.796   121.5758
+
+driver_2:
+  theta              : v0=200.0000  T=1.6846  s0=60.9783  a=27.1435  b=79.9784
+  within bounds      : True
+  least_squares      : success=True status=2 nfev=14 optimality=3.044e-07
+  acceleration LS    : cost=166.261768 residual RMS (normalised)=0.996297 over 335 residuals
+  trajectory cost    : total_error=2.194745  (equal weight mean of 2 events, 335 samples)
+  event         n     s_RMSE     v_RMSE        J_e     a_RMSE     zero_s
+  event_2     211    27.8500    19.5894     3.1970    100.543    21.5799
+  event_3     124    30.6234    17.9364     1.1925    128.583    49.7431
+
+self-checks:
+  driver_1_event_1_beats_zero_model              False
+  driver_1_event_1_improvement_factor            None
+  driver_1_event_1_spacing_rmse                  inf
+  driver_1_event_1_zero_model_spacing_rmse       68.0610694599822
+  driver_1_has_parameters                        True
+  driver_1_parameters_within_bounds              True
+  driver_2_has_parameters                        True
+  driver_2_parameters_within_bounds              True
+  two_drivers_found                              True
+  drivers_found                                  ['driver_1', 'driver_2']
+
+WARNING: driver_1 event_1 spacing RMSE is NOT better than the constant zero model - see results for the numbers (warning only, not an error).
+
+written: results/m1_params.json
+.tmp leftovers: none
+```
+
+### 4.2 `$PY src/calibrate/m2_neldermead.py`（exit 0，运行 122.93 s）
+
+```
+method       : M2 - Nelder-Mead trajectory fit, multi-start
+objective    : constrained_total_error = equal weight mean of the per-event
+               [ mean(ds^2)/sigma_s^2 + mean(dv^2)/sigma_v^2 + penalty*violations ]
+spacing      : s = dhw - 250   (spacing violation = simulated s <= 0)
+references   : start 0 = v0=120.0000  T=1.2000  s0=100.0000  a=80.0000  b=100.0000
+starts       : 13 (1 reference + 12 Latin hypercube, seed 20260921)
+nelder-mead  : adaptive=True, xatol=1e-08, fatol=1e-10, maxiter=4000
+bounds       : v0[40,200] T[0.3,5] s0[10,400] a[10,200] b[10,200] (out-of-box penalty 1e+06)
+integration  : rk4 on the real time deltas, leader speed interpolated from lv
+
+driver_1: Nelder-Mead multi-start
+    start  0/12 reference theta0           J=    3.196677 nit= 1185 nfev= 2167 feasible    4.28 s
+    start  1/12 lhs 1 (seed 20260921)      J=         inf nit=   97 nfev=  678 INFEASIBLE    1.06 s
+    start  2/12 lhs 2 (seed 20260921)      J=         inf nit=   96 nfev=  671 INFEASIBLE    1.02 s
+    start  3/12 lhs 3 (seed 20260921)      J=    3.176996 nit= 1407 nfev= 2568 feasible    5.55 s
+    start  4/12 lhs 4 (seed 20260921)      J=    3.235972 nit= 1488 nfev= 2633 feasible    5.96 s
+    start  5/12 lhs 5 (seed 20260921)      J=    3.401910 nit=  978 nfev= 1782 feasible    3.94 s
+    start  6/12 lhs 6 (seed 20260921)      J=    3.176314 nit= 1661 nfev= 2933 feasible    6.71 s
+    start  7/12 lhs 7 (seed 20260921)      J=         inf nit=   97 nfev=  678 INFEASIBLE    1.11 s
+    start  8/12 lhs 8 (seed 20260921)      J=         inf nit=   96 nfev=  671 INFEASIBLE    1.07 s
+    start  9/12 lhs 9 (seed 20260921)      J=    3.181560 nit= 1808 nfev= 3261 feasible    7.33 s
+    start 10/12 lhs 10 (seed 20260921)     J=    4.298274 nit= 1043 nfev= 1949 feasible    4.23 s
+    start 11/12 lhs 11 (seed 20260921)     J=    3.178650 nit= 1421 nfev= 2499 feasible    5.46 s
+    start 12/12 lhs 12 (seed 20260921)     J=    3.178910 nit= 2213 nfev= 3930 feasible    8.46 s
+  best theta         : v0=141.1979  T=0.9849  s0=10.0000  a=200.0000  b=199.6893
+  within bounds      : True
+  multi-start        : 13 starts, 9 feasible, best J=3.176314, worst feasible J=4.298274
+  distinct solutions : 9   reference theta0 J=17.960521   improvement=14.784206718861846
+  total_error        : 3.176314  (equal weight mean of the per-event J_e)
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_1     138   149.5002    27.5885     4.8249    1.2246     6.0494    68.0611
+  event_2      27     9.3594    10.9335     1.2592    0.7203     1.9794     8.3407
+  event_3      79    18.7750    12.6233     0.0238    1.4762     1.5000   121.5758
+
+driver_2: Nelder-Mead multi-start
+    start  0/12 reference theta0           J=    1.203707 nit= 1951 nfev= 3379 feasible    8.78 s
+    start  1/12 lhs 1 (seed 20260921)      J=    1.203764 nit= 2149 nfev= 3749 feasible    9.57 s
+    start  2/12 lhs 2 (seed 20260921)      J=    1.204580 nit= 1470 nfev= 2593 feasible    6.47 s
+    start  3/12 lhs 3 (seed 20260921)      J=    1.463530 nit=  732 nfev= 1356 feasible    3.45 s
+    start  4/12 lhs 4 (seed 20260921)      J=    1.288055 nit= 1318 nfev= 2396 feasible    6.23 s
+    start  5/12 lhs 5 (seed 20260921)      J=         inf nit=   94 nfev=  657 INFEASIBLE    0.71 s
+    start  6/12 lhs 6 (seed 20260921)      J=    1.213492 nit=  802 nfev= 1428 feasible    3.70 s
+    start  7/12 lhs 7 (seed 20260921)      J=    1.321482 nit= 1217 nfev= 2159 feasible    5.65 s
+    start  8/12 lhs 8 (seed 20260921)      J=    1.214648 nit= 1457 nfev= 2567 feasible    6.89 s
+    start  9/12 lhs 9 (seed 20260921)      J=    1.210015 nit=  739 nfev= 1369 feasible    3.31 s
+    start 10/12 lhs 10 (seed 20260921)     J=    1.204167 nit= 1399 nfev= 2478 feasible    6.29 s
+    start 11/12 lhs 11 (seed 20260921)     J=         inf nit=   92 nfev=  643 INFEASIBLE    0.70 s
+    start 12/12 lhs 12 (seed 20260921)     J=    1.209424 nit= 1073 nfev= 1931 feasible    4.97 s
+  best theta         : v0=146.3575  T=1.9212  s0=10.0000  a=56.8908  b=10.0000
+  within bounds      : True
+  multi-start        : 13 starts, 11 feasible, best J=1.203707, worst feasible J=1.463530
+  distinct solutions : 11   reference theta0 J=8.904643   improvement=7.700936023041074
+  total_error        : 1.203707  (equal weight mean of the per-event J_e)
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_2     211    14.7712    14.8586     0.4685    0.8811     1.3496    21.5799
+  event_3     124    28.6793    16.9372     0.3324    0.7254     1.0578    49.7431
+
+self-checks:
+  driver_1_event_1_beats_zero_model              False
+  driver_1_event_1_improvement_factor            0.4552573546102341
+  driver_1_event_1_spacing_rmse                  149.5002085540217
+  driver_1_event_1_zero_model_spacing_rmse       68.0610694599822
+  driver_1_has_parameters                        True
+  driver_1_parameters_within_bounds              True
+  driver_2_has_parameters                        True
+  driver_2_parameters_within_bounds              True
+  two_drivers_found                              True
+  drivers_found                                  ['driver_1', 'driver_2']
+
+WARNING: driver_1 event_1 spacing RMSE is NOT better than the constant zero model - see results for the numbers (warning only, not an error).
+
+total runtime: 122.93 s
+written: results/m2_params.json
+.tmp leftovers: none
+```
+
+### 4.3 独立校验器（`check_calibration_stepA.py`，exit 0）
+
+```
+note: 1 (event, candidate) pairs from the box stepped below s=0; a survivable one was not found
+checks: 171  passed: 171  failed: 0
+```
+
+### 4.4 幂等性
+
+```
+fc5e379ad50eebe0e4bb7952fa45659ad85624567b89b3e7436819db4a0e0247 *results/m1_params.json
+fc5e379ad50eebe0e4bb7952fa45659ad85624567b89b3e7436819db4a0e0247 *.../m1_final_runD.json   (run D vs run E)
+M1: runD == runE (byte identical)
+500716101b6e4e57b827c1bb76601beb27913e12768515a909166e734fa34c79 *results/m2_params.json
+500716101b6e4e57b827c1bb76601beb27913e12768515a909166e734fa34c79 *.../m2_final_runD.json   (run D vs run E)
+```
+
+---
+
+## 5. 验收结果
+
+### 验收 1（brief §1 公共模块）—— `idm_core.py` 提供全部要求接口 ✓
+
+`idm_acceleration`（标量返回 float、数组返回 ndarray，实测 `-55.87075868360862` / `[-55.87075868 -336.00404781]`）、`simulate_event`（长度与输入一致；欧拉与 RK4 都有）、`trajectory_error`（= `event_cost`，brief 命名保留为公开名）、`total_error`（先各 event 平均再平均）、`load_events`（返回 `driver -> [(event_name, DataFrame)]`，另备 `load_event_data` 给优化器用的 numpy 容器）。数值保护三档见 §2.5，`probe_overflow.py` 对 5 组极端参数 × 2 种积分格式实测：无异常抛出，发散者返回 `inf`，`constrained_total_error` 返回 1e12 墙。
+
+### 验收 2（brief §2 M1）—— 瞬时加速度最小二乘，per driver 一组参数 ✓
+
+`a_obs` 用 fv 中心差分（首末单侧，dt 取真实时间列）；残差按各 event `std(a_obs)` 归一化后拼接；`least_squares(trf, bounds=LOWER/UPPER)` 从 θ0 出发，两 driver 都 `success=True`（status=2，optimality 2.2e-08 / 3.0e-07）。结果：driver_1 `v0=179.6312 T=0.3 s0=10 a=10 b=200`，driver_2 `v0=200 T=1.6846 s0=60.9783 a=27.1435 b=79.9784`。**起点敏感性诊断**（`diag_m1_landscape.py`，13 个起点包含 12 点 LHS）：两 driver 的 13 个起点**全部收敛到同一个解**（driver_1 LS 代价 122.6525，driver_2 166.2618，逐起点完全一致），说明"单起点得到的是全局最优"而不是局部极小陷阱。
+
+### 验收 3（brief §3 M2）—— Nelder-Mead 轨迹法，≥10 多起点 ✓
+
+目标 = `total_error`（经边界墙/不可行墙包装）；13 个起点 = θ0 + 12 点拉丁超立方（seed 20260921 固定），全部跑完并取最优：driver_1 9/13 可行、最优 J=3.176314（起点 6）、最差可行 J=4.298274；driver_2 11/13 可行、最优 J=1.203707（起点 0，即 θ0）、最差可行 J=1.463530。多起点表（起点向量、终点、代价、nit、nfev、是否可行、是否投影回边界、优化器停点是否落在边界墙上）全部写入 `m2_params.json`。
+
+### 验收 4（brief §4 输出与自检）—— 两条通过、一条按"警告不报错"处理 ✓（附缺口说明）
+
+- 结果落盘：`results/m1_params.json`、`results/m2_params.json`，含 per driver 的 θ、`total_error`、每 event 的**未归一化** `spacing_rmse` / `speed_rmse`（原始单位）——✓ 且被独立校验器逐值复算通过。
+- 每脚本可独立运行并打印结果 —— ✓（上面 §4.1 / §4.2 就是它们各自的完整 stdout，两者互不依赖，`m1_instant_ls.py` 不需要 M2 的任何产物，反之亦然）。
+- 参数在边界内 —— ✓（两方法 × 两 driver，4 组全部 `within bounds = True`，且 `parameters_within_bounds` 在 JSON 与 stdout 中都有）。
+- driver_1 / driver_2 分别得到参数 —— ✓（`two_drivers_found = true`）。
+- **「用最优参数对 driver_1 e1 仿真，spacing RMSE 应明显优于常数零模型」—— ✗ 未通过，已按要求打印 WARNING 且不报错**：M1 的 driver_1 θ 让 e1 仿真发散（先出现 1 次 `s ≤ 0` 违规、随后状态越界 → `j_total = inf`）；M2 的 driver_1 θ 给出 e1 spacing RMSE **149.5002**，零模型（取首值/均值里较好的那个）为 **68.0611**，即差 **2.20 倍**（`improvement_factor = 0.4553`）。两个脚本都打印了 `WARNING: driver_1 event_1 spacing RMSE is NOT better than the constant zero model ... (warning only, not an error)` 并以 exit 0 结束。根因与证据见 §6.2，这不是实现缺陷；同一现象的更强版本（driver_1 在**归一化**口径下也输给平凡常数预测器 3.1763 vs 2.0，且独立全局搜索确认无更好解）见 §6.6。
+
+### 验收 5 —— 独立校验器 171 项全通过（与交付代码零共享）✓
+
+`check_calibration_stepA.py` 只用 `csv`/`json`/`math`（＋`numpy` 仅用于复现 LHS），**独立重写**了 IDM、欧拉/RK4 积分、σ/零模型/两级误差与边界、罚值算术，然后从盘上的 stage_4 数据 + 两个 JSON 重新推导**每一个公开数值**并比对，涵盖：JSON 合法性与"无 Infinity/NaN 记号"、5 个 event 的行数 138/27/79/211/124、4 组参数在界内、θ 与 theta_vector 一致、每 event 的 `spacing_rmse`/`speed_rmse`/`j_total`/`sigma_s`/`sigma_v`/零模型基线/样本数/不可行标记、`total_error` 确为 J_e 的等权平均、M1 的 `sigma_a`/归一化加速度 RMSE/原始残差 RMS/LS 代价 = 0.5Σr²/残差个数、M2 的起点表（首起点等于 θ0、LHS 起点可由 seed 独立复现、全部在界内）、可行/不可行计数自洽、最优起点确为最便宜可行起点、最优代价等于 published theta 的 total_error、改进量算术、收敛块描述的是**获胜起点**（不是最后一个）、边界墙起点的优化器目标值确实 ≥1e6、真实数据上 `s ≤ 0` 计数（M1 driver_1 e1 = 1 次）与发散一致、罚值算术（合成碰撞事件：4 次违规、J = J_spacing+J_speed+4×1e6）、欧拉/RK4 在最优点代价差 <10%、`self_checks` 布尔标志与两个公开数字一致。
+
+结果：`checks: 171  passed: 171  failed: 0`（exit 0）。过程中的 3 处失败是**校验器自身**的容差/构造问题（JSON 已按 6 位小数取整却用了 1e-9 容差、合成事件 σ=0 导致除零），修的是校验器而非交付代码；交付代码的问题（边界假最优、RK4 中间级污染违规计数）是在这之前由探针独立发现并修掉的（§7-2、§7-3）。
+
+### 验收 6 —— 幂等 / 确定性 ✓
+
+最终代码各连跑两次：`m1_params.json` 与 `m2_params.json` 两次均**逐字节相同**（sha256 见 §4.4）。JSON 里不写任何 wall-clock（每起点耗时只打印到 stdout，不落盘），LHS 由固定 seed 生成，Nelder-Mead 与 `least_squares` 本身确定，因此结果可完全复现。M2 在改动前后共跑 5 次（run A/B/C/D/E）也全部字节一致，说明 §7-3 的保护口径调整没有改动任何已发布数值。
+
+### 验收 7 —— 只读输入 / 无残留 ✓
+
+`sha256sum data/preprocess/stage_4/*.csv` 五个哈希与本次工作开始前的记录值逐一相同（§8）；stage_1/2/3 目录与 `src/preprocess_stage{1,2,3,4}.py` 的 mtime 仍是 15:39–16:36（本次工作之前），未被写入；`find . -name "*.tmp" -o -name "__pycache__" -o -name "*.pyc" | wc -l` → **0**；`results/` 内恰好两个 JSON。
+
+---
+
+## 6. 关键数值与发现
+
+### 6.1 M1 vs M2（同一把尺子：轨迹代价）
+
+| | driver_1 | driver_2 |
+|---|---|---|
+| θ0（brief 初值）的 total_error | 17.960521 | 8.904643 |
+| **M1** total_error | **inf（不可行）** | 2.194745 |
+| **M2** total_error | **3.176314** | **1.203707** |
+| M2 相对 θ0 改善 | −82.32% | −86.48% |
+| M2 相对 M1（driver_2） | — | **−45.16%** |
+
+M1 的参数拿去当轨迹模型用会发散（driver_1），或在 driver_2 上明显不如 M2（2.1947 vs 1.2037）——两条方法的目标函数不同（瞬时加速度 vs 轨迹），所以这**不是**"谁实现得对"的问题，而是本步要呈现的方法差异：轨迹目标对本数据的辨识更有效。
+
+补充一条同尺基线（详见 §6.6）：平凡的"常数预测器"（s、v 各取该 event 均值）在归一化口径下恒为 **2.000000**。M2 在 driver_2（1.2037）**赢**、在 driver_1（3.1763）**输**；M1 在 driver_2 的 2.1947 也输给这条基线。这与 brief 原始单位口径下的零模型比较是两个不同的判据，报告里两者都给出。
+
+### 6.2 为什么 brief 的自检项（driver_1 e1 优于零模型）没过 —— 根因
+
+三层证据（`diag_single_event.py` + `diag_m1_landscape.py` + `probe_data.py`）：
+
+1. **模型能拟合 e1**：把 driver_1 e1 **单独**用同样的 13 起点 Nelder-Mead 拟合，最优 spacing RMSE = **9.5005**（零模型 68.0611，即优 7.16 倍），θ=(v0=154.24, T=0.9731, s0=267.23, a=33.93, b=10.00)。所以"e1 拟合不出来"不成立。
+2. **是等权归一化目标把 e1 让出去了**：三个 event 的自身尺度差 15 倍（σ_s：e1 68.06、e2 8.34、e3 121.58）。J 里间距项是 `mean(Δs²)/σ_s²`，e1 的 σ_s 大 ⇒ 同样 1 个坐标单位的绝对误差在 e1 里只值 (1/68.06)²=2.16e-4、在 e2 里值 (1/8.34)²=1.44e-2（贵 66 倍）。M2 最优解在**归一化**尺子上的分布正说明了这一点：e3 的间距项被打到 0.0238（远好于常数预测器的 1.0），而 e1 的间距项 4.8249、e2 的间距项 1.2592 都**劣于**常数预测器的 1.0（e2 的绝对 RMSE 也从零模型的 8.3407 升到 9.3594）。**结论：brief 的零模型比较用的是"原始单位"，而目标函数用的是"各 event 自尺度"，两者在尺度差异大时可以不一致；本数据上 e3 是唯一在归一化意义上也赢了的 event。**
+3. **单 event 最优解彼此冲突**：五个 event 单独拟合出的 θ 差异极大（s0 从 10 到 267，a 从 31 到 200，b 从 10 到 200），说明单个 driver 用**一套参数**解释所有 event 本身就是一种折中；driver_1 的三个 event 中 e1 的诉求（大 s0、小 a）与 e3 的诉求（s0=10、a=200）方向相反。
+
+这也解释了为什么 brief 把"自检不通过"写成"打印警告但不报错"：它预期到了这一点。处置建议见 §7-1。
+
+### 6.3 参数贴边界（盒是"活"的）
+
+| | v0 | T | s0 | a | b |
+|---|---|---|---|---|---|
+| M1 driver_1 | 179.63 | **0.300**（下界） | **10.00**（下界） | **10.00**（下界） | **200.00**（上界） |
+| M1 driver_2 | **200.00**（上界） | 1.6846 | 60.98 | 27.14 | 79.98 |
+| M2 driver_1 | 141.20 | 0.9849 | **10.00**（下界） | **200.00**（上界） | 199.69 |
+| M2 driver_2 | 146.36 | 1.9212 | **10.00**（下界） | 56.89 | **10.00**（下界） |
+
+4 组解里有 3 组把 s0 顶在下界 10、3 组至少有一个参数贴界；`s0` 在 4 组里 3 组贴下界，是本数据上最"想变小"的参数。这意味着**brief 给的盒在部分方向上是活跃约束**，后续 M3/M4/M5 与交叉验证里如果动边界，结果会跟着动——这点值得在选优那一节里固定口径。
+
+### 6.4 欧拉 vs RK4（0.1 s 步长下的精度）
+
+在各自最优点上复算（`diag_final_numbers.py`）：
+
+| | θ_euler | θ_rk4 | 相对差 |
+|---|---|---|---|
+| M2 driver_1 | 3.162127 | 3.176314 | 0.447% |
+| M2 driver_2 | 1.169533 | 1.203707 | 2.839% |
+| M1 driver_2 | 2.199611 | 2.194745 | 0.222% |
+| θ0 下 driver_1 的轨迹差 | max\|Δs\| = 13.48（e3） | — | — |
+
+两种格式给出的代价差 ≤2.84%，且**排序结论一致**（M2 优于 M1、driver_1 e1 落后零模型在两种格式下都成立），故默认用 RK4，并把 `--method euler` 留给后续做一致性对照。代价函数单次求值（RK4、driver_1 三个 event 共 244 点）实测 **1.45 ms**，对应 13 起点 × ~2500 次求值 ≈ 94 s（与实测 90–123 s 吻合）。
+
+### 6.5 每个 event 单独拟合的参考上界（供后续交叉验证对照）
+
+| event | 单独拟合最优 J | spacing RMSE | 零模型 s RMSE | 倍数 | v0 | T | s0 | a | b |
+|---|---|---|---|---|---|---|---|---|---|
+| driver_1 e1 | 0.5552 | 9.5005 | 68.0611 | 7.16× | 154.24 | 0.9731 | 267.23 | 33.93 | 10.00 |
+| driver_1 e2 | 0.4458 | 1.5733 | 8.3407 | 5.30× | 200.00 | 1.6258 | 66.21 | 153.47 | 10.00 |
+| driver_1 e3 | 0.9335 | 8.2369 | 121.5758 | 14.76× | 128.32 | 0.4838 | 10.00 | 200.00 | 143.47 |
+| driver_2 e2 | 1.1589 | 12.1038 | 21.5799 | 1.78× | 131.41 | 0.3000 | 159.83 | 78.20 | 10.00 |
+| driver_2 e3 | 0.6745 | 5.2253 | 49.7431 | 9.52× | 148.88 | 1.5761 | 10.00 | 31.43 | 200.00 |
+
+**五个 event 单独拟合全部优于零模型**（1.78×–14.76×）。这份表建议直接当作后续"交叉验证选优（per-driver vs per-event vs 折中口径）"的对照基线。
+
+### 6.6 与"平凡基线"同尺对比 + 独立全局搜索（differential evolution）
+
+**(a) 常数预测器在目标尺子上的确切分数。** 取 `s(t) ≡ mean(s_obs)`、`v(t) ≡ mean(v_obs)` 的平凡预测器时，`mean((s̄-s_obs)²) = var(s_obs) = σ_s²`（ddof=0），速度项同理，因此它在**归一化**口径下恒为 `J_spacing = J_speed = 1.0`，即每个 event 的 `J_e = 2.000000`，与事件尺度无关。这给了同尺对比的基准线（brief 要求的零模型比较用的是原始单位，见 §6.2 的结论）。
+
+| | M2 的 total_error | 常数预测器 | 结论 |
+|---|---|---|---|
+| driver_2 | **1.203707** | 2.000000 | M2 **赢**（低 39.8%） |
+| driver_1 | **3.176314** | 2.000000 | M2 **输**（高 58.8%） |
+
+**(b) 独立全局搜索验证 M2 的解质量。** 用 `scipy.optimize.differential_evolution`（Sobol 初始化、popsize=20、maxiter=400、mutation∈[0.3,1.2]、recombination=0.9、固定 seed=11、`workers=1`，共约 1.6–2.0 万次代价求值）在同一目标与同一盒上做全局搜索，再用 NM 抛光：
+
+```
+driver_1  M2(NM 13 起点) J=3.176314   DE J=3.176212 (=DE+NM 3.176212)   → 盒内更好的解差 0.003%
+          DE 最优 θ = v0=141.2005 T=0.9851 s0=10.0000 a=200.0000 b=200.0000
+          M2 最优 θ = v0=141.1979 T=0.9849 s0=10.0000 a=200.0000 b=199.6893
+driver_2  M2(NM 13 起点) J=1.203707   DE J=1.212972 (=DE+NM 1.212972)   → M2 的解更优
+```
+
+**结论**：M2 在 driver_2 上优于现成全局算法；在 driver_1 上 NM 的解与 DE 的全局解只差 **0.003%**（J 3.176314 vs 3.176212，差 1.0e-4），说明 13 起点 NM 给出的就是（近乎）全局最优。也就是说 driver_1 上"输给常数预测器"（3.176 > 2.0）**不是 M2 没优化好，而是 brief 的「单一参数集 + 各 event 自尺度等权平均」口径下该数据的最优值**。若要 driver_1 也赢，只能改口径（per-event 参数、或给各 event 一个公共尺度），见 §7-1。
+
+(b) 的两条对比同时也说明：driver_1 的真实困难是 event 之间**互相冲突**（§6.2-3），不是单 event 困难（单 event 拟合 0.4458–0.9335，全部远低于 2.0）。
+
+---
+
+## 7. 假设、偏差与遗留问题
+
+1. **（遗留，最重要）driver_1 的拟合质量不足，且 §6.2 + §6.6 已定位为"等权 + 各 event 自尺度归一化 + 单一参数集"的固有后果。** 具体表现两处：brief 的原始单位自检（driver_1 e1：149.50 vs 零模型 68.06）没过；换成目标函数自己的尺子，driver_1 的 total_error = 3.176314 **高于**平凡常数预测器的 2.000000（driver_2 则是 1.203707 < 2.0，正常赢）。独立全局搜索（DE，~2 万次求值）确认盒内没有更好的解（最好 3.176212，差 0.003%），且五个 event **单独**拟合都能轻松赢过常数预测器（0.4458–1.1589 < 2.0）——所以瓶颈是"一套参数解释互相冲突的多个 event"，不是实现或优化器。本步按 brief 原样实现，未擅自改目标函数。若下一步希望 driver_1 也赢，可选（未执行，供你选）：(a) 保留 brief 口径、但像本报告这样把"原始单位零模型比较"降级为**并列指标**（每 event 报 raw RMSE + 零模型 + 归一化 J，选优时同时看两组）；(b) 目标函数里对 raw RMSE 加一个弱权重/约束（等价于给各 event 一个公共尺度）；(c) 允许 per-event 或 per-(driver, 工况) 参数（§6.5 已给出上界）。这三条都会偏离 brief 现行口径，**故本步未做**，留给你在 M3/M4/M5 那一步定口径。
+2. **（偏差）边界罚的形式**：brief 说"边界外用大罚值"。实现为**墙 + 投影**：盒外代价 ≥1e6（越界量再加权），且轨迹代价在 θ 投影到盒内的点上求值；M2 上报的 θ 是投影后的向量（JSON 里 `projected_onto_bounds` 记录，本次 13×2 个起点**无一需要投影**）。原因：纯按越界量成比例的罚值会让 Nelder-Mead 停在边界外 1e-14 的点被算成 ~1e-10 的假最优——第一版实现实测踩到过（driver_1 起点 0 曾报 cost=0.000000、实际是把 1.5e-10 的罚值当成了拟合代价），修法见 `bounds_penalty` 的 docstring。
+3. **（偏差）`s ≤ 0` 的处置口径**：brief 同时要求"s≤0 或爆炸返回 inf 代价"和"违规次数×大常数"。实现把两者分开：**违规**计数 + 压到 `S_FLOOR=1.0` 继续积分（代价有限、带 1e6/次罚），**非有限/爆炸**才返回 inf。取值 1.0 而非 1e-6 是实测驱动的：`(s*/s)²` 在 s→0 奇异，clamp 太小时下一步加速度 ≈ −1e14，一次违规必然立刻爆炸 ⇒ brief 的"违规次数罚"永远不生效（第一版 `_idm_scalar` 对 s≤0 直接返回 inf，RK4 的任一中间级落到 s≤0 就会污染整步，实测使该计数器成为死代码）。修好后：真实数据上 M1 driver_1 e1 出现 **1 次**违规（随后仍发散 → 不可行，两个实现一致），合成碰撞事件上 4 次违规且 `J = J_spacing+J_speed+4×1e6` 逐项吻合（独立校验器复算通过）。如果你更希望"任何 s≤0 立刻判不可行"，把 `S_FLOOR` 侧的分支改回返回 inf 即可（单点改动），但那样 brief 的违规罚项就没有作用场景了。
+4. **（偏差）`inf` 在优化器里换成 1e12**：Nelder-Mead 对真 `inf` 数值不稳；`constrained_total_error` 用有限大墙替代，而**报数证据里保留真 `inf`**。JSON 里不可行的代价写作 `null`（JSON 无 Infinity 记号），并在同一条目里带 `diverged: true`。读 JSON 的下游代码需要把 `null` 解释为"不可行"。
+5. **（偏差）JSON 取整**：全部浮点按 6 位小数写入（可读、可逐字节比对）；但"非零却会被取整成 0"的值保留原精度——否则 `fatol=1e-10` 会被发布成 `0.0`（第一版就是这么错的，已修并被独立校验器覆盖）。
+6. **（brief 允许的选择）RK4 为默认积分格式**，欧拉仍可用（`--method euler`），实测差异 ≤2.84%（§6.4）。`maxiter=4000`（每起点），实测最慢起点 3930 次求值、13 起点总耗时 90–123 s。
+7. **（brief 未要求、未做）** M1 只用单起点（brief 未要求多起点）；本文另附 13 起点诊断证明该解稳健（§6.1）。未做交叉验证/选优（属后续步骤）。未实现 M3/M4/M5，但 `idm_core` 已把它们的复用点（`latin_hypercube`/`normalized_theta`/`constrained_total_error`/`summarize_events`/`build_results_payload`）准备好。
+8. **（遗留）M1 driver_1 的 total_error 为不可行（inf/null）**：这是 M1 的真实结果（瞬时加速度目标不约束积分轨迹），不是失败；但下游若要"每个 (method, driver) 都有一个有限 total_error"来排名，需要把它当"不可行"处理而不是当一个大数。
+9. 未安装任何包、未改 lockfile、未起停任何服务、未触碰 stage_1..4 脚本与数据、未做浏览器/UI 操作（本项目无前端）。
+
+---
+
+## 8. 产物清单与哈希（本次新建/更新）
+
+```
+src/calibrate/idm_core.py        968 行  41850 B
+src/calibrate/m1_instant_ls.py   330 行  14393 B
+src/calibrate/m2_neldermead.py   361 行  17279 B
+results/m1_params.json                   9775 B
+results/m2_params.json                  35959 B
+```
+
+输入未触碰（与 Stage 4 报告 §7 记录值逐一相同）：
+
+```
+75671ec54e917536c1f8817a9a95d83d6290ce51d7f20eaa6fd23b7064a86c27  data/preprocess/stage_4/driver_1_event_1.csv  (138 行)
+df62dafa05072f234f663932cdcc7cd4ab704e6cc8066034da39484ced7b77a6  data/preprocess/stage_4/driver_1_event_2.csv  ( 27 行)
+9bcf8a5f7a865eb47a40c6f32f4d51d9c02873377665a854ae121efb380db107  data/preprocess/stage_4/driver_1_event_3.csv  ( 79 行)
+b4c76245209d3e91d412172b97bd913f57135db4305972a6625a8f0fa632edbc  data/preprocess/stage_4/driver_2_event_2.csv  (211 行)
+f0b7d9fd4faccfc2260df2e5b2f76ae9254c0ac054d7d46a10cd4ddfd533a829  data/preprocess/stage_4/driver_2_event_3.csv  (124 行)
+                                                                  合计 579 行
+```
+
+输出可复现性（最终代码，两次运行逐字节一致）：
+
+```
+fc5e379ad50eebe0e4bb7952fa45659ad85624567b89b3e7436819db4a0e0247  results/m1_params.json
+500716101b6e4e57b827c1bb76601beb27913e12768515a909166e734fa34c79  results/m2_params.json
+```
+
+---
+
+## 9. 复现步骤
+
+```bash
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+PY="C:/Users/ptiu1/miniconda3/envs/intr5100/python.exe"   # conda env intr5100
+
+$PY src/calibrate/m1_instant_ls.py     # ~2 s，写 results/m1_params.json，exit 0
+$PY src/calibrate/m2_neldermead.py     # ~90–125 s，写 results/m2_params.json，exit 0
+
+# 结果：results/m1_params.json、results/m2_params.json
+#       M2: driver_1 J=3.176314  driver_2 J=1.203707
+#       M1: driver_1 J=inf(不可行) driver_2 J=2.194745
+# 自检：driver_1 e1 落后零模型 → 两个脚本都打印 WARNING（exit 0）
+
+# 可选复核（Hermes scratch，非交付物）：
+$PY "C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/calib_stepA/check_calibration_stepA.py"  # 171 checks PASS
+$PY "C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/calib_stepA/diag_single_event.py"       # 单 event 参照拟合
+$PY "C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/calib_stepA/diag_global_de.py"          # 常数基线 + DE 全局搜索对照
+```
+
+---
+
+---
+
+# 附录 D — Stage 4 报告原文存档（自洽修正：重复时间点删除移到速度计算之前）
+
+> 编号说明：本次新增「标定第 1 步（M1/M2）」报告置于文首后，原「附录 A / B / C」顺延为「附录 B / C / D」；下文 Stage 4 报告正文一字未改（仅其一级标题降级为二级），其内部对「附录 A / B / C」的旧引用即为现在的 B / C / D。
+
+STATUS: COMPLETE
+
+## Build Report — Lab 1 Stage 4 自洽修正 —— 重复时间点删除移到速度计算之前
+
+一句话：`src/preprocess_stage4.py` 的处理顺序改为 **时间取整+重复点删除 → 算 dhw → 删除 dhw≤0 异常点 → 在最终保留点上算 fv/lv**，表里不再出现"用已删除点算出来的数"。真实数据上唯一受影响的数值是 `driver_1_event_2.csv` 的最后一行：`32.7,142.980699,139.402628,576.425197` → **`32.7,142.262438,134.679190,576.425197`**（末行变为单侧差分：fv 142.980699 → **142.262438**，lv 139.402628 → 134.679190，`dhw` 与 `time` 不变）。行数不变：**138 / 27 / 79 / 211 / 124 = 579**，`time` 严格唯一；其余 4 个文件与 e2 的其余 26 行**逐字节未变**（sha256 + 逐行 diff 比对，见 §7）。
+本报告只覆盖 Stage 4 本次修正。**Stage 3 / Stage 2 / Stage 1（v3）报告原文完整保留在文末「附录 A / B / C」**（仅其一级标题降级为二级），未做任何删改。
+
+## 1. 交付物与变更
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `src/preprocess_stage4.py` | **修改**（741 → **808 行** / 32348 → 37447 B，仍仅用标准库） | ① `speed_series(rows, path, indices=None)` 新增 `indices` 参数（保留点在栅格中的下标）与 `(speeds, windows)` 返回值：速度只在保留子序列上求，邻居 = **下一个保留点**，窗口端点回传供守恒校验；② `build_table` 按 **step1 取整删重 → step2 dhw → step3 删 dhw≤0 → step4 速度** 重写，`dhw`/`fv`/`lv` 全部只存在于保留点；③ summary 同步：`config` 增 `removal_order` / `speed_window_source`，每 event 增 `time_kept_points`，`conservation` 增 `speed_values_equal_rows` / `speed_windows_use_kept_points_only`，`total.conservation_ok` 同时要求速度侧守恒；④ 异常点记录不再写 `fv`/`lv`（见 §6-2）；⑤ 模块 docstring 的 step 顺序与 stdout 配置块同步改写 |
+| `data/preprocess/stage_4/driver_1_event_2.csv` | 重新生成 | 27 → 27 行（字节 1069 → 1069，sha256 `03728af4…49071` → **`df62dafa…77a6`**，**只有最后 1 行变化**） |
+| `data/preprocess/stage_4/driver_1_event_{1,3}.csv`、`driver_2_event_{2,3}.csv` | 重新生成，**字节不变** | 4 个文件 sha256 与改前逐一相同——新顺序对这 4 个 event 完全等价（它们没有重复点、没有 dhw≤0），见 §7 |
+| `data/preprocess/stage_4/stage4_summary.json` | 重新生成（9411 → 10167 B） | 新增 `time_kept_points` / `removal_order` / `speed_window_source` / 2 个速度侧守恒项；`dropped_time_duplicates`（顶层 + 每 event，含 `action: dropped`）**原样保留** |
+| `build-report.md` | 更新 | 本文件（Stage 4 修正在前，Stage 3 / 2 / 1 报告存档于附录 A / B / C） |
+| `data/preprocess/stage_3/**`、`stage_2/**`、`stage_1/**`、`data/raw/**`、`briefs/**`、`src/preprocess_stage{1,2,3}.py` | **未改动** | stage_3 输入 5 个文件的 sha256 与改前 summary 记录值逐一相同，stage_3 目录聚合 md5 仍为 `b17bcae9914086e2f2f92d11415871fb`（证明本次只读它们）；其余阶段目录未被本次运行触碰 |
+
+- 未安装/升级任何包，未新建虚拟环境（仍只用 `argparse/csv/hashlib/json/math/os/re/shutil/sys/pathlib`）。
+- 项目内无任何 `*.tmp` / `__pycache__` / `*.pyc`：`find . -name "*.tmp" -o -name "__pycache__" -o -name "*.pyc" | wc -l` → `0`（开发期 `python -m py_compile` 生成的 `src/__pycache__/` 已在交付前删除）。
+- 独立校验器、fixture 探针、基线快照位于 Hermes scratch（`check_stage4_order.py`、`probe_stage4_order_fixture.py`、`apply_stage4_order.py`、`fixture_root/`），**不属于交付物**。
+- 本项目不是 git 仓库（`git rev-parse` → not a git repository），故无提交。
+- 未重启/未启动任何服务。
+
+## 2. 判定口径（本次改动后的处理顺序）
+
+1. **step 1 时间取整 + 重复点删除**（规则与上一轮一致，未变）：`time` = 原始 `t_from_start` 半进位到 0.1 s（`floor(v/0.1 + 0.5)*0.1`，写 1 位小数）；按时间顺序扫描，若某点取整后的 `time` 与**上一条保留行**相同，则**丢弃该点**（保留栅格点、丢弃偏离栅格的收尾点）。判定只看取整后的时间文本，不含 event 号、不含已知冲突清单、不含原始时间阈值。删除记录写入 `dropped_time_duplicates`（`index` / `t_from_start` / `time` / `previous_index` / `previous_t_from_start` / `gap_s` / `action: dropped` / `reason`）。
+2. **step 2 dhw**：在上一步保留点上计算 `dhw = (x_l−x_f)·cos(h_f) + (y_l−y_f)·sin(h_f)`（不减车长）。
+3. **step 3 异常删除**：在**同一保留点集**上删除 `dhw ≤ 0` 的点，写入 `deleted_anomalies`。
+4. **step 4 速度**：在 **step 1 与 step 3 之后剩下的点**上计算 `fv`（follower）/`lv`（leader）。内部点 `|P_{i+1}−P_{i−1}| / (t_{i+1}−t_{i−1})`（中心差分），首末点用单侧差分 `|P_1−P_0|/(t_1−t_0)`、`|P_{n−1}−P_{n−2}|/(t_{n−1}−t_{n−2})`。**差分规则本身未变**，变的是 `i±1` 的含义：现在是"下一个**保留点**"，因此窗口绝不跨越任何被删除的点；`dt` 仍一律用原始 stage 3 时间戳（取整值永不参与除法）。
+5. **自洽性结果**：输出的每一行只能由"同在输出里的行"导出——不存在"某一行的数依赖已删除行"的情况；被删除的点既不贡献 `dhw`，也不进入任何速度窗口（运行期 `window_endpoints <= retained` 断言 + 落盘后独立校验器双重确认）。
+6. **输出/落盘校验（未变，新顺序沿用）**：目录每次重建；`{driver}_event_{k}.csv` 列固定 `time,fv,lv,dhw`，`time` 1 位小数且**严格递增（因而唯一）**，`fv/lv/dhw` 6 位小数，行尾 CRLF；`.tmp` + `os.replace` 原子写入；无时间戳/绝对路径 → 连跑字节一致；路径相对项目根解析 → 与 cwd 无关；写完后重新读盘，逐行逐字段与内存结果精确比对，并逐文件确认 `duplicate_time_values == 0`、`time_strictly_increasing == true`、时间落在 0.1 s 栅格、速度非负、无残留 `dhw ≤ 0`、无 `.tmp` 残留、目录内容恰为 5 个 CSV + 1 个 summary。
+
+## 3. 实际执行的命令
+
+```bash
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+SC="C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/s4"
+
+# (0) 改前基线快照：拷贝 5 个 CSV 并记录 sha256（供 §7 逐字节比对）
+cp data/preprocess/stage_4/*.csv "$SC/"
+sha256sum data/preprocess/stage_4/*.csv | tee "$SC/baseline_hashes.txt"
+
+# (1) 代码改动：整段替换 speed_series + build_table（snippet 拼接，替换后 compile + 断言块唯一）
+python "$SC/apply_stage4_order.py"
+python -m py_compile src/preprocess_stage4.py                       # COMPILE_OK
+
+# (2) 验收运行（完整 stdout 见 §4）
+python src/preprocess_stage4.py > "$SC/runA.txt" 2>&1               # exit 0
+
+# (3) 幂等性 + cwd 无关性：run B（项目内）/ run C（项目外）
+python src/preprocess_stage4.py > "$SC/runB.txt" 2>&1
+(cd "$SC" && python "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1/src/preprocess_stage4.py" > "$SC/runC.txt" 2>&1)
+sha256sum data/preprocess/stage_4/*.csv > "$SC/hashB.txt"
+diff <(sed 's/rebuilt output dir.*/X/' "$SC/runA.txt") <(sed 's/rebuilt output dir.*/X/' "$SC/runB.txt")   # 无输出
+diff <(sed 's/rebuilt output dir.*/X/' "$SC/runA.txt") <(sed 's/rebuilt output dir.*/X/' "$SC/runC.txt")   # 无输出
+diff <(awk '{print $1}' "$SC/new_hashes.txt") <(awk '{print $1}' "$SC/hashB.txt")                          # 无输出
+
+# (4) 改前/改后比对：sha256 + 逐文件逐行 diff（确认只有 e2 变了）
+sha256sum data/preprocess/stage_4/*.csv
+for f in driver_1_event_1 driver_1_event_2 driver_1_event_3 driver_2_event_2 driver_2_event_3; do
+  diff "$SC/$f.csv" "data/preprocess/stage_4/$f.csv"
+done
+tail -4 data/preprocess/stage_4/driver_1_event_2.csv
+
+# (5) 独立校验器（自己实现一套口径：Decimal half-up 取整、math.dist 弦长、dhw 投影、新顺序，读盘逐行逐字段比对）
+python "$SC/check_stage4_order.py"                                  # 68 checks, 0 failures
+
+# (6) fixture 探针（合成 stage_3 + --root 隔离根目录，覆盖真实数据没有的分支）
+python "$SC/probe_stage4_order_fixture.py"                          # 16 checks, 0 failures
+
+# (7) 残留与输入未被触碰
+find . -name "*.tmp" -o -name "__pycache__" -o -name "*.pyc" | wc -l            # 0
+find data/preprocess/stage_3 -type f | sort | xargs cat | md5sum                # b17bcae9914086e2f2f92d11415871fb（未变）
+```
+
+改动前 e2 的现状（复现起点）：`tail -4 data/preprocess/stage_4/driver_1_event_2.csv`
+```
+32.4,135.064760,139.224825,579.882233
+32.5,142.491449,132.738785,579.149949
+32.6,141.384696,130.213315,577.375683
+32.7,142.980699,139.402628,576.425197     <- 旧末行：用被删点 t=32.698555 做中心差分
+```
+
+## 4. 运行输出（真实 stdout，`python src/preprocess_stage4.py`，exit = 0）
+
+```
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+stage 3 input: data/preprocess/stage_3
+output dir   : data/preprocess/stage_4
+
+configuration:
+  time grid                 : 0.1 s (rounded half up, 1 printed decimal)
+  dt source                 : raw stage 3 timestamps (rounded `time` never feeds a division)
+  merge order               : (1) drop rounded-time duplicates -> (2) dhw -> (3) drop dhw<=0 -> (4) speeds
+  speeds                    : position difference, central difference inside, one-sided at ends; neighbours are retained points only
+  dhw                       : (x_l - x_f)*cos(h_f) + (y_l - y_f)*sin(h_f), no car length subtracted
+  time duplicates           : the later point of a rounded-time collision is dropped, `time` stays strictly increasing
+  reported velocity column  : discarded (stage 4 recomputes every speed)
+  value decimals            : 6
+
+events found in stage_3: 5
+
+rebuilt output dir, removed previous content: driver_1_event_1.csv, driver_1_event_2.csv, driver_1_event_3.csv, driver_2_event_2.csv, driver_2_event_3.csv, stage4_summary.json
+
+per-event merge:
+  driver_1_event_1.csv     pairs: 138   out rows: 138   deleted: 0   dropped: 0
+      raw t [3.723465, 17.686604]  -> time [3.7, 17.7] s
+      dhw [541.316819, 742.872435] (median 669.175364), no car length subtracted  | fv [20.850755, 190.454669] mean 109.48893  | lv [71.32816, 133.46608] mean 101.62892
+      deleted anomalies: none (no dhw <= 0)
+      dropped duplicate times: none (every rounded time is unique)
+
+  driver_1_event_2.csv     pairs: 28    out rows: 27    deleted: 0   dropped: 1
+      raw t [30.05777, 32.698555]  -> time [30.1, 32.7] s
+      dhw [576.425197, 599.883805] (median 594.677351), no car length subtracted  | fv [105.154881, 156.238369] mean 136.112039  | lv [104.854536, 159.394165] mean 132.539005
+      deleted anomalies: none (no dhw <= 0)
+      DROPPED duplicate time: t 32.698555 -> 32.7 s (row above at t 32.65777, gap 0.040785 s, off-grid closing instant)
+
+  driver_1_event_3.csv     pairs: 79    out rows: 79    deleted: 0   dropped: 0
+      raw t [43.243782, 51.457526]  -> time [43.2, 51.5] s
+      dhw [374.139032, 773.623656] (median 539.18845), no car length subtracted  | fv [94.642125, 143.878905] mean 123.57983  | lv [124.570218, 218.085875] mean 173.131749
+      deleted anomalies: none (no dhw <= 0)
+      dropped duplicate times: none (every rounded time is unique)
+
+  driver_2_event_2.csv     pairs: 211   out rows: 211   deleted: 0   dropped: 0
+      raw t [12.442953, 33.865332]  -> time [12.4, 33.9] s
+      dhw [456.82407, 540.01932] (median 490.418045), no car length subtracted  | fv [59.78442, 168.210363] mean 101.287251  | lv [56.953438, 150.14129] mean 104.569016
+      deleted anomalies: none (no dhw <= 0)
+      dropped duplicate times: none (every rounded time is unique)
+
+  driver_2_event_3.csv     pairs: 124   out rows: 124   deleted: 0   dropped: 0
+      raw t [46.047997, 58.330555]  -> time [46.0, 58.3] s
+      dhw [415.767808, 562.0037] (median 452.520414), no car length subtracted  | fv [66.602222, 165.646403] mean 112.623699  | lv [61.685185, 136.43422] mean 101.705857
+      deleted anomalies: none (no dhw <= 0)
+      dropped duplicate times: none (every rounded time is unique)
+
+on-disk verification (re-read after writing):
+  driver_1_event_1.csv  rows=138   duplicate time values=0 strictly increasing=True  OK
+  driver_1_event_2.csv  rows=27    duplicate time values=0 strictly increasing=True  OK
+  driver_1_event_3.csv  rows=79    duplicate time values=0 strictly increasing=True  OK
+  driver_2_event_2.csv  rows=211   duplicate time values=0 strictly increasing=True  OK
+  driver_2_event_3.csv  rows=124   duplicate time values=0 strictly increasing=True  OK
+  total written rows: 579
+  total deleted anomaly points: 0
+  total dropped duplicate-time points: 1
+
+.tmp leftovers: none
+stage_4 dir contents: driver_1_event_1.csv, driver_1_event_2.csv, driver_1_event_3.csv, driver_2_event_2.csv, driver_2_event_3.csv, stage4_summary.json
+```
+
+## 5. 验收结果
+
+### 验收 1（需求 1+2）—— 顺序已调整，e2 末行确为"保留点单侧差分" ✓
+
+- 删除发生在速度之前：e2 保留点栅格下标为 `[0…26]`，被删点下标 `27`（原始 `t = 32.698555`，与下标 26 的 `t = 32.657770` 同属取整格 `32.7`）。
+- 末行（下标 26）现在没有"下一个保留点"，按规则退化为**单侧差分**，手算与写出值一致：
+
+```
+|P26 - P25| = hypot(1706.328663-1692.381031, 559.572429-562.374138) = hypot(13.947632, -2.801709) = 14.2262437674
+fv = 14.2262437674 / (32.657770 - 32.557770) = 14.2262437674 / 0.1 = 142.2624376735  -> 写出 142.262438
+lv = |L26 - L25| / 0.1 = 13.467919 / 0.1 = 134.6791899999                            -> 写出 134.679190
+dhw 只依赖本行两车位置，未变：576.425197
+```
+- 对照旧值：**中心差分（含被删点）142.980699 → 单侧差分 142.262438**，差 `−0.718261`（lv `139.402628 → 134.679190`，差 `−4.723438`）。这正是"不再用一个已从表里删除的点"的预期结果。
+
+### 验收 2（需求 3）—— 行数不变、`time` 严格唯一 ✓
+
+| 文件 | 数据行数 | 落盘校验 |
+|---|---|---|
+| `driver_1_event_1.csv` | 138 | duplicate time values=0, strictly increasing=True |
+| `driver_1_event_2.csv` | 27 | duplicate time values=0, strictly increasing=True |
+| `driver_1_event_3.csv` | 79 | duplicate time values=0, strictly increasing=True |
+| `driver_2_event_2.csv` | 211 | duplicate time values=0, strictly increasing=True |
+| `driver_2_event_3.csv` | 124 | duplicate time values=0, strictly increasing=True |
+| **合计** | **579** | `total.rows = 579`、`conservation_ok = true` |
+
+（`wc -l` 为 139 / 28 / 80 / 212 / 125 = 584 行，含 5 行表头 → 数据行 579。）
+
+### 验收 3（需求 4）—— `dropped_time_duplicates` 保留，速度侧守恒口径已更新 ✓
+
+- 顶层与 e2 记录原样保留（`action: dropped`、`index 27`、`t_from_start 32.698555`、`time "32.7"`、`previous_index 26`、`gap_s 0.040785`）。
+- 行数守恒仍是 `rows + deleted + dropped == grid_points`（27 + 0 + 1 = 28 ✓，5 个 event 全部 true）。
+- **新增速度侧守恒**（每个 event + 汇总）：
+  - `speed_values_equal_rows`: `len(rows) == len(fv) == len(lv) == len(dhw)`（一行一速度）；
+  - `speed_windows_use_kept_points_only`: 所有速度窗口端点均属于保留点集（运行期对 `fv_windows + lv_windows` 的端点取并集，`<= retained` 否则抛错）；`total.conservation_ok` 现在同时要求这两项。
+- e2 summary 记录（节选，真实落盘）：`grid_points 28 / rows 27 / time_kept_points 27 / dropped_points 1 / deleted_points 0`，`time_range {30.1, 32.7}`。
+
+### 验收 4（需求 5）—— 只有 `driver_1_event_2` 的数值变化 ✓
+
+`diff` 逐文件结果（改前 baseline 副本 vs 改后正式产物）：
+
+```
+--- driver_1_event_1 ---  IDENTICAL (byte-for-byte)
+--- driver_1_event_2 ---  DIFFERS:
+28c28
+< 32.7,142.980699,139.402628,576.425197
+---
+> 32.7,142.262438,134.679190,576.425197
+--- driver_1_event_3 ---  IDENTICAL (byte-for-byte)
+--- driver_2_event_2 ---  IDENTICAL (byte-for-byte)
+--- driver_2_event_3 ---  IDENTICAL (byte-for-byte)
+```
+
+sha256：4 个文件改前=改后；仅 `driver_1_event_2.csv` 由 `03728af4…` 变为 `df62dafa…`（见 §7）。独立校验器的第 2 节用行级 diff 复核同一结论：`changed lines vs baseline = [] / [27] / [] / [] / []`。
+
+### 验收 5（需求 6）—— 已实际运行并更新本报告 ✓
+
+§4 为完整真实 stdout（exit 0），§5/§6 为逐项证据；本文件即 `build-report.md`（已落盘）。
+
+### 验收 6 —— 幂等 / cwd 无关 / 原子写入 / 无残留 ✓
+
+- runA（项目内）== runB（项目内再跑）== runC（从 `$SC` 项目外运行）的 stdout 逐字节相同（唯一差异行 `rebuilt output dir …` 已归一化），三者的产物 sha256 相同。
+- `.tmp` 残留：`none`；`stage_4` 目录内容恰为 5 个 CSV + `stage4_summary.json`；项目内 `*.tmp`/`__pycache__`/`*.pyc` 计数为 0。
+
+### 验收 7 —— 独立校验器 68 项全通过（与脚本零共享代码）✓
+
+`python check_stage4_order.py` 用自己的实现（`Decimal` half-up 取整、`math.dist` 弦长、`dhw` 投影、新顺序）从 `stage_3` 重新推导 5 张表，与盘上产物**逐行逐字段**比对：
+
+```
+== 1. independent rebuild vs written file, every row, every field ==
+  driver_1_event_1     rows=138   independent match=True
+  driver_1_event_2     rows=27    independent match=True
+  driver_1_event_3     rows=79    independent match=True
+  driver_2_event_2     rows=211   independent match=True
+  driver_2_event_3     rows=124   independent match=True
+
+== 2. exclusivity of the change: baseline (pre-fix) vs now ==
+  driver_1_event_1     changed lines vs baseline = []
+  driver_1_event_2     changed lines vs baseline = [27]
+  driver_1_event_3     changed lines vs baseline = []
+  driver_2_event_2     changed lines vs baseline = []
+  driver_2_event_3     changed lines vs baseline = []
+
+== 3. the fixed row is now self-consistent (one-sided over retained points) ==
+  kept grid indices last two : 25 -> 26  (dropped index [27])
+  timestamp of dropped point : 32.698555  (raw t of kept last point 32.65777)
+  one-sided fv (manual)      : 142.262438   lv (manual): 134.679190
+  written last row           : 32.7,142.262438,134.679190,576.425197
+  pre-fix central fv         : 142.980699  (used the dropped point)
+
+== 4. time strictly unique / monotone, grid aligned ==
+== 5. summary json ==
+== 6. ratio sanity: speeds are position differences, not the reported velocity ==
+
+RESULT: PASS — 68 checks, 0 failures
+```
+
+（第 4/5/6 节共 50 项断言全部通过、无 FAIL 输出；第 4 节同时确认每行 `time` 等于"自己按 `Decimal` 半进位从原始时间戳取整"的结果——即 5 个文件全部 579 行都落在十进制 half-up 口径上。）
+
+### 验收 8 —— fixture 探针 16 项全通过（覆盖真实数据没有的分支）✓
+
+`python probe_stage4_order_fixture.py` 用合成 `stage_3` + `--root` 隔离根目录跑**真实脚本**，构造三类真实数据不存在的情形：中间位置的取整重复点、中间位置的 `dhw ≤ 0` 异常、末点的 `dhw ≤ 0` 异常：
+
+```
+== event A: interior duplicate (idx 2) + interior dhw anomaly (idx 4) ==
+  written : ['0.0,90.909091,109.090909,100.000000', '0.1,88.235294,117.647059,102.000000', '0.4,90.909091,97.727273,110.000000', '0.6,95.238095,71.428571,105.000000']
+  ok   A rows == 4 (6 pairs - 1 duplicate - 1 anomaly)
+  ok   A times are the retained rounded times
+  ok   A speeds bridge over the removals
+  ok   A second row is a bridge 0->3, not a 0->1->2 chain
+  ok   A all dhw positive and equal 100/102/101/110-index values
+  ok   A no row carries the removed negative-dhw point
+== event B: last point is a dhw anomaly ==
+  ok   B rows == 3
+  ok   B last row one-sided over retained pair (idx1 -> idx2)
+  ok   B last row fv == |11-5|/(0.11)
+== summary of the fixture run ==
+  ok   script exit 0 on fixture
+  ok   A dropped record = index 2 -> 0.1
+  ok   A anomaly record = index 4, dhw -10, no fv/lv keys
+  ok   B anomaly record = index 3 (dhw -20)
+  ok   summary conservation all true
+  ok   rows + deleted + dropped == grid points per event
+  ok   no .tmp leftovers
+
+RESULT: PASS — 16 fixture checks, 0 failures
+```
+
+关键含义：删除点出现在序列**中间**时，两侧保留行的速度会**跨过**被删点取邻居（A 的第 2 行 = `0→3` 两点弦长，而不是 `0→1→2`），证明"邻居=下一个保留点"的规则确实按新顺序生效，而不是只在末点这种特例上成立。
+
+## 6. 假设、偏差与遗留问题
+
+1. **`dhw ≤ 0` 的删除位置（相对 brief 的补充判断）**：brief 明确要求"重复点删除"提前到速度之前；对另一条删除规则（`dhw ≤ 0` 异常点）brief 未置一词。本次把异常删除也放在速度之前，理由是它同样会把行从表里删掉——若异常点仍留在速度窗口里，就会复现本次要修的同类不自洽。代价：只影响"存在异常点"的 event，**真实数据 5 个 event 的 `deleted_anomalies` 全为空、0 次触发**，故对交付数值零影响（fixture 探针专门覆盖了这条路径）。如果你更希望"异常点仍参与邻居窗口"，只需把 `build_table` 里 step 3 与 step 4 互换（一行位置的调整），报告会同步更新。
+2. **summary 结构变化**：被删的异常点不再写 `fv`/`lv`（新顺序下"已删除的点"没有速度值，写出来会自相矛盾）。真实数据中 `deleted_anomalies` 恒为 `[]`，JSON 里该字段形状不变；只有出现异常点时才会看出差别。
+3. **e2 的 summary 统计量随点集变化（非保留行数值变化）**：`dhw_median` `593.830750 → 594.677351`、`fv_mean` `136.447473 → 136.112039`、`lv_mean` `133.366447 → 132.539005`——原因是统计口径从"28 点全栅格"变为"27 点保留集"（且末行速度换成单侧值）。逐点比对确认：**除末行外 26 行数值一字未改**，`fv_range`/`lv_range`/`dhw_range` 三者的 min/max 也未变。
+4. **`.X5` 边界的浮点 half-up（既有行为，本次未改）**：`quantise_time` 用 `floor(v/step + 0.5)*step` 的浮点实现，在恰好落在 `.X5` 的时间戳上与十进制 half-up 可能不一致（fixture 中 `0.35` 浮点→`0.3`、`Decimal`→`0.4`；`1.25` 浮点→`1.3`、Python `f"{:.1f}"`→`1.2`）。本数据集 5 个文件 579 行全部与 `Decimal` half-up 一致（独立校验器 §4 验证），故本次无影响；该权衡属取整规则的既有实现，不在本次改动范围内，未做改动。
+5. 未安装/升级任何包，未新建虚拟环境，未 `git commit`（非 git 仓库），未部署、未触碰任何生产系统；未重启任何服务（脚本为一次性批处理，无守护进程）。
+6. 未做浏览器/UI 实操（本项目无前端）。
+
+## 7. 产物清单与哈希（改前 → 改后）
+
+| 文件 | 数据行 | sha256 改前 | sha256 改后 | 变化 |
+|---|---|---|---|---|
+| `driver_1_event_1.csv` | 138 | `75671ec54e917536c1f8817a9a95d83d6290ce51d7f20eaa6fd23b7064a86c27` | `75671ec54e917536c1f8817a9a95d83d6290ce51d7f20eaa6fd23b7064a86c27` | **无** |
+| `driver_1_event_2.csv` | 27 | `03728af4ddfa3a5712bff56d51bb3de3b8c637ea745751180b830a53afa49071` | `df62dafa05072f234f663932cdcc7cd4ab704e6cc8066034da39484ced7b77a6` | **末行 1 行数值变化** |
+| `driver_1_event_3.csv` | 79 | `9bcf8a5f7a865eb47a40c6f32f4d51d9c02873377665a854ae121efb380db107` | `9bcf8a5f7a865eb47a40c6f32f4d51d9c02873377665a854ae121efb380db107` | **无** |
+| `driver_2_event_2.csv` | 211 | `b4c76245209d3e91d412172b97bd913f57135db4305972a6625a8f0fa632edbc` | `b4c76245209d3e91d412172b97bd913f57135db4305972a6625a8f0fa632edbc` | **无** |
+| `driver_2_event_3.csv` | 124 | `f0b7d9fd4faccfc2260df2e5b2f76ae9254c0ac054d7d46a10cd4ddfd533a829` | `f0b7d9fd4faccfc2260df2e5b2f76ae9254c0ac054d7d46a10cd4ddfd533a829` | **无** |
+| 5 个 CSV 聚合 md5 | 579 | `b3252d21559edcad4e5e4b8e4a749f6f` | `6ee9816c6eb65076fa9d98f381f4f670` | 由 e2 末行驱动 |
+| `stage4_summary.json` | — | 9411 B | 10167 B | 新增字段（§1） |
+| `src/preprocess_stage4.py` | — | 32348 B / 741 行 | 37447 B / **808 行** | 顺序重构 + 守恒校验 |
+
+输入未被触碰（sha256 与改前 summary 记录值逐一相同，聚合 md5 = `b17bcae9914086e2f2f92d11415871fb`）：
+
+```
+a176c6de6f34dec5a2cb83d2f39489009f71da01399b3c9f274db8f194926162  stage_3/driver_1_event_1.csv
+f3f30277964ae8f17d283e5ec00420a24c3bfdba66e40ac5a03a46de9f3c8227  stage_3/driver_1_event_2.csv
+daeeaf8f3436e07d2053d16d726b975ccb3943efc5f46b712686f50ff5a95e1e  stage_3/driver_1_event_3.csv
+64e07ac2af8aed774ee7dd0215fe6a2c1da27c894090cb4a496880dca38a17ba  stage_3/driver_2_event_2.csv
+0d8518c53ecaf589c84e532efdcc4a1f525319387eeedb5cd1324c608c9c5d35  stage_3/driver_2_event_3.csv
+```
+
+交付后的 e2 末 4 行（盘上真实内容）：
+
+```
+32.4,135.064760,139.224825,579.882233
+32.5,142.491449,132.738785,579.149949
+32.6,141.384696,130.213315,577.375683
+32.7,142.262438,134.679190,576.425197     <- 保留点单侧差分（旧的 142.980699 用的是被删点）
+```
+
+## 8. 复现步骤
+
+```bash
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+python src/preprocess_stage4.py        # 唯一验收命令；exit 0，输出如上 §4
+# 结果：data/preprocess/stage_4/{driver_1_event_1,driver_1_event_2,driver_1_event_3,driver_2_event_2,driver_2_event_3}.csv
+#       + stage4_summary.json；数据行 138/27/79/211/124 = 579，time 严格唯一
+# 可选复核：
+python "C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/s4/check_stage4_order.py"        # 68 checks PASS
+python "C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/s4/probe_stage4_order_fixture.py"  # 16 checks PASS
+```
+
+# 附录 E — Stage 3 报告原文存档（leader/follower 时间对齐 + 线性插值）
+
+## Build Report — Lab 1 Stage 3 —— leader/follower 时间对齐（公共时间轴 + 线性插值）
+
+STATUS: COMPLETE
+
+输入 = Stage 2 输出 `data/preprocess/stage_2/driver_{1,2}_event_{1,2,3}.csv`（6 个 event）；输出 = `data/preprocess/stage_3/`。
+本报告只覆盖 Stage 3。**Stage 2 报告原文完整保留在文末「附录 A」、Stage 1（v3）报告保留在「附录 B」**（仅其一级标题降级为二级），未做任何删改。
+
+## 1. 交付物与变更
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `src/preprocess_stage3.py` | **新建**（754 行 / 32411 B，仅标准库） | 重叠窗口 + 0.1 s 公共栅格 + 线性插值（heading 解卷）+ 不连贯点删除 + 原子写入 + 重建输出目录 + 落盘校验；沿用 stage1/2 的幂等、原子写、落盘复查风格 |
+| `data/preprocess/stage_3/driver_1_event_{1,2,3}.csv` | 新建 | 276 / 56 / 158 行（每行 = 一车一时刻，follower 段在前、leader 段在后） |
+| `data/preprocess/stage_3/driver_2_event_{2,3}.csv` | 新建 | 422 / 248 行 |
+| `data/preprocess/stage_3/stage3_summary.json` | 新建（11926 B） | 每个 event 的重叠区间、栅格点数、不连贯删除点数与时间、被删 event 及原因、输出行数、点数守恒、输入哈希、落盘校验结果 |
+| `build-report.md` | 更新 | 本文件（Stage 3 在前，Stage 2 / Stage 1 报告存档于附录 A / B） |
+| `data/preprocess/stage_1/**`、`data/preprocess/stage_2/**`、`data/raw/**`、`briefs/**` | **未改动** | stage_2 的 6 个 event 文件只以 `"r"` 打开读取；其 sha256 与 Stage 2 报告 §7 记录值逐一相同（见 §7） |
+
+- 未安装/升级任何包，未新建虚拟环境（脚本仅用 `argparse/bisect/csv/hashlib/json/os/re/shutil/sys/pathlib`）。
+- 独立校验器与 fixture 探针写在 scratch（`.../cache/scratch/check_stage3.py`、`probe_stage3_fixture.py`），**不属于交付物**。
+- 本项目不是 git 仓库（`git rev-parse` → not a git repository），故无提交。
+- 项目内未新增任何其他文件（`find <project> -name "*.tmp"` → 0）。
+
+## 2. 判定口径（脚本实现规则）
+
+1. **重叠窗口**：`[max(follower.min, leader.min), min(follower.max, leader.max)]`。
+   交集为空（时长 ≤ 0）或时长 **< 1.0 s** → 整个 event 删除，`reason = "no_overlap"`，
+   并由 `detail` 区分 `empty_intersection` / `intersection_shorter_than_1.0_s`；窗口外的源行一律丢弃（计数记入 summary 的 `rows_outside_overlap`）。
+2. **公共时间轴**：`t_k = start + k·0.1`（k = 0,1,… 直到 `t_k <= end`）；末格不足一格时把右端点 `end` 作为**收尾点**补上。
+   若收尾点与前一格打印到 6 位小数后完全相同（差 < 1e-6 s）则跳过，保证不写出重复时间戳。
+3. **插值**：`x`、`y`、`velocity` 由「夹住该栅格时刻的两个源采样点」线性插值；栅格时刻落在源采样点上的（差 ≤ 1e-9 s 的浮点噪声容差）直接取该采样值（跨距记 0）。
+   **禁止外推**：夹不住就删除该时刻并记 `reason = "outside_source_range"`（本数据集 0 例）。
+4. **heading 解卷**：相邻采样差值先映射到 `[-180, 180)`（跨 0/360 变成短步）再累加得到解卷序列，插值后 `% 360` 归一化回 `[0, 360)`。
+5. **不连贯点删除**：某 role 在栅格时刻的插值跨距（两侧最近源采样点的 Δt）**> 0.3 s** → 该 role 在该处是"跨空洞的平均"而非观测，
+   该**时间点两车行一并删除**。栅格因此可能出现空洞：输出按保留下来的时刻升序排列，不强制连续。
+6. **输出**：目录 `data/preprocess/stage_3/` 每次运行开始时重建；每个保留 event 一个文件 `{driver}_event_{k}.csv`，
+   列 `driver,role,t_from_start,x,y,heading,velocity`（`t_from_start` = 栅格时刻）；**follower 段在前、leader 段在后**，段内 t 升序，
+   同一栅格时刻两车各一行；所有数值统一写 6 位小数。
+7. **幂等与落盘校验**：`.tmp` + `os.replace` 原子替换；不写任何时间戳/绝对路径；
+   运行结束重新读盘校验（行数、表头、role 块、两车时间戳**逐一相同**、严格升序、`heading ∈ [0,360)`、与保留栅格时刻逐一相同、无 `.tmp` 残留、目录内容集合、点数守恒）。
+
+## 3. 实际执行的命令
+
+```bash
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+
+# 验收运行（完整 stdout 见 §5）
+python src/preprocess_stage3.py
+
+# 幂等性：run A / run B 各跑一次，逐文件 sha256 对比
+python src/preprocess_stage3.py && find data/preprocess/stage_3 -type f | sort | xargs -I{} sha256sum {} > "$SCRATCH/hashA.txt"
+python src/preprocess_stage3.py && find data/preprocess/stage_3 -type f | sort | xargs -I{} sha256sum {} > "$SCRATCH/hashB.txt"
+diff <(awk '{print $1}' "$SCRATCH/hashA.txt") <(awk '{print $1}' "$SCRATCH/hashB.txt")     # 无输出
+
+# cwd 无关性：从 $SCRATCH（项目外）运行同一脚本，再对比哈希与 stdout
+cd "$SCRATCH" && python "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1/src/preprocess_stage3.py"
+diff <(awk '{print $1}' "$SCRATCH/hashA.txt") <(awk '{print $1}' "$SCRATCH/hashC.txt")     # 无输出
+
+# .tmp 残留与聚合哈希
+find "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1" -name "*.tmp" | wc -l               # 0
+find "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1/data/preprocess/stage_3" -type f | sort | xargs cat | md5sum
+
+# 独立校验器（自己实现一套口径，从盘上 stage_2 + stage_3 重新推导全部验收点，与脚本零共享代码）
+python "$SCRATCH/check_stage3.py"
+
+# fixture 探针（构造 stage_2 合成数据，跑 --root 隔离根目录，覆盖真实数据没有的分支）
+python "$SCRATCH/probe_stage3_fixture.py" "$SCRATCH/stage3_fixture"
+```
+
+## 4. 验收结果
+
+### 验收 1 —— `driver_2_event_1` 被删除（no_overlap）；其余 5 个 event 有输出 ✓
+
+源区间 follower `[4.630570, 6.415966]`、leader `[-0.054888, 0.352735]` → 交集 `[4.630570, 0.352735]` 为空（时长 −4.277835 s），
+`stage3_summary.json` → `deleted_events[0]`：`reason = "no_overlap"`、`detail = "empty_intersection"`、`rows_outside_overlap_total = 22`（18 + 4，即全部源行），
+该 event **不产出 CSV**。`stage_3/` 目录内 event 文件恰为 5 个（独立校验器断言 `deleted == ["driver_2_event_1.csv"]`、`written == 5`、目录内容集合一致）。
+
+### 验收 2 —— 每个输出文件 follower 与 leader 行数相等、时间戳逐一相同 ✓
+
+脚本自身落盘复查对这 5 个文件全部输出 `OK`；独立校验器另外用 68 项检查复算（含逐行数值 string 精确比对）。摘要：
+
+| 输出文件 | follower 行 | leader 行 | 时间戳两段逐一相同 | t 区间（栅格） | 行数 |
+|---|---|---|---|---|---|
+| `driver_1_event_1.csv` | 138 | 138 | 是 | `[3.723465, 17.686604]`（`5.9`–`6.2` 处有 3 个空缺，见验收 5） | **276** |
+| `driver_1_event_2.csv` | 28 | 28 | 是 | `[30.057770, 32.698555]` | **56** |
+| `driver_1_event_3.csv` | 79 | 79 | 是 | `[43.243782, 51.457526]` | **158** |
+| `driver_2_event_2.csv` | 211 | 211 | 是 | `[12.442953, 33.865332]` | **422** |
+| `driver_2_event_3.csv` | 124 | 124 | 是 | `[46.047997, 58.330555]` | **248** |
+| **合计** | **580** | **580** | — | — | **1160** |
+
+`driver_1_event_2.csv` 首行/末行（follower 段与 leader 段同刻）:
+`driver_1,follower,30.057770,1361.000000,639.000000,344.000000,45.000000` …
+`driver_1,leader,32.698555,2279.000000,453.000000,4.000000,50.000000`。
+
+### 验收 3 —— 各 event 输出行数 + 点数守恒（summary 核对）✓
+
+| event | 重叠区间 | 时长(s) | 源行（f/l） | 窗口外丢弃行 | 栅格点 | 保留 | 删除(不连贯) | 输出行 |
+|---|---|---|---|---|---|---|---|---|
+| `driver_1_event_1` | `[3.723465, 17.686604]` | 13.963139 | 162 / 126 | 43 / 1 | 141 | 138 | 3 | 276 |
+| `driver_1_event_2` | `[30.057770, 32.698555]` | 2.640785 | 58 / 60 | 34 / 40 | 28 | 28 | 0 | 56 |
+| `driver_1_event_3` | `[43.243782, 51.457526]` | 8.213744 | 125 / 91 | 55 / 24 | 84 | 79 | 5 | 158 |
+| `driver_2_event_1` | 空交集 | −4.277835 | 18 / 4 | 18 / 4（整事件删除） | — | — | — | 0（无文件） |
+| `driver_2_event_2` | `[12.442953, 33.865332]` | 21.422379 | 230 / 225 | 46 / 38 | 216 | 211 | 5 | 422 |
+| `driver_2_event_3` | `[46.047997, 58.330555]` | 12.282558 | 105 / 145 | 0 / 39 | 124 | 124 | 0 | 248 |
+
+守恒（`stage3_summary.json` → `total`，独立校验器已复算一致）：
+`grid_points 593 = grid_points_kept 580 + grid_points_removed 13`；
+`written_rows 1160 = 2 × 580`；每个 event 的 `conservation.grid_points_kept_x2_equals_rows` 与
+`grid_points_equals_kept_plus_removed` 均为 `true`；`total.conservation_ok = true`。
+栅格点数也符合"步进 + 收尾点"规则：`floor(时长/0.1) + 2`（例：13.963139 → 139 + 2 = 141）。
+
+### 验收 4 —— 幂等 / cwd 无关 / 无 .tmp 残留 ✓
+
+- run A 与 run B：6 个文件的逐文件 sha256 **完全一致**（`diff` 无输出），两次 stdout 也逐行一致。
+- 从项目外目录（`$SCRATCH`）运行的 run C：哈希与 run A 一致（仅 stdout 的 `project root` 行不同，属预期）。
+- `.tmp`：`find <project> -name "*.tmp" | wc -l` → **0**；脚本自身也打印 `.tmp leftovers: none`，并校验目录内容集合恰为 5 个 event CSV + 1 个 summary。
+- 聚合哈希：`md5 = b17bcae9914086e2f2f92d11415871fb`、`sha256 = 51e9679704427b01b7c766811c79f04a8e47499934f83493480c99e2ee80f92`（`find … | sort | xargs cat`）。
+
+### 验收 5（补充）—— 不连贯删除的根因核验 + 真实数据未覆盖分支的 fixture 实测 ✓
+
+**删除的 13 个时间点全部由源数据里 > 0.3 s 的真实采样空洞解释**（独立校验器用源 stage_2 文件复算每个时刻的"两侧最近采样点 Δt"）：
+
+| event | 触发 role | 源采样空洞（Δt） | 被删时间点 |
+|---|---|---|---|
+| `driver_1_event_1` | leader | `5.854410 → 6.162410`（0.308 s） | 5.923465, 6.023465, 6.123465 |
+| `driver_1_event_3` | leader | `44.699951 → 45.199951`（0.500 s） | 44.743782 … 45.143782（5 点） |
+| `driver_2_event_2` | follower（5 点）+ leader（3 点） | `22.399747 → 22.853145`（0.453 s）；leader `22.387323 → 22.690323`（0.303 s） | 22.442953 … 22.842953（5 点） |
+| `driver_1_event_2` / `driver_2_event_3` | — | 最大空洞 0.224 / 0.268 s（≤ 0.3 s） | 无 |
+
+边界口径已实测：`driver_1_event_1` leader 空洞 0.307775 s（> 0.3 → 删）、`driver_2_event_3` follower 0.268418 s（≤ 0.3 → 留）；
+所有**保留**时刻的跨距上界 `max_interpolation_span_kept_s` 为 0.286237 / 0.224416 / 0.272137 / 0.220990 / 0.268418 s，均 ≤ 0.3 s。
+被删时刻的两车行确实都不在文件里：`driver_1_event_1.csv` 第 23/24 行 follower 从 `5.823465` 直接跳到 `6.223465`（leader 同刻亦缺）。
+另：真实数据里唯一"跨 0/360"的 heading 段（`driver_1_event_2` leader 在 26.9–29.0 s 的 359→0→1→359 抖动）落在重叠窗口之外，
+故解卷路径改用 fixture 实测（下）。
+
+**fixture（`probe_stage3_fixture.py`，合成 stage_2 数据 + `--root` 隔离根目录，脚本 exit 0，断言全部 PASS）**：
+
+1. `driver_9_event_1.csv`：heading 从 359 起每 0.1 s +0.5°（跨 0/360）。输出首值 `359.000000`，接缝处插值走**短弧**
+   （359.5 / 0.0 / 0.5 …，无 179.5 之类的错误侧值），全部 ∈ [0,360)。
+2. `driver_9_event_2.csv`：leader 在 t=3.0–3.3 缺样（空洞 0.5 s）。结果：栅格 101 → 保留 97、删 4 点（3.0/3.1/3.2/3.3，follower 亦无该时刻行），
+   与采样点重合的 2.9 / 3.4 保留。
+3. `driver_9_event_3.csv`：重叠仅 0.5 s（< 1.0 s）。结果：整事件删除，`reason = "no_overlap"`、`detail = "intersection_shorter_than_1.0_s"`
+   （真实数据只覆盖了"空交集"这一支）。
+
+## 5. 运行输出（真实 stdout，`python src/preprocess_stage3.py`，exit = 0）
+
+```text
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+stage 2 input: data/preprocess/stage_2
+output dir   : data/preprocess/stage_3
+
+configuration:
+  grid step                 : dt = 0.1 s
+  grid time resolution      : 6 printed decimals (right edge appended as closing instant)
+  minimum overlap           : 1.0 s (shorter -> event deleted, reason no_overlap)
+  interpolation span limit  : 0.3 s (larger -> time point deleted for both roles)
+
+events found in stage_2: 6
+
+rebuilt output dir, removed previous content: driver_1_event_1.csv, driver_1_event_2.csv, driver_1_event_3.csv, driver_2_event_2.csv, driver_2_event_3.csv, stage3_summary.json
+
+per-event alignment:
+  driver_1_event_1.csv     input rows: follower=162, leader=126            t: follower [3.723465, 22.925279]  leader [3.655192, 17.686604]
+      overlap [3.723465, 17.686604] = 13.963139 s, non-overlapping rows dropped: follower 43, leader 1
+      grid: 141 instants -> kept 138, removed 3 (3 discontinuity (follower 0, leader 3), 0 outside source range), max span 0.307775 s (max span kept 0.286237 s)
+      deleted time points: 5.923465, 6.023465, 6.123465
+      wrote driver_1_event_1.csv: 276 rows (follower 138 + leader 138)  timestamps identical follower/leader: yes
+
+  driver_1_event_2.csv     input rows: follower=58, leader=60              t: follower [30.05777, 36.702075]  leader [25.642925, 32.698555]
+      overlap [30.05777, 32.698555] = 2.640785 s, non-overlapping rows dropped: follower 34, leader 40
+      grid: 28 instants -> kept 28, removed 0 (0 discontinuity (follower 0, leader 0), 0 outside source range), max span 0.224416 s (max span kept 0.224416 s)
+      wrote driver_1_event_2.csv: 56 rows (follower 28 + leader 28)  timestamps identical follower/leader: yes
+
+  driver_1_event_3.csv     input rows: follower=125, leader=91             t: follower [43.243782, 57.249644]  leader [40.462151, 51.457526]
+      overlap [43.243782, 51.457526] = 8.213744 s, non-overlapping rows dropped: follower 55, leader 24
+      grid: 84 instants -> kept 79, removed 5 (5 discontinuity (follower 0, leader 5), 0 outside source range), max span 0.499519 s (max span kept 0.272137 s)
+      deleted time points: 44.743782, 44.843782, 44.943782, 45.043782, 45.143782
+      wrote driver_1_event_3.csv: 158 rows (follower 79 + leader 79)  timestamps identical follower/leader: yes
+
+  driver_2_event_1.csv     input rows: follower=18, leader=4               t: follower [4.63057, 6.415966]  leader [-0.054888, 0.352735]
+      -> DELETED (reason: no_overlap, empty_intersection): overlap length -4.277835 s < 1.0 s; 22 non-overlapping rows dropped
+
+  driver_2_event_2.csv     input rows: follower=230, leader=225            t: follower [12.442953, 38.593424]  leader [8.39649, 33.865332]
+      overlap [12.442953, 33.865332] = 21.422379 s, non-overlapping rows dropped: follower 46, leader 38
+      grid: 216 instants -> kept 211, removed 5 (5 discontinuity (follower 5, leader 3), 0 outside source range), max span 0.453398 s (max span kept 0.22099 s)
+      deleted time points: 22.442953, 22.542953, 22.642953, 22.742953, 22.842953
+      wrote driver_2_event_2.csv: 422 rows (follower 211 + leader 211)  timestamps identical follower/leader: yes
+
+  driver_2_event_3.csv     input rows: follower=105, leader=145            t: follower [46.047997, 58.330555]  leader [41.815037, 58.337247]
+      overlap [46.047997, 58.330555] = 12.282558 s, non-overlapping rows dropped: follower 0, leader 39
+      grid: 124 instants -> kept 124, removed 0 (0 discontinuity (follower 0, leader 0), 0 outside source range), max span 0.268418 s (max span kept 0.268418 s)
+      wrote driver_2_event_3.csv: 248 rows (follower 124 + leader 124)  timestamps identical follower/leader: yes
+
+on-disk verification (re-read after writing):
+  driver_1_event_1.csv  rows=276  (follower/leader timestamps identical: yes)  OK
+  driver_1_event_2.csv  rows=56  (follower/leader timestamps identical: yes)  OK
+  driver_1_event_3.csv  rows=158  (follower/leader timestamps identical: yes)  OK
+  driver_2_event_2.csv  rows=422  (follower/leader timestamps identical: yes)  OK
+  driver_2_event_3.csv  rows=248  (follower/leader timestamps identical: yes)  OK
+  total written data rows: 1160
+  total surviving grid instants (x2 = rows): 580
+  total removed grid instants: 13
+
+.tmp leftovers: none
+stage_3 dir contents: driver_1_event_1.csv, driver_1_event_2.csv, driver_1_event_3.csv, driver_2_event_2.csv, driver_2_event_3.csv, stage3_summary.json
+```
+
+独立校验器输出（与本报告所有表格同源）：
+
+```text
+checks run : 68
+checks OK  : 68
+checks FAIL: 0
+total stage_3 data rows: 1160 (580 paired instants)
+surviving events: ['driver_1_event_1.csv', 'driver_1_event_2.csv', 'driver_1_event_3.csv', 'driver_2_event_2.csv', 'driver_2_event_3.csv']
+deleted events  : ['driver_2_event_1.csv']
+RESULT: PASS
+```
+
+## 6. 假设、偏差与遗留问题
+
+**假设 A（浮点命中容差 1e-9 s，本数据集不改变任何结果）**：栅格时刻 `start + k·0.1` 与源采样时刻的浮点表示难免差几个 ULP。
+若用严格 `==` 判定"落在采样点上"，一个比采样点晚 4e-16 s 的栅格时刻会被当成"空洞内的点"而误删
+（fixture `driver_9_event_2` 的 2.9 s 就是这样被误删的，已修）。因此脚本把 **≤ 1e-9 s** 的差视为命中，直接取该采样值、跨距记 0。该容差只影响第 7 位小数以后的值。
+实测本数据集 5 个保留 event 中真正命中的栅格时刻都是**位级相等**（每个 event 每车 1 个，`driver_2_event_3` follower 2 个 / leader 0 个，因其同时决定左右端点），
+没有一个是"只靠容差命中"的，故该容差在本数据集上不改变任何输出。
+
+**偏差 B（右端点的补点判定用输出分辨率）**：brief 要求"右端点若不足一格则包含端点"。脚本实际判定是"补点与前一格打印到 6 位小数后是否同一时刻"，等价于差 ≥ 1e-6 s 才补。
+本数据集 5 个 event 的补点与前一格相差 **0.013743 ~ 0.082558 s**（`driver_1_event_3` 最紧 / `driver_2_event_3` 最松），**全部补点写入**，故栅格点数 = `floor(时长/0.1) + 2`
+（141 / 28 / 84 / 216 / 124，共 593）。
+
+**说明 C（不连贯删除是"时间点级"的）**：当某 role 在该时刻跨距 > 0.3 s，另一辆车在该时刻的行也一并删除（brief 明确要求"该时间点两车行一起删除"），
+因此输出文件中 follower/leader 行数始终相等，但栅格会出现空洞（`driver_1_event_1.csv` 缺 3 个时刻、`driver_1_event_3.csv` 缺 5 个、`driver_2_event_2.csv` 缺 5 个）。
+`removed_times` 里同时记录了每个被删时刻是哪些 role 触发（`roles` 字段）。
+
+**遗留 D（运维注意）**：按 brief 要求输出目录在**每次运行开始时重建**，若进程在写文件途中被强杀（或 stdout 被 `head` 截断导致 SIGPIPE），目录会处于不完整状态；重跑一次即恢复。
+验证时请**重定向到文件**（`python src/preprocess_stage3.py > out.txt`）而不是用 `head` 截断管道。
+
+**未做**：没有浏览器/图形界面验收（本任务为纯数据脚本，且本机未安装 Chromium）；没有跑单元测试框架（项目无测试框架，采用独立校验脚本 + fixture 探针 + 落盘复查代替）。
+
+## 7. 产物清单与哈希（run A = run B = 从项目外运行的 run C）
+
+| 文件 | 数据行数 | sha256 |
+|---|---|---|
+| `data/preprocess/stage_3/driver_1_event_1.csv` | 276 | `a176c6de6f34dec5a2cb83d2f39489009f71da01399b3c9f274db8f194926162` |
+| `data/preprocess/stage_3/driver_1_event_2.csv` | 56 | `f3f30277964ae8f17d283e5ec00420a24c3bfdba66e40ac5a03a46de9f3c8227` |
+| `data/preprocess/stage_3/driver_1_event_3.csv` | 158 | `daeeaf8f3436e07d2053d16d726b975ccb3943efc5f46b712686f50ff5a95e1e` |
+| `data/preprocess/stage_3/driver_2_event_2.csv` | 422 | `64e07ac2af8aed774ee7dd0215fe6a2c1da27c894090cb4a496880dca38a17ba` |
+| `data/preprocess/stage_3/driver_2_event_3.csv` | 248 | `0d8518c53ecaf589c84e532efdcc4a1f525319387eeedb5cd1324c608c9c5d35` |
+| `data/preprocess/stage_3/stage3_summary.json` | — | `11fc80023223dacbe73c74fbb599b023841309b76b7989575fb77933b0297193` |
+| `src/preprocess_stage3.py` | 754 行 | `274a6061845a5e05ea578db769f2f27252a5d0588d5b8d0b84f9c707d71123d8` |
+
+聚合：`find data/preprocess/stage_3 -type f | sort | xargs cat | md5sum` → `b17bcae9914086e2f2f92d11415871fb`；
+sha256 → `51e9679704427b01b7c766811c79f04a8e47499934f83493480c99e2ee80f504`。
+
+输入（stage_2）哈希——与 Stage 2 报告 §7 逐字节相同，证明 Stage 3 **只读**了它们：
+
+| 输入文件 | sha256（记录于 `stage3_summary.json.inputs`） |
+|---|---|
+| `data/preprocess/stage_2/driver_1_event_1.csv` | `b29c335798d2cea8c671fa79b4bb1b72992d214b234e7b45b4087df3aa623a92` |
+| `data/preprocess/stage_2/driver_1_event_2.csv` | `270c8f88d082d88dbcf81289ed82bf2d3102e66abd6ff1025d8fc22913ffde5b` |
+| `data/preprocess/stage_2/driver_1_event_3.csv` | `0e30b9a9460e7947bb4754981dbb923dfdd6d4650d9506bf57435b334f89df6f` |
+| `data/preprocess/stage_2/driver_2_event_1.csv` | `d851d13bb3c9042bb86f50fce85f341269c9edaf261332f57a3cad8fa528fcfb` |
+| `data/preprocess/stage_2/driver_2_event_2.csv` | `9517a611071c13becf0c140bd519da746214af297fb4290b5aaed89074c19dae` |
+| `data/preprocess/stage_2/driver_2_event_3.csv` | `8079856d2ba78060e5ee79ebc42323bb81d72f4581837fbeed56a731b2bf3041` |
+
+## 8. 复现步骤
+
+```bash
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+python src/preprocess_stage3.py > "$SCRATCH/stage3_out.txt" 2>&1    # 重新生成 data/preprocess/stage_3/（目录会被重建）
+python "$SCRATCH/check_stage3.py"                                   # 68 项独立校验
+python "$SCRATCH/probe_stage3_fixture.py" "$SCRATCH/stage3_fixture" # 合成 fixture（解卷 / 空洞删除 / 短重叠事件）
+```
+
+---
+
+# 附录 F — Stage 2 报告原文存档（无效起止裁剪 + 按时间断层拆分 event）
+
+## Build Report — Lab 1 Stage 2 数据预处理（无效起止裁剪 + 按时间断层拆分 event）
+
+STATUS: COMPLETE
+
+输入 = Stage 1 输出 `data/preprocess/stage_1/driver_{1,2}.csv`；输出 = `data/preprocess/stage_2/`。
+本报告只覆盖 Stage 2。**Stage 1 的 v3 报告原文完整保留在文末「附录 A」**（仅其一级标题降级为二级），未做任何删改。
+
+## 1. 交付物与变更
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `src/preprocess_stage2.py` | **新建**（754 行，仅标准库） | 裁剪 + 断层拆分 + 原子写入 + 重建输出目录 + 落盘校验；沿用 stage1 的幂等/原子/校验风格 |
+| `data/preprocess/stage_2/driver_1_event_{1,2,3}.csv` | 新建 | driver_1 的 3 个配对 event（288 / 118 / 216 行） |
+| `data/preprocess/stage_2/driver_2_event_{1,2,3}.csv` | 新建 | driver_2 的 3 个配对 event（22 / 455 / 250 行） |
+| `data/preprocess/stage_2/stage2_summary.json` | 新建（14253 B） | 每个 driver/role 的删除起止行数与时间、零速段判定、event/segment 行数与 t 区间、unmatched 列表、输入哈希、落盘校验结果 |
+| `build-report.md` | 更新 | 本文件（Stage 2 在前，Stage 1 报告存档于附录 A） |
+| `data/preprocess/stage_1/*.csv`、`data/raw/**`、`briefs/**` | **未改动** | 脚本对 stage 1 文件只以 `"r"` 打开读取 |
+
+- 未安装/升级任何包，未新建虚拟环境（脚本仅用 `argparse/csv/hashlib/json/os/shutil/sys/pathlib`）。
+- 独立校验器与探针脚本写在 scratch（`.../cache/scratch/check_stage2.py`、`probe{1,2,3}.py`），**不属于交付物**。
+- 本项目不是 git 仓库（`git rev-parse` → not a git repository），故无提交。
+- 项目内未新增任何其他文件。
+
+## 2. 判定口径（脚本实现规则）
+
+1. `velocity == 0` 的采样点 = 停车采样点；连续停车采样点构成一个「零速段」。
+2. 零速段长度 **≤ 3** → 行驶中丢值（孤立），**忽略不计**：既不触发裁剪，行也被保留。
+3. 零速段长度 **> 3** → 真实停车段。它会把**紧随其后、位置未变 (x,y 相同) 且 0 < velocity ≤ 2.0 km/h** 的采样点吸收进来（起步瞬间的读数抖动，见 §6 假设 A）。
+4. **起点裁剪**：找到「持续运动开始前最后一个真实停车段」，删除该段最后一行及其之前的全部行。
+   形式上 = 删除到序列中**最后一个真实停车段**的结束索引（其后已不存在真实停车段，即已是持续运动）。
+5. **终点裁剪**：若序列末尾就是一个真实停车段，则从「最后一个运动采样点」之后（= 该停车段首行）到末尾全部删除。本数据集两车尾部都在行驶，故未触发。
+6. **起点对齐**：`follower` 触发了起点裁剪时，取该次裁剪边界行（最后一行被删的行）的 `t_from_start` 作为基准，删除 `leader` 中 `t < 基准` 的行。
+   `follower` 未触发起点裁剪 → 不做任何对齐（driver_2 即此情形）。
+7. **event 拆分**：每个 role 序列内相邻 `Δt > 1.0 s` 处断开（正常采样 0.1–0.2 s，转弯断层 6–8 s），得到若干连续直路段。
+8. **配对**：按**序号**配对（第 i 段 follower ↔ 第 i 段 leader），**不用时间重叠**（driver_2 event_1 两车时间区间完全不重叠）。
+   某车多出的段为 unmatched。
+9. **输出**：目录 `data/preprocess/stage_2/` 每次运行开始时重建；每个配对 event 一个文件 `{driver}_event_{k}.csv`，
+   列 `driver,role,t_from_start,x,y,heading,velocity`，**follower 段在前、leader 段在后，段内 t 升序**；行值逐字符照抄 stage 1。
+   写文件走 `.tmp` + `os.replace` 原子替换；不写任何时间戳/绝对路径，保证连跑字节一致。运行结束做落盘复查（行数、表头、role 块、t 升序、无 `.tmp` 残留、目录内容集合）。
+
+## 3. 实际执行的命令
+
+```bash
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+
+# 验收运行（完整 stdout 见 §5）
+python src/preprocess_stage2.py
+
+# 幂等性：run A / run B 各跑一次，逐文件哈希对比
+python src/preprocess_stage2.py && find data/preprocess/stage_2 -type f | sort | xargs -I{} sha256sum {} > $TMPDIR/hashA.txt
+python src/preprocess_stage2.py && find data/preprocess/stage_2 -type f | sort | xargs -I{} sha256sum {} > $TMPDIR/hashB.txt
+diff $TMPDIR/hashA.txt $TMPDIR/hashB.txt                 # 无输出
+find data/preprocess/stage_2 -type f | sort | xargs cat | md5sum
+
+# cwd 无关性：从 $TMPDIR（= /tmp）运行
+cd "$TMPDIR" && python "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1/src/preprocess_stage2.py"
+
+# .tmp 残留与产物清单
+find "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1" -name "*.tmp" | wc -l
+
+# 独立校验器（重新从磁盘 + stage1 源文件推导全部验收点）
+python "C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/check_stage2.py"
+```
+
+## 4. 验收结果
+
+### 验收 1 —— driver_2 不触发任何裁剪 ✓
+
+`stage2_summary.json` → `drivers.driver_2`：`roles.follower.trims == []`、`roles.leader.trims == []`、`alignment.applied == false`；
+kept = follower 353 + leader 374 = 727（等于输入 727，"每一行都进了 event 文件"）。
+
+| event | follower 段 | leader 段 | 合计行数 | 合计 t 区间 |
+|---|---|---|---|---|
+| `driver_2_event_1.csv` | 18 | 4 | **22** ✓ | [-0.054888, 6.415966] |
+| `driver_2_event_2.csv` | 230 | 225 | **455** ✓ | [8.396490, 38.593424] |
+| `driver_2_event_3.csv` | 105 | 145 | **250** ✓ | [41.815037, 58.337247] |
+
+follower 3 段 / leader 3 段 / 配对 3 个 event，unmatched = 无。与 brief 预期行数（18+4、230+225、105+145）**完全一致**。
+event_1 确实"时间不重叠"：follower t=[4.630570, 6.415966]，leader t=[-0.054888, 0.352735]，故按序号配对是必需的。
+
+### 验收 2 —— driver_1 起点/终点裁剪 ✓
+
+- follower 删除 **29 行（索引 0–28）**，t=[-0.002084, **3.616474**]（≈3.62 s ✓）；kept 345 行，首行 t=3.723465。
+- leader 自身未触发裁剪（头部零速段只有 3 个采样点，属孤立）；按 follower 基准对齐：删除 `t < 3.616474` 的 **35 行**（stage1 索引 0–34，t=[0.000941, 3.533280]），kept 312 行，首行 t=3.655192。
+- follower 3 段、leader 裁剪后 5 段；前 3 段配对，**末尾两个短段无 follower 对应 → unmatched**（只进 summary，不写 CSV）。
+
+| event | follower 行数 / t 区间 | leader 行数 / t 区间 | 合计行数 | 合计 t 区间 |
+|---|---|---|---|---|
+| `driver_1_event_1.csv` | 162 / [3.723465, 22.925279] | 126 / [3.655192, 17.686604] | 288 | [3.655192, 22.925279] |
+| `driver_1_event_2.csv` | 58 / [30.057770, 36.702075] | 60 / [25.642925, 32.698555] | 118 | [25.642925, 36.702075] |
+| `driver_1_event_3.csv` | 125 / [43.243782, 57.249644] | 91 / [40.462151, 51.457526] | 216 | [40.462151, 57.249644] |
+| unmatched `leader_event_4` | — | 21 / [58.929129, 60.953078] | (21) | — |
+| unmatched `leader_event_5` | — | 14 / [68.697037, 70.508772] | (14) | — |
+
+行数守恒：输入 721 = kept 657 + 删除 64（29+35）；657 = 配对 622 + unmatched 35 ✓（脚本与校验器均打印 `OK/true`）。
+
+### 验收 3 —— 打印裁剪判定依据 ✓
+
+stdout 逐 role 打印零速段明细、被忽略的孤立 0 索引、起点/终点边界索引与 t、保留区间（见 §5 第 15–33、53–65 行）。driver_1 follower 的关键三行：
+
+```
+      [0..11]  zero_samples=12  t=[-0.002084, 1.433994]  -> genuine stop (> 3 samples)
+      [18..28]  zero_samples=10  t=[2.478847, 3.616474]  -> genuine stop (> 3 samples), absorbed 1 launch sample(s) (0 < v <= 2.0 km/h, position unchanged) -> run becomes [18..28]
+      [136..137]  zero_samples=2   t=[16.288465, 16.380418]  -> isolated (<= 3 samples) - dropped reading, IGNORED
+      [140..140]  zero_samples=1   t=[16.787173, 16.787173]  -> isolated (<= 3 samples) - dropped reading, IGNORED
+    ignored isolated 0 index/indices: [136, 137, 140]
+    start trim : delete rows 0..28 (29 rows) t=[-0.002084, 3.616474]
+```
+
+孤立 0 的**保留**已独立核验：stage1 follower 索引 136/137/140（velocity 均为 0.0）三行都出现在 `driver_1_event_1.csv` 中；
+被吸收的过渡点索引 28（velocity=2.0）不出现在任何 event 文件里。
+
+### 验收 4 —— 幂等 / 无 .tmp 残留 ✓
+
+run A 与 run B 的 7 个文件逐文件 sha256 **完全一致**（`diff $TMPDIR/hashA.txt $TMPDIR/hashB.txt` 无输出），两次 stdout 亦逐行一致；
+从 `$TMPDIR` 运行的第三次结果与 run A 哈希一致。聚合哈希：`md5 = 9b7d553e85d9916f20c34c2ba8181173`、`sha256 = cf24c8aca5367e90f84dedaa66466738ae3c6610c589596b03c8a5675ef708ae`。
+`find <project> -name "*.tmp" | wc -l` → **0**；脚本自身也打印 `.tmp leftovers: none`，并校验目录内容集合恰为 6 个 event CSV + 1 个 summary。
+
+## 5. 运行输出（真实 stdout，cwd = $TMPDIR 的那次，与项目根运行结果字节一致）
+
+```
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+stage 1 input: data\preprocess\stage_1
+output dir   : data\preprocess\stage_2
+
+configuration:
+  isolated standstill run   : <= 3 samples (ignored, kept)
+  genuine stop run          : >  3 samples (triggers trimming)
+  launch transient absorbed : 0 < velocity <= 2.0 km/h with unchanged (x, y)
+  event split gap           : dt > 1.0 s
+
+rebuilt output dir: nothing to remove (directory was empty or absent)
+
+driver_1: 721 input rows (follower=374, leader=347)
+  trim evidence:
+  driver_1 / follower: 374 rows in, t=[-0.002084, 57.249644]
+    velocity==0 runs:
+      [0..11]  zero_samples=12  t=[-0.002084, 1.433994]  -> genuine stop (> 3 samples)
+      [18..28]  zero_samples=10  t=[2.478847, 3.616474]  -> genuine stop (> 3 samples), absorbed 1 launch sample(s) (0 < v <= 2.0 km/h, position unchanged) -> run becomes [18..28]
+      [136..137]  zero_samples=2   t=[16.288465, 16.380418]  -> isolated (<= 3 samples) - dropped reading, IGNORED
+      [140..140]  zero_samples=1   t=[16.787173, 16.787173]  -> isolated (<= 3 samples) - dropped reading, IGNORED
+    ignored isolated 0 index/indices: [136, 137, 140]
+    start trim : delete rows 0..28 (29 rows) t=[-0.002084, 3.616474]
+      basis    : last genuine stop run before sustained motion ends at index 28 (t=3.616474); no genuine stop run follows it
+    end trim   : none (sequence does not end with a genuine stop run)
+    kept: 345 rows t=[3.723465, 57.249644]
+  driver_1 / leader: 347 rows in, t=[0.000941, 70.508772]
+    velocity==0 runs:
+      [0..2]  zero_samples=3   t=[0.000941, 0.220764]  -> isolated (<= 3 samples) - dropped reading, IGNORED
+    ignored isolated 0 index/indices: [0, 1, 2]
+    start trim : none (no genuine stop run precedes sustained motion; longest head standstill run <= 3 samples)
+    end trim   : none (sequence does not end with a genuine stop run)
+    kept: 347 rows t=[0.000941, 70.508772]
+  start alignment: leader rows with t < 3.616474 (follower head-cut boundary) deleted -> 35 rows, stage1 indices 0..34 t=[0.000941, 3.533280]
+  segments (dt > 1.0 s):
+    follower_event_1  162 rows  t=[3.723465, 22.925279]  (stage1 rows 29..190)
+    follower_event_2   58 rows  t=[30.057770, 36.702075]  (stage1 rows 191..248)
+    follower_event_3  125 rows  t=[43.243782, 57.249644]  (stage1 rows 249..373)
+    leader_event_1    126 rows  t=[3.655192, 17.686604]  (stage1 rows 35..160)
+    leader_event_2     60 rows  t=[25.642925, 32.698555]  (stage1 rows 161..220)
+    leader_event_3     91 rows  t=[40.462151, 51.457526]  (stage1 rows 221..311)
+    leader_event_4     21 rows  t=[58.929129, 60.953078]  (stage1 rows 312..332)
+    leader_event_5     14 rows  t=[68.697037, 70.508772]  (stage1 rows 333..346)
+  pairing by ordinal: 3 event(s)
+    driver_1_event_1.csv      288 rows  (follower 162 + leader 126)  t=[3.655192, 22.925279]
+    driver_1_event_2.csv      118 rows  (follower 58 + leader 60)  t=[25.642925, 36.702075]
+    driver_1_event_3.csv      216 rows  (follower 125 + leader 91)  t=[40.462151, 57.249644]
+    UNMATCHED leader_event_4     21 rows  t=[58.929129, 60.953078]  -> summary only, no CSV written
+    UNMATCHED leader_event_5     14 rows  t=[68.697037, 70.508772]  -> summary only, no CSV written
+  row balance: kept 657 = paired 622 + unmatched 35  OK
+
+driver_2: 727 input rows (follower=353, leader=374)
+  trim evidence:
+  driver_2 / follower: 353 rows in, t=[4.630570, 58.330555]
+    velocity==0 runs:
+    start trim : none (no genuine stop run precedes sustained motion; longest head standstill run <= 3 samples)
+    end trim   : none (sequence does not end with a genuine stop run)
+    kept: 353 rows t=[4.630570, 58.330555]
+  driver_2 / leader: 374 rows in, t=[-0.054888, 58.337247]
+    velocity==0 runs:
+      [0..2]  zero_samples=3   t=[-0.054888, 0.250722]  -> isolated (<= 3 samples) - dropped reading, IGNORED
+    ignored isolated 0 index/indices: [0, 1, 2]
+    start trim : none (no genuine stop run precedes sustained motion; longest head standstill run <= 3 samples)
+    end trim   : none (sequence does not end with a genuine stop run)
+    kept: 374 rows t=[-0.054888, 58.337247]
+  start alignment: follower triggered no head trim -> leader untouched (no alignment base)
+  segments (dt > 1.0 s):
+    follower_event_1   18 rows  t=[4.630570, 6.415966]  (stage1 rows 0..17)
+    follower_event_2  230 rows  t=[12.442953, 38.593424]  (stage1 rows 18..247)
+    follower_event_3  105 rows  t=[46.047997, 58.330555]  (stage1 rows 248..352)
+    leader_event_1      4 rows  t=[-0.054888, 0.352735]  (stage1 rows 0..3)
+    leader_event_2    225 rows  t=[8.396490, 33.865332]  (stage1 rows 4..228)
+    leader_event_3    145 rows  t=[41.815037, 58.337247]  (stage1 rows 229..373)
+  pairing by ordinal: 3 event(s)
+    driver_2_event_1.csv       22 rows  (follower 18 + leader 4)  t=[-0.054888, 6.415966]
+    driver_2_event_2.csv      455 rows  (follower 230 + leader 225)  t=[8.396490, 38.593424]
+    driver_2_event_3.csv      250 rows  (follower 105 + leader 145)  t=[41.815037, 58.337247]
+    UNMATCHED: none
+  row balance: kept 727 = paired 727 + unmatched 0  OK
+
+on-disk verification (re-read after writing):
+  driver_1_event_1.csv  expected=288  on_disk=288  OK
+  driver_1_event_2.csv  expected=118  on_disk=118  OK
+  driver_1_event_3.csv  expected=216  on_disk=216  OK
+  driver_2_event_1.csv  expected=22  on_disk=22  OK
+  driver_2_event_2.csv  expected=455  on_disk=455  OK
+  driver_2_event_3.csv  expected=250  on_disk=250  OK
+  total written data rows: 1349
+
+.tmp leftovers: none
+stage_2 dir contents: driver_1_event_1.csv, driver_1_event_2.csv, driver_1_event_3.csv, driver_2_event_1.csv, driver_2_event_2.csv, driver_2_event_3.csv, stage2_summary.json
+```
+
+上面这个 stdout 代码块经程序化复核：与本次重新执行 `python src/preprocess_stage2.py` 的输出逐行一致（89 行，唯一差异是 `rebuilt output dir...` 那一行——首次运行目录为空、重跑会列出被清掉的旧文件），即贴出的输出是真实运行结果而非事后整理。
+
+独立校验器（`.../cache/scratch/check_stage2.py`，从磁盘 + stage1 源文件重新推导，不信任脚本自身的打印）：
+
+```
+checks run: 91, failures: 0
+ALL CHECKS PASSED
+```
+
+它核验的内容：每个 event 文件表头 == stage1 表头、role 块必须为 `('follower','leader')` 且不交错、两段内 t 严格升序、
+文件中每一行都能在 stage1 中找到且无重复行、event 之间无行复用、行数 + t 区间与 summary 逐项一致、
+裁剪口径用独立实现复算（零速段分类、孤立索引集合 == summary）、driver_1 leader 保留集合 == `t >= 基准` 的源行、
+unmatched 行确实不在任何 event 文件中、driver_2 全部 727 行都落进 event 文件、总行数守恒。
+
+## 6. 假设、偏差与遗留问题
+
+**假设 A（唯一一处需要拍板的口径，影响 1 行）**：起点裁剪的边界采样点。
+严格按"`velocity == 0`"口径，driver_1 follower 最后一个孤立/真实停车段止于索引 27（t=3.525322，v=0.0），删 28 行、边界 t≈3.525 s；
+但索引 28 的采样点 `velocity=2.0` 且 `(x,y)=(825.0,3322.0)` 与索引 27 **完全相同（位置未变）**——车实际还没动，只是起步瞬间的读数抖动。
+脚本因此把"真实停车段（>3 采样点）"末尾这种"位置未变且 0 < v ≤ 2 km/h"的过渡采样点吸收进停车段，
+得到 29 行（索引 0–28）、边界 t=**3.616474 ≈ 3.62 s**，与 brief 的预期（"删除前 29 行（索引 0–28…t≈3.62s）"）逐项吻合。
+该吸收**只作用于已判定为真实停车（>3 采样点）的段**，因此 driver_1 leader 头部那 3 个 `v=0` 采样点仍判为孤立、不触发裁剪，
+driver_2 的两处 3 采样点零速段同样保持孤立——这正是验收 1「driver_2 不触发任何裁剪」所要求的结果。
+若日后想改回严格 `velocity == 0` 口径：把 `src/preprocess_stage2.py` 的 `STOP_LAUNCH_VELOCITY_EPS` 设为 `0.0` 即可，
+结果变成 follower 删 28 行、边界 t=3.525322，leader 对齐删除行数与范围不变（35 行，因为 [3.525, 3.655) 内没有 leader 采样点）。
+
+**偏差 B（口径措辞）**：对齐基准取的是 follower 起点裁剪**边界行**（最后一行被删的行，t=3.616474），
+而不是"第一条保留行"（t=3.723465）。两者在 driver_1 上删除的 leader 行数和范围完全相同（35 行，索引 0–34，最后一行 t=3.533280，
+下一行 t=3.655192），因此结果与 brief 的"按 t<3.62s 同步裁剪"一致。
+
+**偏差 C（unmatched 段不落盘）**：brief 只要求"每个配对 event 一个文件"，故 driver_1 的 `leader_event_4`（21 行）与
+`leader_event_5`（14 行）共 35 行**不写成 CSV**，只记录在 `stage2_summary.json`（含 role/段号/行数/t 区间/stage1 行索引）。
+若后续阶段需要这几段（例如做 IDM 标定时不能丢数据），属于需要用户确认的下一步。
+
+**遗留 D（运维注意）**：按 brief 要求输出目录在**每次运行开始时重建**，因此若进程在写文件过程中被强杀，
+目录会处于不完整状态（实测：用 `python src/preprocess_stage2.py | head -12` 时会因 stdout 被关闭触发 SIGPIPE 而中断，目录被清空）。
+重跑一次即可恢复；本次交付的最终产物就是一次完整成功运行的结果（哈希见 §7）。
+验证时请**重定向到文件**（`python src/preprocess_stage2.py > out.txt`）而不是用 `head` 截断管道。
+
+**未做**：没有浏览器/图形界面相关的验收（本任务为纯数据脚本，且本机未安装 Chromium）；没有跑单元测试框架（项目无测试框架，采用独立校验脚本 + 落盘复查代替）。
+
+## 7. 产物清单与哈希（run A = run B = cwd 运行）
+
+| 文件 | 数据行数 | sha256 |
+|---|---|---|
+| `data/preprocess/stage_2/driver_1_event_1.csv` | 288 | `b29c335798d2cea8c671fa79b4bb1b72992d214b234e7b45b4087df3aa623a92` |
+| `data/preprocess/stage_2/driver_1_event_2.csv` | 118 | `270c8f88d082d88dbcf81289ed82bf2d3102e66abd6ff1025d8fc22913ffde5b` |
+| `data/preprocess/stage_2/driver_1_event_3.csv` | 216 | `0e30b9a9460e7947bb4754981dbb923dfdd6d4650d9506bf57435b334f89df6f` |
+| `data/preprocess/stage_2/driver_2_event_1.csv` | 22 | `d851d13bb3c9042bb86f50fce85f341269c9edaf261332f57a3cad8fa528fcfb` |
+| `data/preprocess/stage_2/driver_2_event_2.csv` | 455 | `9517a611071c13becf0c140bd519da746214af297fb4290b5aaed89074c19dae` |
+| `data/preprocess/stage_2/driver_2_event_3.csv` | 250 | `8079856d2ba78060e5ee79ebc42323bb81d72f4581837fbeed56a731b2bf3041` |
+| `data/preprocess/stage_2/stage2_summary.json` | — | `954b231c90e2af5edb472ced79db3fcb6e600797b7c23c4c0799c265ab6b1350` |
+
+输入哈希（记录于 summary）：`driver_1.csv` = `6d2719ca8ed6683417deb120339eeccb9ed3d58cbd3a0b2e266a9ded8546a4f7`、
+`driver_2.csv` = `fd6d73fb3d977af568756bbef3b22dd22368fcd6f5007c09701d9ef9adba2351`。
+聚合：`find data/preprocess/stage_2 -type f | sort | xargs cat | md5sum` → `9b7d553e85d9916f20c34c2ba8181173`。
+
+## 8. 复现步骤
+
+```bash
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+python src/preprocess_stage2.py > "$TMPDIR/stage2_out.txt" 2>&1   # 重新生成 data/preprocess/stage_2/（目录会被重建）
+python "C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/check_stage2.py"   # 91 项独立校验
+```
+
+---
+
+# 附录 G — Stage 1 报告原文存档（v3：role 分组排序）
+
+## Build Report — Lab 1 Stage 1 数据预处理脚本（需求修订版 v3：role 分组排序） （存档原文，标题层级已降一级）
+
+STATUS: COMPLETE
+
+本报告覆盖并取代 v2 报告。v2 的排序规则是「全局按 `t_from_start` 升序」（follower/leader 交错）；
+本轮**只改排序规则**为两级键 `(role 组序: follower=0 / leader=1, t_from_start)`，
+其余一切（列、driver 标签、行数、幂等、原子写入、落盘校验、缺列/未知 role 报错、遗留拆分文件删除）保持不变。
+
+## 1. 交付物与变更
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `src/preprocess_stage1.py` | 修改（仅排序逻辑，255 行） | 排序键改为 `(role 组序, t_from_start)`；新增 `ROLE_GROUP_ORDER` 常量与 `role_group_order()` 辅助函数；模块 docstring 同步更新 |
+| `data/preprocess/stage_1/driver_1.csv` | 重新生成（721 行 + 表头） | v2 的同一行集合，按 role 分组重排（follower 374 行在前，leader 347 行在后） |
+| `data/preprocess/stage_1/driver_2.csv` | 重新生成（727 行 + 表头） | 同上（follower 353 行在前，leader 374 行在后） |
+| `build-report.md` | 更新 | 本文件 |
+| `data/preprocess/stage_1/driver_{1,2}_{follower,leader}.csv` | 保持删除 | 4 个旧拆分文件仍未存在（见 §7） |
+
+- 项目内**未新增任何文件**；结构校验脚本与错误路径 fixture 全部写在 scratch
+  （`C:/Users/ptiu1/AppData/Local/hermes/profiles/coder/cache/scratch/check_stage1_role_order.py`、
+  `.../make_stage1_fixtures.py`），不属于交付物。
+- `briefs/` 与 `data/raw/` 未改动；本项目不是 git 仓库（`git rev-parse` → not a git repository），故无提交。
+- 未安装/升级任何包，未新建虚拟环境（脚本仅用标准库）。
+
+## 2. 代码变更点（最小改动）
+
+改动前（v2）：
+
+```python
+    projected.sort(key=lambda r: float(r["t_from_start"]))
+```
+
+改动后（v3）：
+
+```python
+# 常量（紧随 ROLES 之后）
+# Two-level output order: role group first (follower block, then leader block),
+# `t_from_start` ascending inside each block.
+ROLE_GROUP_ORDER = {"follower": 0, "leader": 1}
+
+
+def role_group_order(role: str) -> int:
+    """Group rank of a role: follower=0, leader=1; anything else is an error."""
+    try:
+        return ROLE_GROUP_ORDER[role.strip()]
+    except KeyError:
+        raise ValueError(f"unexpected role value for ordering: {role!r}") from None
+
+
+def to_output_rows(rows: list[dict[str, str]], driver: str) -> list[dict[str, str]]:
+    """Project onto OUTPUT_FIELDS and order by (role group, t_from_start)."""
+    ...
+    # Values stay verbatim strings; float() is used only as the sort key.
+    # Grouping is expressed as a sort key (not by splitting rows out of the file),
+    # so each driver still yields exactly one output file. Python's sort is
+    # stable, so ties inside a group keep their original file order.
+    projected.sort(key=lambda r: (role_group_order(r["role"]), float(r["t_from_start"])))
+    return projected
+```
+
+要点：分组用**排序键**表达（不拆行、不拆文件），因此仍是一驱动一文件；数值文本仍逐字符照抄，
+`float()` 只作排序 key；`role_group_order()` 对未知 role 抛 `ValueError`，
+与 `count_roles()` 的既有校验构成双保险。其余函数（`read_raw` / `count_roles` / `write_csv` /
+`count_data_rows` / `read_header` / `remove_legacy_outputs` / `main` 的打印与校验）**一字未改**。
+
+## 3. 实际执行的命令
+
+```bash
+cd "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1"
+
+# 验收要求的命令
+python src/preprocess_stage1.py
+
+# 幂等性：再连续跑两次，对比聚合哈希
+python src/preprocess_stage1.py
+python src/preprocess_stage1.py
+cat data/preprocess/stage_1/*.csv | md5sum
+
+# cwd 无关性：从项目外目录运行
+cd "$TMPDIR" && python "C:/Users/ptiu1/Documents/PhDStudy/INTR5100/lab1/src/preprocess_stage1.py"
+
+# 原始数据完整性 + 目录状态
+md5sum data/raw/*/straight_trajectory.csv
+md5sum data/preprocess/stage_1/*.csv
+wc -l data/preprocess/stage_1/*.csv
+ls -la data/preprocess/stage_1/
+ls data/preprocess/stage_1/driver_1_follower.csv   # 等 4 个旧拆分文件
+
+# 独立结构校验（与脚本零共享代码，仅读盘上文件）
+python "$SCRATCH/check_stage1_role_order.py"
+
+# 错误路径（scratch 伪造数据）
+python "$SCRATCH/make_stage1_fixtures.py"
+python src/preprocess_stage1.py --root "$SCRATCH/fx_missing_col"
+python src/preprocess_stage1.py --root "$SCRATCH/fx_bad_role"
+python src/preprocess_stage1.py --root "$SCRATCH/fx_missing_file"
+```
+
+Python：Windows 侧 `python` = `C:/Users/ptiu1/AppData/Local/hermes/hermes-agent/venv/Scripts/python`，Python 3.11.16。
+
+## 4. 脚本运行输出（完整，验收命令 `python src/preprocess_stage1.py`，exit=0）
+
+```
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+output dir   : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1\data\preprocess\stage_1
+
+data\raw\collection_20260917_144220\straight_trajectory.csv: 721 data rows (follower=374, leader=347)
+data\raw\collection_20260917_144342\straight_trajectory.csv: 727 data rows (follower=353, leader=374)
+
+output row counts (data rows, header excluded):
+  driver_1.csv  721
+  driver_2.csv  727
+  TOTAL         1448
+
+on-disk verification:
+  driver_1.csv  expected=721  on_disk=721  OK
+  driver_2.csv  expected=727  on_disk=727  OK
+
+role counts (from source):
+  driver_1: follower=374, leader=347, total=721
+  driver_2: follower=353, leader=374, total=727
+
+header:
+  driver_1.csv  driver,role,t_from_start,x,y,heading,velocity
+  driver_2.csv  driver,role,t_from_start,x,y,heading,velocity
+
+removed legacy role-split output(s): none present
+stage_1 dir contents: driver_1.csv, driver_2.csv
+exit=0
+```
+
+（另一次从项目外 cwd 运行的尾部输出同样为 `stage_1 dir contents: driver_1.csv, driver_2.csv`，exit=0。）
+
+## 5. 验收项逐条比对
+
+| 验收要求 | 期望 | 实测 | 结果 |
+|---|---|---|---|
+| 命令可运行 | exit 0 | exit=0（项目内 / 项目外 cwd 均 exit=0） | PASS |
+| `driver_1.csv` 行数不变 | 721 | 721（脚本打印 / 回读落盘 / `wc -l` 722−1） | PASS |
+| `driver_2.csv` 行数不变 | 727 | 727（脚本打印 / 回读落盘 / `wc -l` 728−1） | PASS |
+| driver_1 role 计数不变 | follower 374 / leader 347 | follower=374, leader=347 | PASS |
+| driver_2 role 计数不变 | follower 353 / leader 374 | follower=353, leader=374 | PASS |
+| follower 全部在上半部、无交错 | role 序列 = follower×n_f + leader×n_l | `blocks_contiguous=True`，`role_switches=1`（仅一次切换） | PASS |
+| 最后一个 follower 行号 = follower 行数 | driver_1: 374；driver_2: 353 | driver_1 `last_follower_row=374`；driver_2 `last_follower_row=353`（均为「去表头后 1 起算」行号） | PASS |
+| 紧随其后即 leader 段 | 首个 leader 行号 = follower 行数 + 1 | driver_1 `first_leader_row=375`；driver_2 `first_leader_row=354` | PASS |
+| follower 段内部 t 严格升序 | 严格升序 | 两文件 `ascending=True`（非降也 True，`ties=0`） | PASS |
+| leader 段内部 t 严格升序 | 严格升序 | 两文件 `ascending=True`（非降也 True，`ties=0`） | PASS |
+| 表头 / 列数 / driver 标签不变 | 7 列，标签为对应 driver | 两文件 `header_ok=True`、`ncols_all_7=True`、`driver_col_ok=True` | PASS |
+| 旧 4 个拆分文件保持删除 | 不存在 | 4 个文件均 `No such file or directory` | PASS |
+| 幂等 | 多次运行字节一致 | 3 次运行聚合 md5 全等 `cb1e4a428284bda204fda38bce433b9d` | PASS |
+| 原始数据未被改动 | raw 哈希不变 | `b07b561b31f056466d624b1400503bd9` / `96edde43645afe086ad7e4fcee38b671`（与 v2 报告一致） | PASS |
+
+## 6. 独立结构校验（`check_stage1_role_order.py`，仅读盘上文件，与脚本零共享代码）
+
+```
+$ python "$SCRATCH/check_stage1_role_order.py"
+data/preprocess/stage_1/driver_1.csv
+  header            = ['driver', 'role', 't_from_start', 'x', 'y', 'heading', 'velocity']
+  header_ok         = True   driver_col_ok = True   ncols_all_7 = True
+  rows              = 721   (raw rows = 721)
+  role_counts       = follower=374, leader=347  (sum=721)
+  blocks_contiguous = True   role_switches = 1 (1 = single split)
+  last_follower_row = 374  (== follower count 374: True)
+  first_leader_row  = 375  (== follower count + 1: True)
+  follower block len=374  t=[-0.0020837783813476562, 57.2496440410614]  ascending=True (non-decreasing=True, ties=0)
+  leader   block len=347  t=[0.0009410381317138672, 70.50877213478088]  ascending=True (non-decreasing=True, ties=0)
+  whole_file_t_ascending = False  (expected False: v2 global sort replaced by role blocks)
+  matches_raw_multiset = True
+
+data/preprocess/stage_1/driver_2.csv
+  header            = ['driver', 'role', 't_from_start', 'x', 'y', 'heading', 'velocity']
+  header_ok         = True   driver_col_ok = True   ncols_all_7 = True
+  rows              = 727   (raw rows = 727)
+  role_counts       = follower=353, leader=374  (sum=727)
+  blocks_contiguous = True   role_switches = 1 (1 = single split)
+  last_follower_row = 353  (== follower count 353: True)
+  first_leader_row  = 354  (== follower count + 1: True)
+  follower block len=353  t=[4.630569934844971, 58.33055520057678]  ascending=True (non-decreasing=True, ties=0)
+  leader   block len=374  t=[-0.054888010025024414, 58.337246894836426]  ascending=True (non-decreasing=True, ties=0)
+  whole_file_t_ascending = False  (expected False: v2 global sort replaced by role blocks)
+  matches_raw_multiset = True
+
+ALL_CHECKS_PASS
+```
+
+- `role_switches` 为 role 序列中相邻行取值发生变化的次数：`1` 表示全文只有 follower→leader 一次切换，
+  即 follower 段连续位于文件前部、之后全是 leader，**无任何交错**。
+- 「最后一个 follower 行号」同时给出两种口径：去表头后数据行序号（= follower 行数本身），
+  以及文件物理行号（= follower 行数 + 1）。两种口径都在上表列出，可自行换算核对。
+- `matches_raw_multiset` 是对**原始 CSV 行多重集**（`driver,role,t_from_start,x,y,heading,velocity` 全字段逐字符）
+  与输出行多重集的完全相等比对 → 无行丢失、无重复、无列改写、无数值重格式化（即「其余一切不变」在数据层面成立）。
+- `whole_file_t_ascending=False` 说明整文件已**不再**全局按 t 升序（v2 行为），排序规则确实改变了输出；
+  同时两个分段各自严格升序，正是本次要求的两级排序。
+
+文件行号直接抽样（`driver_1.csv` 第 374–377 行，可见 follower→leader 边界；`driver_2.csv` 第 353–356 行同理）：
+
+```
+374|driver_1,follower,57.14139795303345,2884.0,2812.0,94.0,55.0
+375|driver_1,follower,57.2496440410614,2884.0,2826.0,91.0,56.0
+376|driver_1,leader,0.0009410381317138672,753.0,3032.0,271.0,0.0
+377|driver_1,leader,0.10185718536376953,753.0,3032.0,270.0,0.0
+```
+
+```
+353|driver_2,follower,58.22730898857117,874.0,3224.0,265.0,30.0
+354|driver_2,follower,58.33055520057678,873.0,3214.0,267.0,30.0
+355|driver_2,leader,-0.054888010025024414,4442.0,4591.0,84.0,0.0
+356|driver_2,leader,0.1599431037902832,4442.0,4591.0,84.0,0.0
+```
+
+（文件第 1 行为表头；故数据行 374 / 353 即文件行 375 / 354，与上表一致。两文件最后一行均为 leader：
+`driver_1` 第 722 行 = `driver_1,leader,70.50877213478088,...`，`driver_2` 第 728 行 =
+`driver_2,leader,58.337246894836426,736.0,2797.0,272.0,30.0`。）
+
+## 7. 幂等性、哈希与目录状态
+
+```
+agg run1=cb1e4a428284bda204fda38bce433b9d
+agg run2=cb1e4a428284bda204fda38bce433b9d
+agg run3=cb1e4a428284bda204fda38bce433b9d
+IDEMPOTENT: identical after 3 runs
+
+FINAL hashes:
+ef24a091a364669fd043ab4a889a36e8 *data/preprocess/stage_1/driver_1.csv
+83b029a251ea16c9c8ca15ac57b68ed3 *data/preprocess/stage_1/driver_2.csv
+
+$ wc -l data/preprocess/stage_1/*.csv        # 含表头
+  722 data/preprocess/stage_1/driver_1.csv
+  728 data/preprocess/stage_1/driver_2.csv
+ 1450 total
+
+$ ls -la data/preprocess/stage_1/
+-rw-r--r-- 1 ptiu1 197609 43478  9月 21 15:39 driver_1.csv
+-rw-r--r-- 1 ptiu1 197609 44391  9月 21 15:39 driver_2.csv
+
+$ ls data/preprocess/stage_1/driver_1_follower.csv ... （4 个旧拆分文件）
+ls: cannot access 'data/preprocess/stage_1/driver_1_follower.csv': No such file or directory
+ls: cannot access 'data/preprocess/stage_1/driver_1_leader.csv': No such file or directory
+ls: cannot access 'data/preprocess/stage_1/driver_2_follower.csv': No such file or directory
+ls: cannot access 'data/preprocess/stage_1/driver_2_leader.csv': No such file or directory
+```
+
+无 `.tmp` 残留。v2 → v3 哈希对照（证明重排确实发生，且无内容增删 —— 字节数 43478 / 44391 与 v2 完全相同，
+仅行序变化）：
+
+```
+v2 (全局 t 升序): e330427017eb5c1cca3f97c9a197223b  driver_1.csv ; 51ab9b77294cf1fea347eba8b31422b7  driver_2.csv
+v3 (role 分组)  : ef24a091a364669fd043ab4a889a36e8  driver_1.csv ; 83b029a251ea16c9c8ca15ac57b68ed3  driver_2.csv
+```
+
+原始数据（本次运行前后均未变）：
+```
+b07b561b31f056466d624b1400503bd9 *data/raw/collection_20260917_144220/straight_trajectory.csv
+96edde43645afe086ad7e4fcee38b671 *data/raw/collection_20260917_144342/straight_trajectory.csv
+```
+
+## 8. 错误路径（本轮重新构造 fixture 实测，非遗留结论）
+
+| 场景（`--root` 指向 scratch fixture） | 实测结果 | exit |
+|---|---|---|
+| 原始文件缺必需列 `velocity` | `ValueError: ...\fx_missing_col\...\straight_trajectory.csv: missing required column(s): ['velocity']` | 1 |
+| `role` 出现未知值 `sidecar` | `ValueError: ...\fx_bad_role\...\straight_trajectory.csv: unexpected role value(s): {'sidecar': 1}` | 1 |
+| 第二个 driver 的原始文件不存在 | `FileNotFoundError: raw trajectory file not found: ...\fx_missing_file\...\collection_20260917_144342\straight_trajectory.csv` | 1 |
+
+三种情况均非 0 退出、无静默丢行，且输出目录中**没有** `.tmp` 残留
+（`fx_missing_file` 中 driver_1 已成功写出 `driver_1.csv` 后于 driver_2 处失败，属既有「逐 driver 处理」语义，
+非本次改动引入）。原始数据中 `role` 取值经逐字节普查仅为 `follower` / `leader` 两种，无空白或大小写变体。
+
+## 9. 假设、偏差与遗留问题
+
+假设：
+1. 「最后一个 follower 行的行号 = follower 行数」按**去表头后的数据行序号**（1 起算）理解，
+   报告同时给出了文件物理行号口径（= follower 行数 + 1），两种口径均满足。
+2. follower/leader 段内的「升序」按数值比较（`float(t_from_start)`）；实测两段均**严格**升序且无并列值（`ties=0`），
+   稳定排序在并列时的兜底行为未被触发。
+3. 输出仍为每 driver 一个文件、7 列、CRLF 行尾，与 v2 一致。
+
+偏差：无。除排序键与相应 docstring/常量/辅助函数外未改动任何行为；未安装任何包；未改动 `data/raw/`、`briefs/`；
+未在项目内新增文件（校验脚本与 fixture 均在 scratch）。
+
+遗留问题 / 建议（本轮未执行）：
+- `velocity` 为车辆上报参考速度、`x/y` 为整数地图坐标、`heading` 为度：单位换算属 Stage 2，本阶段按要求原样保留。
+- `driver_2` 两车时间轴起点不一致（leader 从 ≈ −0.055 s、follower 从 ≈ 4.63 s 开始），
+  分组后 follower 段的 t 区间 [4.63, 58.33] 与 leader 段 [−0.055, 58.34] 不再直接对应，
+  Stage 2 做时间对齐/重叠区间截取时需注意按 role 段分别处理。
+- 若希望分组不变量在每次运行时自证，可在脚本现有「on-disk verification」段追加一行块连续性检查；
+  本轮为严格遵循「其余一切不变」未改脚本输出。

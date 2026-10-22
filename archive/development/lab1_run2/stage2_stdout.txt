@@ -1,0 +1,127 @@
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+stage 1 input: data\preprocess\stage_1
+output dir   : data\preprocess\stage_2
+
+configuration:
+  isolated standstill run   : <= 3 samples (ignored, kept)
+  genuine stop run          : >  3 samples (triggers trimming)
+  launch transient absorbed : 0 < velocity <= 2.0 km/h with unchanged (x, y)
+  event split gap           : dt > 1.0 s
+
+rebuilt output dir, removed previous content: run_1_event_1.csv, run_1_event_2.csv, run_1_event_3.csv, run_2_event_1.csv, run_2_event_2.csv, run_2_event_3.csv, run_2_event_4.csv, run_2_event_5.csv, run_2_event_6.csv, run_2_event_7.csv, stage2_summary.json
+
+run_1: 727 input rows (follower=353, leader=374)
+  trim evidence:
+  run_1 / follower: 353 rows in, t=[4.630570, 58.330555]
+    velocity==0 runs:
+    start trim : none (no genuine stop run inside the head of the sequence, i.e. none before the first moving sample)
+    end trim   : none (sequence does not end with a genuine stop run)
+    kept: 353 rows t=[4.630570, 58.330555]
+  run_1 / leader: 374 rows in, t=[-0.054888, 58.337247]
+    velocity==0 runs:
+      [0..2]  zero_samples=3   t=[-0.054888, 0.250722]  -> isolated (<= 3 samples) - dropped reading, IGNORED
+    ignored isolated 0 index/indices: [0, 1, 2]
+    start trim : none (no genuine stop run inside the head of the sequence, i.e. none before the first moving sample)
+    end trim   : none (sequence does not end with a genuine stop run)
+    kept: 374 rows t=[-0.054888, 58.337247]
+  start alignment: follower triggered no head trim -> leader untouched (no alignment base)
+  segments (dt > 1.0 s):
+    follower_event_1   18 rows  t=[4.630570, 6.415966]  (stage1 rows 0..17)
+    follower_event_2  230 rows  t=[12.442953, 38.593424]  (stage1 rows 18..247)
+    follower_event_3  105 rows  t=[46.047997, 58.330555]  (stage1 rows 248..352)
+    leader_event_1      4 rows  t=[-0.054888, 0.352735]  (stage1 rows 0..3)
+    leader_event_2    225 rows  t=[8.396490, 33.865332]  (stage1 rows 4..228)
+    leader_event_3    145 rows  t=[41.815037, 58.337247]  (stage1 rows 229..373)
+  pairing by ordinal: 3 event(s)
+    run_1_event_1.csv          22 rows  (follower 18 + leader 4)  t=[-0.054888, 6.415966]
+    run_1_event_2.csv         455 rows  (follower 230 + leader 225)  t=[8.396490, 38.593424]
+    run_1_event_3.csv         250 rows  (follower 105 + leader 145)  t=[41.815037, 58.337247]
+    UNMATCHED: none
+  row balance: kept 727 = paired 727 + unmatched 0  OK
+
+run_2: 3435 input rows (follower=1787, leader=1648)
+  trim evidence:
+  run_2 / follower: 1787 rows in, t=[0.001084, 304.083341]
+    velocity==0 runs:
+      [0..8]  zero_samples=9   t=[0.001084, 1.092795]  -> genuine stop (> 3 samples)
+      [493..493]  zero_samples=1   t=[86.733785, 86.733785]  -> isolated (<= 3 samples) - dropped reading, IGNORED
+      [497..497]  zero_samples=1   t=[87.135812, 87.135812]  -> isolated (<= 3 samples) - dropped reading, IGNORED
+      [777..780]  zero_samples=4   t=[133.629095, 133.944633]  -> genuine stop (> 3 samples)
+    ignored isolated 0 index/indices: [493, 497]
+    start trim : delete rows 0..8 (9 rows) t=[0.001084, 1.092795]
+      basis    : last genuine stop run inside the head of the sequence (all its standstill samples precede the first moving sample) ends at index 8 (t=1.092795)
+    end trim   : none (sequence does not end with a genuine stop run)
+    kept: 1778 rows t=[1.502474, 304.083341]
+  run_2 / leader: 1648 rows in, t=[-0.049782, 304.028865]
+    velocity==0 runs:
+      [0..4]  zero_samples=4   t=[-0.049782, 0.434200]  -> genuine stop (> 3 samples), absorbed 1 launch sample(s) (0 < v <= 2.0 km/h, position unchanged) -> run becomes [0..4]
+    start trim : delete rows 0..4 (5 rows) t=[-0.049782, 0.434200]
+      basis    : last genuine stop run inside the head of the sequence (all its standstill samples precede the first moving sample) ends at index 4 (t=0.434200)
+    end trim   : none (sequence does not end with a genuine stop run)
+    kept: 1643 rows t=[0.538941, 304.028865]
+  start alignment: leader rows with t < 1.092795 (follower head-cut boundary) deleted -> 5 rows, stage1 indices 5..9 t=[0.538941, 1.038474]
+  segments (dt > 1.0 s):
+    follower_event_1  261 rows  t=[1.502474, 37.627446]  (stage1 rows 9..269)
+    follower_event_2   90 rows  t=[47.980696, 57.384806]  (stage1 rows 270..359)
+    follower_event_3  127 rows  t=[66.113415, 78.895299]  (stage1 rows 360..486)
+    follower_event_4   25 rows  t=[86.139749, 88.543494]  (stage1 rows 487..511)
+    follower_event_5   24 rows  t=[96.693091, 99.318468]  (stage1 rows 512..535)
+    follower_event_6  300 rows  t=[108.365971, 139.464819]  (stage1 rows 536..835)
+    follower_event_7  271 rows  t=[150.377398, 178.570093]  (stage1 rows 836..1106)
+    follower_event_8   85 rows  t=[188.048602, 196.916104]  (stage1 rows 1107..1191)
+    follower_event_9  159 rows  t=[205.800498, 222.232595]  (stage1 rows 1192..1350)
+    follower_event_10   26 rows  t=[231.698012, 234.333631]  (stage1 rows 1351..1376)
+    follower_event_11   22 rows  t=[242.946081, 245.237259]  (stage1 rows 1377..1398)
+    follower_event_12  234 rows  t=[253.934795, 278.945129]  (stage1 rows 1399..1632)
+    follower_event_13  154 rows  t=[287.651011, 304.083341]  (stage1 rows 1633..1786)
+    leader_event_1    171 rows  t=[1.141841, 30.469000]  (stage1 rows 10..180)
+    leader_event_2     62 rows  t=[40.357282, 47.875813]  (stage1 rows 181..242)
+    leader_event_3    118 rows  t=[57.532075, 70.928018]  (stage1 rows 243..360)
+    leader_event_4     21 rows  t=[79.893573, 82.314232]  (stage1 rows 361..381)
+    leader_event_5     25 rows  t=[91.382350, 94.010883]  (stage1 rows 382..406)
+    leader_event_6    287 rows  t=[103.260567, 133.366433]  (stage1 rows 407..693)
+    leader_event_7    276 rows  t=[142.732015, 172.839221]  (stage1 rows 694..969)
+    leader_event_8     81 rows  t=[182.117352, 190.653735]  (stage1 rows 970..1050)
+    leader_event_9    152 rows  t=[199.720928, 215.827731]  (stage1 rows 1051..1202)
+    leader_event_10    24 rows  t=[224.886816, 227.298120]  (stage1 rows 1203..1226)
+    leader_event_11    27 rows  t=[236.363730, 239.078095]  (stage1 rows 1227..1253)
+    leader_event_12   211 rows  t=[248.230527, 273.021959]  (stage1 rows 1254..1464)
+    leader_event_13   183 rows  t=[282.067606, 304.028865]  (stage1 rows 1465..1647)
+  pairing by ordinal: 13 event(s)
+    run_2_event_1.csv         432 rows  (follower 261 + leader 171)  t=[1.141841, 37.627446]
+    run_2_event_2.csv         152 rows  (follower 90 + leader 62)  t=[40.357282, 57.384806]
+    run_2_event_3.csv         245 rows  (follower 127 + leader 118)  t=[57.532075, 78.895299]
+    run_2_event_4.csv          46 rows  (follower 25 + leader 21)  t=[79.893573, 88.543494]
+    run_2_event_5.csv          49 rows  (follower 24 + leader 25)  t=[91.382350, 99.318468]
+    run_2_event_6.csv         587 rows  (follower 300 + leader 287)  t=[103.260567, 139.464819]
+    run_2_event_7.csv         547 rows  (follower 271 + leader 276)  t=[142.732015, 178.570093]
+    run_2_event_8.csv         166 rows  (follower 85 + leader 81)  t=[182.117352, 196.916104]
+    run_2_event_9.csv         311 rows  (follower 159 + leader 152)  t=[199.720928, 222.232595]
+    run_2_event_10.csv         50 rows  (follower 26 + leader 24)  t=[224.886816, 234.333631]
+    run_2_event_11.csv         49 rows  (follower 22 + leader 27)  t=[236.363730, 245.237259]
+    run_2_event_12.csv        445 rows  (follower 234 + leader 211)  t=[248.230527, 278.945129]
+    run_2_event_13.csv        337 rows  (follower 154 + leader 183)  t=[282.067606, 304.083341]
+    UNMATCHED: none
+  row balance: kept 3416 = paired 3416 + unmatched 0  OK
+
+on-disk verification (re-read after writing):
+  run_1_event_1.csv   expected=22  on_disk=22  OK
+  run_1_event_2.csv   expected=455  on_disk=455  OK
+  run_1_event_3.csv   expected=250  on_disk=250  OK
+  run_2_event_1.csv   expected=432  on_disk=432  OK
+  run_2_event_2.csv   expected=152  on_disk=152  OK
+  run_2_event_3.csv   expected=245  on_disk=245  OK
+  run_2_event_4.csv   expected=46  on_disk=46  OK
+  run_2_event_5.csv   expected=49  on_disk=49  OK
+  run_2_event_6.csv   expected=587  on_disk=587  OK
+  run_2_event_7.csv   expected=547  on_disk=547  OK
+  run_2_event_8.csv   expected=166  on_disk=166  OK
+  run_2_event_9.csv   expected=311  on_disk=311  OK
+  run_2_event_10.csv  expected=50  on_disk=50  OK
+  run_2_event_11.csv  expected=49  on_disk=49  OK
+  run_2_event_12.csv  expected=445  on_disk=445  OK
+  run_2_event_13.csv  expected=337  on_disk=337  OK
+  total written data rows: 4143
+
+.tmp leftovers: none
+stage_2 dir contents: run_1_event_1.csv, run_1_event_2.csv, run_1_event_3.csv, run_2_event_1.csv, run_2_event_10.csv, run_2_event_11.csv, run_2_event_12.csv, run_2_event_13.csv, run_2_event_2.csv, run_2_event_3.csv, run_2_event_4.csv, run_2_event_5.csv, run_2_event_6.csv, run_2_event_7.csv, run_2_event_8.csv, run_2_event_9.csv, stage2_summary.json

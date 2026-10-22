@@ -1,0 +1,96 @@
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+stage 3 input: data/preprocess/stage_3
+output dir   : data/preprocess/stage_4
+
+configuration:
+  time grid                 : 0.1 s (rounded half up, 1 printed decimal)
+  dt source                 : raw stage 3 timestamps (rounded `time` never feeds a division)
+  merge order               : (1) drop rounded-time duplicates -> (2) dhw -> (3) drop dhw<=0 -> (4) speeds
+  speeds                    : position difference, central difference inside, one-sided at ends; neighbours are retained points only
+  dhw                       : (x_l - x_f)*cos(h_f) + (y_l - y_f)*sin(h_f), no car length subtracted
+  time duplicates           : the later point of a rounded-time collision is dropped, `time` stays strictly increasing
+  reported velocity column  : discarded (stage 4 recomputes every speed)
+  value decimals            : 6
+
+events found in stage_3: 10
+
+rebuilt output dir, removed previous content: run_1_event_2.csv, run_1_event_3.csv, stage4_summary.json
+
+per-event merge:
+  run_1_event_2.csv        pairs: 211   out rows: 211   deleted: 0   dropped: 0
+      raw t [12.442953, 33.865332]  -> time [12.4, 33.9] s
+      dhw [456.82407, 540.01932] (median 490.418045), no car length subtracted  | fv [59.78442, 168.210363] mean 101.287251  | lv [56.953438, 150.14129] mean 104.569016
+      deleted anomalies: none (no dhw <= 0)
+      dropped duplicate times: none (every rounded time is unique)
+
+  run_1_event_3.csv        pairs: 124   out rows: 124   deleted: 0   dropped: 0
+      raw t [46.047997, 58.330555]  -> time [46.0, 58.3] s
+      dhw [415.767808, 562.0037] (median 452.520414), no car length subtracted  | fv [66.602222, 165.646403] mean 112.623699  | lv [61.685185, 136.43422] mean 101.705857
+      deleted anomalies: none (no dhw <= 0)
+      dropped duplicate times: none (every rounded time is unique)
+
+  run_2_event_1.csv        pairs: 184   out rows: 184   deleted: 0   dropped: 0
+      raw t [1.502474, 30.469]  -> time [1.5, 30.5] s
+      dhw [610.422727, 767.286691] (median 724.333045), no car length subtracted  | fv [55.150034, 134.865745] mean 85.345468  | lv [39.39754, 184.860122] mean 87.777157
+      deleted anomalies: none (no dhw <= 0)
+      dropped duplicate times: none (every rounded time is unique)
+
+  run_2_event_3.csv        pairs: 50    out rows: 49    deleted: 0   dropped: 1
+      raw t [66.113415, 70.928018]  -> time [66.1, 70.9] s
+      dhw [1078.55543, 1178.849344] (median 1151.619906), no car length subtracted  | fv [100.143269, 164.426841] mean 127.446655  | lv [128.329487, 176.228593] mean 148.275852
+      deleted anomalies: none (no dhw <= 0)
+      DROPPED duplicate time: t 70.928018 -> 70.9 s (row above at t 70.913415, gap 0.014603 s, off-grid closing instant)
+
+  run_2_event_6.csv        pairs: 252   out rows: 251   deleted: 0   dropped: 1
+      raw t [108.365971, 133.366433]  -> time [108.4, 133.4] s
+      dhw [461.603878, 509.671758] (median 486.770255), no car length subtracted  | fv [69.63421, 114.84027] mean 89.441552  | lv [68.294875, 104.902367] mean 88.181562
+      deleted anomalies: none (no dhw <= 0)
+      DROPPED duplicate time: t 133.366433 -> 133.4 s (row above at t 133.365971, gap 0.000462 s, off-grid closing instant)
+
+  run_2_event_7.csv        pairs: 217   out rows: 216   deleted: 0   dropped: 1
+      raw t [150.377398, 172.839221]  -> time [150.4, 172.8] s
+      dhw [727.593046, 871.76104] (median 839.465291), no car length subtracted  | fv [68.30583, 158.897695] mean 118.440433  | lv [67.550277, 174.154611] mean 112.376573
+      deleted anomalies: none (no dhw <= 0)
+      DROPPED duplicate time: t 172.839221 -> 172.8 s (row above at t 172.777398, gap 0.061823 s, off-grid closing instant)
+
+  run_2_event_8.csv        pairs: 28    out rows: 28    deleted: 0   dropped: 0
+      raw t [188.048602, 190.653735]  -> time [188.0, 190.7] s
+      dhw [649.278331, 676.817305] (median 668.487658), no car length subtracted  | fv [89.219933, 117.831086] mean 102.736454  | lv [78.32822, 126.294779] mean 110.074705
+      deleted anomalies: none (no dhw <= 0)
+      dropped duplicate times: none (every rounded time is unique)
+
+  run_2_event_9.csv        pairs: 102   out rows: 101   deleted: 0   dropped: 1
+      raw t [205.800498, 215.827731]  -> time [205.8, 215.8] s
+      dhw [674.852935, 732.862534] (median 716.928231), no car length subtracted  | fv [82.811343, 129.433443] mean 107.389834  | lv [66.417375, 171.502385] mean 112.265402
+      deleted anomalies: none (no dhw <= 0)
+      DROPPED duplicate time: t 215.827731 -> 215.8 s (row above at t 215.800498, gap 0.027233 s, off-grid closing instant)
+
+  run_2_event_12.csv       pairs: 169   out rows: 169   deleted: 0   dropped: 0
+      raw t [253.934795, 273.021959]  -> time [253.9, 273.0] s
+      dhw [601.609372, 646.927213] (median 631.176356), no car length subtracted  | fv [85.714616, 137.48281] mean 108.917366  | lv [90.885715, 160.190746] mean 110.905788
+      deleted anomalies: none (no dhw <= 0)
+      dropped duplicate times: none (every rounded time is unique)
+
+  run_2_event_13.csv       pairs: 143   out rows: 142   deleted: 0   dropped: 1
+      raw t [287.651011, 304.028865]  -> time [287.7, 304.0] s
+      dhw [624.452176, 713.593315] (median 693.883194), no car length subtracted  | fv [82.992425, 130.398215] mean 107.057873  | lv [53.846539, 291.947009] mean 112.859054
+      deleted anomalies: none (no dhw <= 0)
+      DROPPED duplicate time: t 304.028865 -> 304.0 s (row above at t 303.951011, gap 0.077854 s, off-grid closing instant)
+
+on-disk verification (re-read after writing):
+  run_1_event_2.csv   rows=211   duplicate time values=0 strictly increasing=True  OK
+  run_1_event_3.csv   rows=124   duplicate time values=0 strictly increasing=True  OK
+  run_2_event_1.csv   rows=184   duplicate time values=0 strictly increasing=True  OK
+  run_2_event_3.csv   rows=49    duplicate time values=0 strictly increasing=True  OK
+  run_2_event_6.csv   rows=251   duplicate time values=0 strictly increasing=True  OK
+  run_2_event_7.csv   rows=216   duplicate time values=0 strictly increasing=True  OK
+  run_2_event_8.csv   rows=28    duplicate time values=0 strictly increasing=True  OK
+  run_2_event_9.csv   rows=101   duplicate time values=0 strictly increasing=True  OK
+  run_2_event_12.csv  rows=169   duplicate time values=0 strictly increasing=True  OK
+  run_2_event_13.csv  rows=142   duplicate time values=0 strictly increasing=True  OK
+  total written rows: 1475
+  total deleted anomaly points: 0
+  total dropped duplicate-time points: 5
+
+.tmp leftovers: none
+stage_4 dir contents: run_1_event_2.csv, run_1_event_3.csv, run_2_event_1.csv, run_2_event_12.csv, run_2_event_13.csv, run_2_event_3.csv, run_2_event_6.csv, run_2_event_7.csv, run_2_event_8.csv, run_2_event_9.csv, stage4_summary.json

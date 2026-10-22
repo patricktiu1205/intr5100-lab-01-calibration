@@ -1,0 +1,88 @@
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+input dir    : data/preprocess/stage_4
+method       : M5 - differentiable IDM (torch) + Adam, 10 multi-starts
+objective    : total_error as written in torch = equal weight mean of the per-event
+               [ mean(ds^2)/sigma_s^2 + mean(dv^2)/sigma_v^2 + penalty*violations ]
+spacing      : s = dhw - 250   (spacing violation = simulated s <= 0)
+torch        : 2.14.0+cpu CPU, float64, 1 thread
+rollout      : Euler, real dt, lv held constant (measured), sqrt eps=1e-06, state floored at S_FLOOR=1
+parameters   : theta = LOWER + sigmoid(z)*(UPPER-LOWER), z in R^5 (no clipping needed)
+training     : Adam lr=0.05, 300 steps, 10 starts (1 reference + 9 Latin hypercube, seed 20260921), batched
+bounds       : v0[40,200] T[0.3,5] s0[10,400] a[10,200] b[10,200]
+reference    : starts = v0=120.0000  T=1.2000  s0=100.0000  a=80.0000  b=100.0000
+
+run_1: differentiable IDM + Adam, 10 starts
+    start  0/9  reference theta0       torch J=    1.179659  numpy(euler)=    1.179659  numpy(rk4)=    1.219169  rel=3.241e-02  
+    start  1/9  lhs 1 (seed 20260921)  torch J=    1.539966  numpy(euler)=    1.539966  numpy(rk4)=    1.573047  rel=2.103e-02  
+    start  2/9  lhs 2 (seed 20260921)  torch J=  597.773341  numpy(euler)=  597.773341  numpy(rk4)=  552.422841  rel=8.209e-02  
+    start  3/9  lhs 3 (seed 20260921)  torch J=  262.170181  numpy(euler)=  262.170181  numpy(rk4)=  256.451671  rel=2.230e-02  
+    start  4/9  lhs 4 (seed 20260921)  torch J=    1.615002  numpy(euler)=    1.615002  numpy(rk4)=    1.607836  rel=4.457e-03  
+    start  5/9  lhs 5 (seed 20260921)  torch J=    1.487514  numpy(euler)=    1.487514  numpy(rk4)=    1.502719  rel=1.012e-02  
+    start  6/9  lhs 6 (seed 20260921)  torch J=    1.172971  numpy(euler)=    1.172971  numpy(rk4)=    1.214134  rel=3.390e-02  
+    start  7/9  lhs 7 (seed 20260921)  torch J=  107.696533  numpy(euler)=  107.696533  numpy(rk4)=  103.798584  rel=3.755e-02  
+    start  8/9  lhs 8 (seed 20260921)  torch J=    1.427964  numpy(euler)=    1.427964  numpy(rk4)=    1.448111  rel=1.391e-02  
+    start  9/9  lhs 9 (seed 20260921)  torch J=    1.292912  numpy(euler)=    1.292912  numpy(rk4)=    1.328004  rel=2.642e-02  
+  best theta         : v0=140.3686  T=1.5074  s0=45.4097  a=57.5600  b=10.2127
+  within bounds      : True
+  total_error J      : 1.214134  (equal weight mean of the per-event J_e, RK4)
+  spacing RMSE (mean/worst): 21.5150 / 28.3070
+  speed   RMSE (mean/worst): 16.0457 / 17.0217
+  convergence        : step 0 best J=9.163439 -> step 300 best J=1.173001  (improvement 7.990439)
+  multi-start        : 10/10 feasible, best = lhs 6 (seed 20260921), distinct solutions 10, final cost across starts min/max/std = 1.2141/552.4228/172.2248
+  training           : 300 Adam steps, lr=0.05, runtime=154.40 s (1.9 steps/s), batched over 10 starts
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_2     211    14.7230    15.0697     0.4655    0.9063     1.3718    21.5799
+  event_3     124    28.3070    17.0217     0.3238    0.7326     1.0565    49.7431
+  consistency        : torch(Euler) vs numpy(Euler) max rel. difference = 2.071e-10; torch(Euler) vs numpy(RK4) max rel. difference = 0.0821
+  consistency check  : every start is within 10% of the numpy RK4 re-evaluation
+
+run_2: differentiable IDM + Adam, 10 starts
+    start  0/9  reference theta0       torch J=    4.730720  numpy(euler)=    4.730720  numpy(rk4)=    4.799922  rel=1.442e-02  
+    start  1/9  lhs 1 (seed 20260921)  torch J=    4.719273  numpy(euler)=    4.719273  numpy(rk4)=    4.796215  rel=1.604e-02  
+    start  2/9  lhs 2 (seed 20260921)  torch J=    4.850001  numpy(euler)=    4.850001  numpy(rk4)=    4.947813  rel=1.977e-02  
+    start  3/9  lhs 3 (seed 20260921)  torch J=    6.265170  numpy(euler)=    6.265170  numpy(rk4)=    6.169541  rel=1.550e-02  
+    start  4/9  lhs 4 (seed 20260921)  torch J=    5.165879  numpy(euler)=    5.165879  numpy(rk4)=    5.123827  rel=8.207e-03  
+    start  5/9  lhs 5 (seed 20260921)  torch J=    4.784111  numpy(euler)=    4.784111  numpy(rk4)=    4.857247  rel=1.506e-02  
+    start  6/9  lhs 6 (seed 20260921)  torch J=    4.734332  numpy(euler)=    4.734332  numpy(rk4)=    4.804025  rel=1.451e-02  
+    start  7/9  lhs 7 (seed 20260921)  torch J=  333.107732  numpy(euler)=  333.107732  numpy(rk4)=  323.885763  rel=2.847e-02  
+    start  8/9  lhs 8 (seed 20260921)  torch J=    4.735632  numpy(euler)=    4.735632  numpy(rk4)=    4.807559  rel=1.496e-02  
+    start  9/9  lhs 9 (seed 20260921)  torch J=    4.839608  numpy(euler)=    4.839608  numpy(rk4)=    4.927334  rel=1.780e-02  
+  best theta         : v0=123.3585  T=2.0914  s0=28.7230  a=13.9744  b=185.1594
+  within bounds      : True
+  total_error J      : 4.796215  (equal weight mean of the per-event J_e, RK4)
+  spacing RMSE (mean/worst): 39.4544 / 180.6484
+  speed   RMSE (mean/worst): 11.7420 / 18.9026
+  convergence        : step 0 best J=5.318623 -> step 300 best J=4.719350  (improvement 0.599273)
+  multi-start        : 10/10 feasible, best = lhs 1 (seed 20260921), distinct solutions 10, final cost across starts min/max/std = 4.7962/323.8858/95.6588
+  training           : 300 Adam steps, lr=0.05, runtime=514.71 s (0.6 steps/s), batched over 10 starts
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_1     184   180.6484    17.6608    19.4894    2.0737    21.5631    40.9199
+  event_3      49    23.0006    18.9026     0.5866    1.3121     1.8987    30.0320
+  event_6     251    19.5565     6.8752     2.0861    0.9647     3.0508    13.5402
+  event_7     216    36.3150    12.9629     0.9122    1.0616     1.9737    38.0236
+  event_8      28     9.2046     9.7168     1.4199    1.5979     3.0178     7.7247
+  event_9     101    20.9188     9.0655     1.9395    0.9689     2.9085    15.0207
+  event_12    169    15.9140     9.9126     1.5352    1.1672     2.7023    12.8440
+  event_13    142    10.0773     8.8394     0.1276    1.1272     1.2548    28.2123
+  consistency        : torch(Euler) vs numpy(Euler) max rel. difference = 7.651e-12; torch(Euler) vs numpy(RK4) max rel. difference = 0.0285
+  consistency check  : every start is within 10% of the numpy RK4 re-evaluation
+
+self-checks:
+  focus_beats_zero_model                         True
+  focus_event                                    event_2
+  focus_improvement_factor                       1.4657290973771206
+  focus_run                                      run_1
+  run_1_event_2_beats_zero_model                 True
+  run_1_event_2_improvement_factor               1.4657290973771206
+  run_1_event_2_spacing_rmse                     14.723003670167094
+  run_1_event_2_zero_model_spacing_rmse          21.57993488015405
+  run_1_has_parameters                           True
+  run_1_parameters_within_bounds                 True
+  run_2_has_parameters                           True
+  run_2_parameters_within_bounds                 True
+  runs_found_nonempty                            True
+  runs_found                                  ['run_1', 'run_2']
+
+total runtime: 676.69 s
+written: results/m5_params.json
+.tmp leftovers: none

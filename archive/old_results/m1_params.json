@@ -1,0 +1,323 @@
+{
+  "method": "M1",
+  "script": "src/calibrate/m1_instant_ls.py",
+  "input_dir": "data/preprocess/stage_4",
+  "configuration": {
+    "objective": "sum_events sum_i ((a_idm - a_obs)/sigma_a)^2 (normalised, concatenated)",
+    "observed_acceleration": "central difference of fv, one-sided at the ends",
+    "solver": "scipy.optimize.least_squares, method=trf, bounds=LOWER/UPPER",
+    "initial_theta": [
+      120.0,
+      1.2,
+      100.0,
+      80.0,
+      100.0
+    ],
+    "residual_normalisation": "per-event std(a_obs)",
+    "trajectory_metrics_method": "rk4",
+    "L_VEH": 250.0,
+    "delta": 4.0,
+    "parameter_bounds": {
+      "v0": [
+        40.0,
+        200.0
+      ],
+      "T": [
+        0.3,
+        5.0
+      ],
+      "s0": [
+        10.0,
+        400.0
+      ],
+      "a": [
+        10.0,
+        200.0
+      ],
+      "b": [
+        10.0,
+        200.0
+      ]
+    },
+    "spacing_formula": "s = dhw - L_VEH",
+    "cost_normalisation": "per-event std(s_obs), std(v_obs) (trajectory metrics)"
+  },
+  "units": {
+    "spacing": "coordinate units",
+    "speed": "coordinate units/s",
+    "acceleration": "coordinate units/s^2",
+    "spacing_rmse": "coordinate units (raw, un-normalised)",
+    "speed_rmse": "coordinate units/s (raw, un-normalised)",
+    "total_error": "dimensionless (per-event spread normalised, equal weight mean)"
+  },
+  "drivers": {
+    "driver_1": {
+      "theta": {
+        "v0": 179.631162,
+        "T": 0.3,
+        "s0": 10.0,
+        "a": 10.0,
+        "b": 200.0
+      },
+      "theta_vector": [
+        179.631162,
+        0.3,
+        10.0,
+        10.0,
+        200.0
+      ],
+      "parameters_within_bounds": true,
+      "total_error": null,
+      "total_error_method": "equal weight mean of the per-event normalised costs",
+      "n_events": 3,
+      "n_samples": 244,
+      "mean_spacing_rmse": null,
+      "mean_speed_rmse": null,
+      "worst_spacing_rmse": null,
+      "worst_speed_rmse": null,
+      "events": {
+        "event_1": {
+          "n_samples": 138,
+          "duration_s": 14.0,
+          "method": "rk4",
+          "diverged": true,
+          "finite": false,
+          "s_violations": 1,
+          "sigma_s": 68.061069,
+          "sigma_v": 24.930752,
+          "spacing_rmse": null,
+          "speed_rmse": null,
+          "spacing_rmse_normalized": null,
+          "speed_rmse_normalized": null,
+          "j_spacing": null,
+          "j_speed": null,
+          "j_total": null,
+          "zero_model": {
+            "spacing_rmse_const_first": 83.276819,
+            "spacing_rmse_const_mean": 68.061069,
+            "speed_rmse_const_first": 29.728567,
+            "speed_rmse_const_mean": 24.930752,
+            "best_spacing_rmse": 68.061069,
+            "best_speed_rmse": 24.930752
+          },
+          "acceleration_rmse": 118.986812,
+          "acceleration_rmse_normalized": 1.002745,
+          "acceleration_bias": 8.230305,
+          "sigma_a": 118.661124
+        },
+        "event_2": {
+          "n_samples": 27,
+          "duration_s": 2.6,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 8.340715,
+          "sigma_v": 12.882756,
+          "spacing_rmse": 26.183256,
+          "speed_rmse": 16.200344,
+          "spacing_rmse_normalized": 3.13921,
+          "speed_rmse_normalized": 1.257522,
+          "j_spacing": 9.854639,
+          "j_speed": 1.581361,
+          "j_total": 11.435999,
+          "zero_model": {
+            "spacing_rmse_const_first": 10.356898,
+            "spacing_rmse_const_mean": 8.340715,
+            "speed_rmse_const_first": 26.486988,
+            "speed_rmse_const_mean": 12.882756,
+            "best_spacing_rmse": 8.340715,
+            "best_speed_rmse": 12.882756
+          },
+          "acceleration_rmse": 60.892758,
+          "acceleration_rmse_normalized": 1.000123,
+          "acceleration_bias": -3.22209,
+          "sigma_a": 60.885289
+        },
+        "event_3": {
+          "n_samples": 79,
+          "duration_s": 8.3,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 121.575764,
+          "sigma_v": 10.389621,
+          "spacing_rmse": 26.801023,
+          "speed_rmse": 14.799981,
+          "spacing_rmse_normalized": 0.220447,
+          "speed_rmse_normalized": 1.424497,
+          "j_spacing": 0.048597,
+          "j_speed": 2.029191,
+          "j_total": 2.077788,
+          "zero_model": {
+            "spacing_rmse_const_first": 213.241436,
+            "spacing_rmse_const_mean": 121.575764,
+            "speed_rmse_const_first": 23.928948,
+            "speed_rmse_const_mean": 10.389621,
+            "best_spacing_rmse": 121.575764,
+            "best_speed_rmse": 10.389621
+          },
+          "acceleration_rmse": 73.79636,
+          "acceleration_rmse_normalized": 1.00341,
+          "acceleration_bias": -1.080277,
+          "sigma_a": 73.545535
+        }
+      },
+      "acceleration_objective": {
+        "value": 122.652487,
+        "definition": "0.5 * sum(residual^2) as returned by scipy.optimize.least_squares",
+        "residual_count": 244
+      },
+      "acceleration_fit": {
+        "residual_rms_normalized": 1.002671,
+        "residual_rms": 100.900155,
+        "residual_sum_squares": 2484125.259054
+      },
+      "convergence": {
+        "status": 2,
+        "success": true,
+        "message": "`ftol` termination condition is satisfied.",
+        "optimality": 2.179460753953096e-08,
+        "nfev": 13,
+        "njev": 13,
+        "cost": 122.652487,
+        "initial_theta": [
+          120.0,
+          1.2,
+          100.0,
+          80.0,
+          100.0
+        ],
+        "solver": "scipy.optimize.least_squares (trf, bounds=LOWER/UPPER)"
+      }
+    },
+    "driver_2": {
+      "theta": {
+        "v0": 200.0,
+        "T": 1.684615,
+        "s0": 60.978288,
+        "a": 27.143481,
+        "b": 79.978442
+      },
+      "theta_vector": [
+        200.0,
+        1.684615,
+        60.978288,
+        27.143481,
+        79.978442
+      ],
+      "parameters_within_bounds": true,
+      "total_error": 2.194745,
+      "total_error_method": "equal weight mean of the per-event normalised costs",
+      "n_events": 2,
+      "n_samples": 335,
+      "mean_spacing_rmse": 29.236693,
+      "mean_speed_rmse": 18.762869,
+      "worst_spacing_rmse": 30.623411,
+      "worst_speed_rmse": 19.589359,
+      "events": {
+        "event_2": {
+          "n_samples": 211,
+          "duration_s": 21.5,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 21.579935,
+          "sigma_v": 15.829448,
+          "spacing_rmse": 27.849975,
+          "speed_rmse": 19.589359,
+          "spacing_rmse_normalized": 1.29055,
+          "speed_rmse_normalized": 1.237526,
+          "j_spacing": 1.665518,
+          "j_speed": 1.531472,
+          "j_total": 3.19699,
+          "zero_model": {
+            "spacing_rmse_const_first": 32.819622,
+            "spacing_rmse_const_mean": 21.579935,
+            "speed_rmse_const_first": 55.390901,
+            "speed_rmse_const_mean": 15.829448,
+            "best_spacing_rmse": 21.579935,
+            "best_speed_rmse": 15.829448
+          },
+          "acceleration_rmse": 100.543287,
+          "acceleration_rmse_normalized": 0.992583,
+          "acceleration_bias": 2.868013,
+          "sigma_a": 101.294637
+        },
+        "event_3": {
+          "n_samples": 124,
+          "duration_s": 12.3,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 49.743095,
+          "sigma_v": 19.886424,
+          "spacing_rmse": 30.623411,
+          "speed_rmse": 17.936379,
+          "spacing_rmse_normalized": 0.615631,
+          "speed_rmse_normalized": 0.901941,
+          "j_spacing": 0.379002,
+          "j_speed": 0.813497,
+          "j_total": 1.192499,
+          "zero_model": {
+            "spacing_rmse_const_first": 96.425235,
+            "spacing_rmse_const_mean": 49.743095,
+            "speed_rmse_const_first": 20.703154,
+            "speed_rmse_const_mean": 19.886424,
+            "best_spacing_rmse": 49.743095,
+            "best_speed_rmse": 19.886424
+          },
+          "acceleration_rmse": 128.58341,
+          "acceleration_rmse_normalized": 1.002586,
+          "acceleration_bias": -8.427308,
+          "sigma_a": 128.251782
+        }
+      },
+      "acceleration_objective": {
+        "value": 166.261768,
+        "definition": "0.5 * sum(residual^2) as returned by scipy.optimize.least_squares",
+        "residual_count": 335
+      },
+      "acceleration_fit": {
+        "residual_rms_normalized": 0.996297,
+        "residual_rms": 111.74554,
+        "residual_sum_squares": 4183166.979736
+      },
+      "convergence": {
+        "status": 2,
+        "success": true,
+        "message": "`ftol` termination condition is satisfied.",
+        "optimality": 3.043700461469046e-07,
+        "nfev": 14,
+        "njev": 14,
+        "cost": 166.261768,
+        "initial_theta": [
+          120.0,
+          1.2,
+          100.0,
+          80.0,
+          100.0
+        ],
+        "solver": "scipy.optimize.least_squares (trf, bounds=LOWER/UPPER)"
+      }
+    }
+  },
+  "self_checks": {
+    "driver_1_has_parameters": true,
+    "driver_1_parameters_within_bounds": true,
+    "driver_2_has_parameters": true,
+    "driver_2_parameters_within_bounds": true,
+    "drivers_found": [
+      "driver_1",
+      "driver_2"
+    ],
+    "two_drivers_found": true,
+    "driver_1_event_1_spacing_rmse": null,
+    "driver_1_event_1_zero_model_spacing_rmse": 68.061069,
+    "driver_1_event_1_beats_zero_model": false,
+    "driver_1_event_1_improvement_factor": null
+  }
+}

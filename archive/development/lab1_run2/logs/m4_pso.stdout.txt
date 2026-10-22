@@ -1,0 +1,84 @@
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+input dir    : data/preprocess/stage_4
+method       : M4 - gbest particle swarm optimisation
+objective    : constrained_total_error = equal weight mean of the per-event
+               [ mean(ds^2)/sigma_s^2 + mean(dv^2)/sigma_v^2 + penalty*violations ]
+spacing      : s = dhw - 250   (spacing violation = simulated s <= 0)
+pso          : particles=40, iterations=80, seed=20260921 per run
+coefficients : w 0.9 -> 0.4 linear, c1=c2=1.5, |v| <= 0.2 * bound width, bounds: clip position + zero velocity
+bounds       : v0[40,200] T[0.3,5] s0[10,400] a[10,200] b[10,200]
+integration  : rk4 on the real time deltas, leader speed interpolated from lv
+
+run_1: particle swarm
+    iter   1/80  w=0.9000  best J=    1.570701  mean pbest J=25000000106.846733  evals=80
+    iter   2/80  w=0.8937  best J=    1.484423  mean pbest J=   35.830010  evals=120
+    iter   3/80  w=0.8873  best J=    1.484423  mean pbest J=    7.698604  evals=160
+    iter  10/80  w=0.8430  best J=    1.430207  mean pbest J=    1.629091  evals=440
+    iter  20/80  w=0.7797  best J=    1.252709  mean pbest J=    1.455274  evals=840
+    iter  30/80  w=0.7165  best J=    1.213829  mean pbest J=    1.349327  evals=1240
+    iter  40/80  w=0.6532  best J=    1.203994  mean pbest J=    1.271713  evals=1640
+    iter  50/80  w=0.5899  best J=    1.203738  mean pbest J=    1.223841  evals=2040
+    iter  60/80  w=0.5266  best J=    1.203708  mean pbest J=    1.205556  evals=2440
+    iter  70/80  w=0.4633  best J=    1.203707  mean pbest J=    1.203912  evals=2840
+    iter  80/80  w=0.4000  best J=    1.203707  mean pbest J=    1.203708  evals=3240
+  best theta         : v0=146.3578  T=1.9212  s0=10.0000  a=56.8912  b=10.0000
+  within bounds      : True
+  total_error J      : 1.203707  (equal weight mean of the per-event J_e)
+  spacing RMSE (mean/worst): 21.7253 / 28.6794
+  speed   RMSE (mean/worst): 15.8979 / 16.9372
+  convergence        : iter 0 best J=1.969679 -> iter 80 best J=1.203707  (improvement 0.765972)
+  curve monotone     : True   evaluations=3240 (distinct 3240, cache hits 0)   runtime=16.12 s
+  clipped coordinates: 666 (velocity zeroed there)   infeasible particles=13 (= the 1e12 wall)   outside-box particles=0 (must be 0)
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_2     211    14.7712    14.8586     0.4685    0.8811     1.3496    21.5799
+  event_3     124    28.6794    16.9372     0.3324    0.7254     1.0578    49.7431
+
+run_2: particle swarm
+    iter   1/80  w=0.9000  best J=   16.920788  mean pbest J=  145.265230  evals=80
+    iter   2/80  w=0.8937  best J=    8.454213  mean pbest J=   64.072427  evals=120
+    iter   3/80  w=0.8873  best J=    5.809868  mean pbest J=   24.448421  evals=160
+    iter  10/80  w=0.8430  best J=    5.197775  mean pbest J=    7.428208  evals=440
+    iter  20/80  w=0.7797  best J=    5.196932  mean pbest J=    5.914693  evals=840
+    iter  30/80  w=0.7165  best J=    4.979844  mean pbest J=    5.324576  evals=1240
+    iter  40/80  w=0.6532  best J=    4.944896  mean pbest J=    5.061120  evals=1640
+    iter  50/80  w=0.5899  best J=    4.926942  mean pbest J=    4.939697  evals=2040
+    iter  60/80  w=0.5266  best J=    4.926016  mean pbest J=    4.928037  evals=2440
+    iter  70/80  w=0.4633  best J=    4.925884  mean pbest J=    4.925920  evals=2840
+    iter  80/80  w=0.4000  best J=    4.925647  mean pbest J=    4.925663  evals=3240
+  best theta         : v0=118.0250  T=0.3118  s0=180.3358  a=22.1597  b=200.0000
+  within bounds      : True
+  total_error J      : 4.925647  (equal weight mean of the per-event J_e)
+  spacing RMSE (mean/worst): 41.3810 / 184.8124
+  speed   RMSE (mean/worst): 11.8294 / 20.2637
+  convergence        : iter 0 best J=16.920788 -> iter 80 best J=4.925647  (improvement 11.995141)
+  curve monotone     : True   evaluations=3240 (distinct 3240, cache hits 0)   runtime=43.95 s
+  clipped coordinates: 336 (velocity zeroed there)   infeasible particles=6 (= the 1e12 wall)   outside-box particles=0 (must be 0)
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_1     184   184.8124    18.4430    20.3982    2.2614    22.6596    40.9199
+  event_3      49    25.8379    20.2637     0.7402    1.5079     2.2481    30.0320
+  event_6     251    21.9427     6.8853     2.6262    0.9676     3.5938    13.5402
+  event_7     216    49.8257    13.4437     1.7171    1.1418     2.8589    38.0236
+  event_8      28     6.2507     8.0857     0.6548    1.1065     1.7613     7.7247
+  event_9     101    22.1384     9.1583     2.1723    0.9889     3.1611    15.0207
+  event_12    169    11.7079     9.6310     0.8309    1.1018     1.9327    12.8440
+  event_13    142     8.5319     8.7245     0.0915    1.0981     1.1896    28.2123
+
+self-checks:
+  focus_beats_zero_model                         True
+  focus_event                                    event_2
+  focus_improvement_factor                       1.460949765244153
+  focus_run                                      run_1
+  run_1_event_2_beats_zero_model                 True
+  run_1_event_2_improvement_factor               1.460949765244153
+  run_1_event_2_spacing_rmse                     14.771168313612497
+  run_1_event_2_zero_model_spacing_rmse          21.57993488015405
+  run_1_has_parameters                           True
+  run_1_parameters_within_bounds                 True
+  run_2_has_parameters                           True
+  run_2_parameters_within_bounds                 True
+  runs_found_nonempty                            True
+  runs_found                                  ['run_1', 'run_2']
+
+total runtime: 60.12 s
+written: results/m4_params.json
+.tmp leftovers: none

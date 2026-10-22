@@ -1,0 +1,804 @@
+{
+  "script": "src/preprocess_stage4.py",
+  "config": {
+    "time_step_s": 0.1,
+    "time_decimals": 1,
+    "output_decimals": 6,
+    "speed_method": "central_difference_interior_one_sided_ends",
+    "speed_source": "position_difference",
+    "dt_source": "raw_stage3_timestamps",
+    "dhw_formula": "(x_l - x_f)*cos(h_f) + (y_l - y_f)*sin(h_f)",
+    "dhw_anomaly_rule": "delete time point when dhw <= 0",
+    "time_duplicate_rule": "drop the later point when its rounded time repeats the row above it",
+    "removal_order": "rounded_time_duplicate_drop_then_dhw_anomaly_drop_then_speeds",
+    "speed_window_source": "retained_points_only",
+    "velocity_column_used": false
+  },
+  "inputs": {
+    "data/preprocess/stage_3/run_1_event_2.csv": {
+      "sha256": "67ff1be07a65d497601bee2c4f1020f1eecef56d90e1244eb2bc2e3ec2b50272"
+    },
+    "data/preprocess/stage_3/run_1_event_3.csv": {
+      "sha256": "e9ada0769876c4b2c94c5141239e4b27c3bd83f4d990e6582cff7879f77780d5"
+    },
+    "data/preprocess/stage_3/run_2_event_1.csv": {
+      "sha256": "2ed28e501dc95b13a25ed7364155a5c932a1c9fd6231e50c6cabae91a08d42c1"
+    },
+    "data/preprocess/stage_3/run_2_event_3.csv": {
+      "sha256": "c44238a259a426144e195f926bd47d093c0a26d924856d2104b1def6b8ae3b39"
+    },
+    "data/preprocess/stage_3/run_2_event_6.csv": {
+      "sha256": "925463161c7a0455e1e0649552876ef7c17dc3483cecf3b4522c1844c510eb94"
+    },
+    "data/preprocess/stage_3/run_2_event_7.csv": {
+      "sha256": "4f7fb1f9cf0987977b88f9af68b79826833026623fc6e292d816b5dd4328ac6d"
+    },
+    "data/preprocess/stage_3/run_2_event_8.csv": {
+      "sha256": "c08b15af350899fc47312f63c6673b1d2eaa35936edae6a480ff6a1cf964b753"
+    },
+    "data/preprocess/stage_3/run_2_event_9.csv": {
+      "sha256": "e195366cbabca591bff4cd11b1984c9d79dd8f1833716d13157d3d86acd25321"
+    },
+    "data/preprocess/stage_3/run_2_event_12.csv": {
+      "sha256": "937fb6391393a719fa8309ce5d01c464137da9fd28bb8c000ff9c08ee6f6eecb"
+    },
+    "data/preprocess/stage_3/run_2_event_13.csv": {
+      "sha256": "f149004099a90f7a772e702ce446c878bdaecb2dd4fdfe5e7e2955dc94ad15e1"
+    }
+  },
+  "events": [
+    {
+      "run": "run_1",
+      "event": "event_2",
+      "file": "run_1_event_2.csv",
+      "input_file": "data/preprocess/stage_3/run_1_event_2.csv",
+      "input_sha256": "67ff1be07a65d497601bee2c4f1020f1eecef56d90e1244eb2bc2e3ec2b50272",
+      "grid_points": 211,
+      "rows": 211,
+      "time_kept_points": 211,
+      "deleted_points": 0,
+      "dropped_points": 0,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [],
+      "time_range": {
+        "min": "12.4",
+        "max": "33.9"
+      },
+      "grid_time_range": {
+        "min": "12.4",
+        "max": "33.9"
+      },
+      "raw_time_range": {
+        "min": 12.442953,
+        "max": 33.865332
+      },
+      "dhw_range": {
+        "min": 456.82407,
+        "max": 540.01932
+      },
+      "dhw_range_kept": {
+        "min": 456.82407,
+        "max": 540.01932
+      },
+      "dhw_median": 490.418045,
+      "fv_range": {
+        "min": 59.78442,
+        "max": 168.210363
+      },
+      "lv_range": {
+        "min": 56.953438,
+        "max": 150.14129
+      },
+      "fv_mean": 101.287251,
+      "lv_mean": 104.569016,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_1",
+      "event": "event_3",
+      "file": "run_1_event_3.csv",
+      "input_file": "data/preprocess/stage_3/run_1_event_3.csv",
+      "input_sha256": "e9ada0769876c4b2c94c5141239e4b27c3bd83f4d990e6582cff7879f77780d5",
+      "grid_points": 124,
+      "rows": 124,
+      "time_kept_points": 124,
+      "deleted_points": 0,
+      "dropped_points": 0,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [],
+      "time_range": {
+        "min": "46.0",
+        "max": "58.3"
+      },
+      "grid_time_range": {
+        "min": "46.0",
+        "max": "58.3"
+      },
+      "raw_time_range": {
+        "min": 46.047997,
+        "max": 58.330555
+      },
+      "dhw_range": {
+        "min": 415.767808,
+        "max": 562.0037
+      },
+      "dhw_range_kept": {
+        "min": 415.767808,
+        "max": 562.0037
+      },
+      "dhw_median": 452.520414,
+      "fv_range": {
+        "min": 66.602222,
+        "max": 165.646403
+      },
+      "lv_range": {
+        "min": 61.685185,
+        "max": 136.43422
+      },
+      "fv_mean": 112.623699,
+      "lv_mean": 101.705857,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_1",
+      "file": "run_2_event_1.csv",
+      "input_file": "data/preprocess/stage_3/run_2_event_1.csv",
+      "input_sha256": "2ed28e501dc95b13a25ed7364155a5c932a1c9fd6231e50c6cabae91a08d42c1",
+      "grid_points": 184,
+      "rows": 184,
+      "time_kept_points": 184,
+      "deleted_points": 0,
+      "dropped_points": 0,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [],
+      "time_range": {
+        "min": "1.5",
+        "max": "30.5"
+      },
+      "grid_time_range": {
+        "min": "1.5",
+        "max": "30.5"
+      },
+      "raw_time_range": {
+        "min": 1.502474,
+        "max": 30.469
+      },
+      "dhw_range": {
+        "min": 610.422727,
+        "max": 767.286691
+      },
+      "dhw_range_kept": {
+        "min": 610.422727,
+        "max": 767.286691
+      },
+      "dhw_median": 724.333045,
+      "fv_range": {
+        "min": 55.150034,
+        "max": 134.865745
+      },
+      "lv_range": {
+        "min": 39.39754,
+        "max": 184.860122
+      },
+      "fv_mean": 85.345468,
+      "lv_mean": 87.777157,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_3",
+      "file": "run_2_event_3.csv",
+      "input_file": "data/preprocess/stage_3/run_2_event_3.csv",
+      "input_sha256": "c44238a259a426144e195f926bd47d093c0a26d924856d2104b1def6b8ae3b39",
+      "grid_points": 50,
+      "rows": 49,
+      "time_kept_points": 49,
+      "deleted_points": 0,
+      "dropped_points": 1,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [
+        {
+          "event": "event_3",
+          "file": "run_2_event_3.csv",
+          "index": 49,
+          "t_from_start": 70.928018,
+          "time": "70.9",
+          "previous_index": 48,
+          "previous_t_from_start": 70.913415,
+          "gap_s": 0.014603,
+          "action": "dropped",
+          "reason": "duplicate_rounded_time"
+        }
+      ],
+      "time_range": {
+        "min": "66.1",
+        "max": "70.9"
+      },
+      "grid_time_range": {
+        "min": "66.1",
+        "max": "70.9"
+      },
+      "raw_time_range": {
+        "min": 66.113415,
+        "max": 70.928018
+      },
+      "dhw_range": {
+        "min": 1078.55543,
+        "max": 1178.849344
+      },
+      "dhw_range_kept": {
+        "min": 1078.55543,
+        "max": 1178.849344
+      },
+      "dhw_median": 1151.619906,
+      "fv_range": {
+        "min": 100.143269,
+        "max": 164.426841
+      },
+      "lv_range": {
+        "min": 128.329487,
+        "max": 176.228593
+      },
+      "fv_mean": 127.446655,
+      "lv_mean": 148.275852,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_6",
+      "file": "run_2_event_6.csv",
+      "input_file": "data/preprocess/stage_3/run_2_event_6.csv",
+      "input_sha256": "925463161c7a0455e1e0649552876ef7c17dc3483cecf3b4522c1844c510eb94",
+      "grid_points": 252,
+      "rows": 251,
+      "time_kept_points": 251,
+      "deleted_points": 0,
+      "dropped_points": 1,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [
+        {
+          "event": "event_6",
+          "file": "run_2_event_6.csv",
+          "index": 251,
+          "t_from_start": 133.366433,
+          "time": "133.4",
+          "previous_index": 250,
+          "previous_t_from_start": 133.365971,
+          "gap_s": 0.000462,
+          "action": "dropped",
+          "reason": "duplicate_rounded_time"
+        }
+      ],
+      "time_range": {
+        "min": "108.4",
+        "max": "133.4"
+      },
+      "grid_time_range": {
+        "min": "108.4",
+        "max": "133.4"
+      },
+      "raw_time_range": {
+        "min": 108.365971,
+        "max": 133.366433
+      },
+      "dhw_range": {
+        "min": 461.603878,
+        "max": 509.671758
+      },
+      "dhw_range_kept": {
+        "min": 461.603878,
+        "max": 509.671758
+      },
+      "dhw_median": 486.770255,
+      "fv_range": {
+        "min": 69.63421,
+        "max": 114.84027
+      },
+      "lv_range": {
+        "min": 68.294875,
+        "max": 104.902367
+      },
+      "fv_mean": 89.441552,
+      "lv_mean": 88.181562,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_7",
+      "file": "run_2_event_7.csv",
+      "input_file": "data/preprocess/stage_3/run_2_event_7.csv",
+      "input_sha256": "4f7fb1f9cf0987977b88f9af68b79826833026623fc6e292d816b5dd4328ac6d",
+      "grid_points": 217,
+      "rows": 216,
+      "time_kept_points": 216,
+      "deleted_points": 0,
+      "dropped_points": 1,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [
+        {
+          "event": "event_7",
+          "file": "run_2_event_7.csv",
+          "index": 216,
+          "t_from_start": 172.839221,
+          "time": "172.8",
+          "previous_index": 215,
+          "previous_t_from_start": 172.777398,
+          "gap_s": 0.061823,
+          "action": "dropped",
+          "reason": "duplicate_rounded_time"
+        }
+      ],
+      "time_range": {
+        "min": "150.4",
+        "max": "172.8"
+      },
+      "grid_time_range": {
+        "min": "150.4",
+        "max": "172.8"
+      },
+      "raw_time_range": {
+        "min": 150.377398,
+        "max": 172.839221
+      },
+      "dhw_range": {
+        "min": 727.593046,
+        "max": 871.76104
+      },
+      "dhw_range_kept": {
+        "min": 727.593046,
+        "max": 871.76104
+      },
+      "dhw_median": 839.465291,
+      "fv_range": {
+        "min": 68.30583,
+        "max": 158.897695
+      },
+      "lv_range": {
+        "min": 67.550277,
+        "max": 174.154611
+      },
+      "fv_mean": 118.440433,
+      "lv_mean": 112.376573,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_8",
+      "file": "run_2_event_8.csv",
+      "input_file": "data/preprocess/stage_3/run_2_event_8.csv",
+      "input_sha256": "c08b15af350899fc47312f63c6673b1d2eaa35936edae6a480ff6a1cf964b753",
+      "grid_points": 28,
+      "rows": 28,
+      "time_kept_points": 28,
+      "deleted_points": 0,
+      "dropped_points": 0,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [],
+      "time_range": {
+        "min": "188.0",
+        "max": "190.7"
+      },
+      "grid_time_range": {
+        "min": "188.0",
+        "max": "190.7"
+      },
+      "raw_time_range": {
+        "min": 188.048602,
+        "max": 190.653735
+      },
+      "dhw_range": {
+        "min": 649.278331,
+        "max": 676.817305
+      },
+      "dhw_range_kept": {
+        "min": 649.278331,
+        "max": 676.817305
+      },
+      "dhw_median": 668.487658,
+      "fv_range": {
+        "min": 89.219933,
+        "max": 117.831086
+      },
+      "lv_range": {
+        "min": 78.32822,
+        "max": 126.294779
+      },
+      "fv_mean": 102.736454,
+      "lv_mean": 110.074705,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_9",
+      "file": "run_2_event_9.csv",
+      "input_file": "data/preprocess/stage_3/run_2_event_9.csv",
+      "input_sha256": "e195366cbabca591bff4cd11b1984c9d79dd8f1833716d13157d3d86acd25321",
+      "grid_points": 102,
+      "rows": 101,
+      "time_kept_points": 101,
+      "deleted_points": 0,
+      "dropped_points": 1,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [
+        {
+          "event": "event_9",
+          "file": "run_2_event_9.csv",
+          "index": 101,
+          "t_from_start": 215.827731,
+          "time": "215.8",
+          "previous_index": 100,
+          "previous_t_from_start": 215.800498,
+          "gap_s": 0.027233,
+          "action": "dropped",
+          "reason": "duplicate_rounded_time"
+        }
+      ],
+      "time_range": {
+        "min": "205.8",
+        "max": "215.8"
+      },
+      "grid_time_range": {
+        "min": "205.8",
+        "max": "215.8"
+      },
+      "raw_time_range": {
+        "min": 205.800498,
+        "max": 215.827731
+      },
+      "dhw_range": {
+        "min": 674.852935,
+        "max": 732.862534
+      },
+      "dhw_range_kept": {
+        "min": 674.852935,
+        "max": 732.862534
+      },
+      "dhw_median": 716.928231,
+      "fv_range": {
+        "min": 82.811343,
+        "max": 129.433443
+      },
+      "lv_range": {
+        "min": 66.417375,
+        "max": 171.502385
+      },
+      "fv_mean": 107.389834,
+      "lv_mean": 112.265402,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_12",
+      "file": "run_2_event_12.csv",
+      "input_file": "data/preprocess/stage_3/run_2_event_12.csv",
+      "input_sha256": "937fb6391393a719fa8309ce5d01c464137da9fd28bb8c000ff9c08ee6f6eecb",
+      "grid_points": 169,
+      "rows": 169,
+      "time_kept_points": 169,
+      "deleted_points": 0,
+      "dropped_points": 0,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [],
+      "time_range": {
+        "min": "253.9",
+        "max": "273.0"
+      },
+      "grid_time_range": {
+        "min": "253.9",
+        "max": "273.0"
+      },
+      "raw_time_range": {
+        "min": 253.934795,
+        "max": 273.021959
+      },
+      "dhw_range": {
+        "min": 601.609372,
+        "max": 646.927213
+      },
+      "dhw_range_kept": {
+        "min": 601.609372,
+        "max": 646.927213
+      },
+      "dhw_median": 631.176356,
+      "fv_range": {
+        "min": 85.714616,
+        "max": 137.48281
+      },
+      "lv_range": {
+        "min": 90.885715,
+        "max": 160.190746
+      },
+      "fv_mean": 108.917366,
+      "lv_mean": 110.905788,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_2",
+      "event": "event_13",
+      "file": "run_2_event_13.csv",
+      "input_file": "data/preprocess/stage_3/run_2_event_13.csv",
+      "input_sha256": "f149004099a90f7a772e702ce446c878bdaecb2dd4fdfe5e7e2955dc94ad15e1",
+      "grid_points": 143,
+      "rows": 142,
+      "time_kept_points": 142,
+      "deleted_points": 0,
+      "dropped_points": 1,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [
+        {
+          "event": "event_13",
+          "file": "run_2_event_13.csv",
+          "index": 142,
+          "t_from_start": 304.028865,
+          "time": "304.0",
+          "previous_index": 141,
+          "previous_t_from_start": 303.951011,
+          "gap_s": 0.077854,
+          "action": "dropped",
+          "reason": "duplicate_rounded_time"
+        }
+      ],
+      "time_range": {
+        "min": "287.7",
+        "max": "304.0"
+      },
+      "grid_time_range": {
+        "min": "287.7",
+        "max": "304.0"
+      },
+      "raw_time_range": {
+        "min": 287.651011,
+        "max": 304.028865
+      },
+      "dhw_range": {
+        "min": 624.452176,
+        "max": 713.593315
+      },
+      "dhw_range_kept": {
+        "min": 624.452176,
+        "max": 713.593315
+      },
+      "dhw_median": 693.883194,
+      "fv_range": {
+        "min": 82.992425,
+        "max": 130.398215
+      },
+      "lv_range": {
+        "min": 53.846539,
+        "max": 291.947009
+      },
+      "fv_mean": 107.057873,
+      "lv_mean": 112.859054,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    }
+  ],
+  "dropped_time_duplicates": [
+    {
+      "event": "event_3",
+      "file": "run_2_event_3.csv",
+      "index": 49,
+      "t_from_start": 70.928018,
+      "time": "70.9",
+      "previous_index": 48,
+      "previous_t_from_start": 70.913415,
+      "gap_s": 0.014603,
+      "action": "dropped",
+      "reason": "duplicate_rounded_time"
+    },
+    {
+      "event": "event_6",
+      "file": "run_2_event_6.csv",
+      "index": 251,
+      "t_from_start": 133.366433,
+      "time": "133.4",
+      "previous_index": 250,
+      "previous_t_from_start": 133.365971,
+      "gap_s": 0.000462,
+      "action": "dropped",
+      "reason": "duplicate_rounded_time"
+    },
+    {
+      "event": "event_7",
+      "file": "run_2_event_7.csv",
+      "index": 216,
+      "t_from_start": 172.839221,
+      "time": "172.8",
+      "previous_index": 215,
+      "previous_t_from_start": 172.777398,
+      "gap_s": 0.061823,
+      "action": "dropped",
+      "reason": "duplicate_rounded_time"
+    },
+    {
+      "event": "event_9",
+      "file": "run_2_event_9.csv",
+      "index": 101,
+      "t_from_start": 215.827731,
+      "time": "215.8",
+      "previous_index": 100,
+      "previous_t_from_start": 215.800498,
+      "gap_s": 0.027233,
+      "action": "dropped",
+      "reason": "duplicate_rounded_time"
+    },
+    {
+      "event": "event_13",
+      "file": "run_2_event_13.csv",
+      "index": 142,
+      "t_from_start": 304.028865,
+      "time": "304.0",
+      "previous_index": 141,
+      "previous_t_from_start": 303.951011,
+      "gap_s": 0.077854,
+      "action": "dropped",
+      "reason": "duplicate_rounded_time"
+    }
+  ],
+  "outputs": [
+    {
+      "file": "run_1_event_2.csv",
+      "rows": 211
+    },
+    {
+      "file": "run_1_event_3.csv",
+      "rows": 124
+    },
+    {
+      "file": "run_2_event_1.csv",
+      "rows": 184
+    },
+    {
+      "file": "run_2_event_3.csv",
+      "rows": 49
+    },
+    {
+      "file": "run_2_event_6.csv",
+      "rows": 251
+    },
+    {
+      "file": "run_2_event_7.csv",
+      "rows": 216
+    },
+    {
+      "file": "run_2_event_8.csv",
+      "rows": 28
+    },
+    {
+      "file": "run_2_event_9.csv",
+      "rows": 101
+    },
+    {
+      "file": "run_2_event_12.csv",
+      "rows": 169
+    },
+    {
+      "file": "run_2_event_13.csv",
+      "rows": 142
+    },
+    {
+      "file": "stage4_summary.json",
+      "rows": null
+    }
+  ],
+  "verification": [
+    {
+      "file": "run_1_event_2.csv",
+      "rows": 211,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_1_event_3.csv",
+      "rows": 124,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_1.csv",
+      "rows": 184,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_3.csv",
+      "rows": 49,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_6.csv",
+      "rows": 251,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_7.csv",
+      "rows": 216,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_8.csv",
+      "rows": 28,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_9.csv",
+      "rows": 101,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_12.csv",
+      "rows": 169,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_2_event_13.csv",
+      "rows": 142,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    }
+  ],
+  "total": {
+    "input_event_files": 10,
+    "written_event_files": 10,
+    "rows": 1475,
+    "deleted_points": 0,
+    "dropped_points": 5,
+    "conservation_ok": true
+  }
+}

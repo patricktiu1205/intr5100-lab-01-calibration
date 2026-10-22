@@ -1,0 +1,7 @@
+* text=auto eol=lf
+# Preserve original recordings, saved numerical results and course references.
+data/** -text
+results/** -text
+archive/** -text
+environment/** -text
+report/archive/** -text

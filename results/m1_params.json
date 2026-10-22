@@ -1,0 +1,496 @@
+{
+  "method": "M1",
+  "script": "src/calibrate/m1_instant_ls.py",
+  "input_dir": "data/preprocess/stage_4",
+  "configuration": {
+    "objective": "sum_events sum_i ((a_idm - a_obs)/sigma_a)^2 (normalised, concatenated)",
+    "observed_acceleration": "central difference of fv, one-sided at the ends",
+    "solver": "scipy.optimize.least_squares, method=trf, bounds=LOWER/UPPER",
+    "initial_theta": [
+      120.0,
+      1.2,
+      100.0,
+      80.0,
+      100.0
+    ],
+    "residual_normalisation": "per-event std(a_obs)",
+    "trajectory_metrics_method": "rk4",
+    "L_VEH": 250.0,
+    "delta": 4.0,
+    "parameter_bounds": {
+      "v0": [
+        40.0,
+        200.0
+      ],
+      "T": [
+        0.3,
+        5.0
+      ],
+      "s0": [
+        10.0,
+        400.0
+      ],
+      "a": [
+        10.0,
+        200.0
+      ],
+      "b": [
+        10.0,
+        200.0
+      ]
+    },
+    "spacing_formula": "s = dhw - L_VEH",
+    "cost_normalisation": "per-event std(s_obs), std(v_obs) (trajectory metrics)"
+  },
+  "units": {
+    "spacing": "coordinate units",
+    "speed": "coordinate units/s",
+    "acceleration": "coordinate units/s^2",
+    "spacing_rmse": "coordinate units (raw, un-normalised)",
+    "speed_rmse": "coordinate units/s (raw, un-normalised)",
+    "total_error": "dimensionless (per-event spread normalised, equal weight mean)"
+  },
+  "runs": {
+    "run_1": {
+      "theta": {
+        "v0": 200.0,
+        "T": 1.684615,
+        "s0": 60.978288,
+        "a": 27.143481,
+        "b": 79.978442
+      },
+      "theta_vector": [
+        200.0,
+        1.684615,
+        60.978288,
+        27.143481,
+        79.978442
+      ],
+      "parameters_within_bounds": true,
+      "total_error": 2.194745,
+      "total_error_method": "equal weight mean of the per-event normalised costs",
+      "n_events": 2,
+      "n_samples": 335,
+      "mean_spacing_rmse": 29.236693,
+      "mean_speed_rmse": 18.762869,
+      "worst_spacing_rmse": 30.623411,
+      "worst_speed_rmse": 19.589359,
+      "events": {
+        "event_2": {
+          "n_samples": 211,
+          "duration_s": 21.5,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 21.579935,
+          "sigma_v": 15.829448,
+          "spacing_rmse": 27.849975,
+          "speed_rmse": 19.589359,
+          "spacing_rmse_normalized": 1.29055,
+          "speed_rmse_normalized": 1.237526,
+          "j_spacing": 1.665518,
+          "j_speed": 1.531472,
+          "j_total": 3.19699,
+          "zero_model": {
+            "spacing_rmse_const_first": 32.819622,
+            "spacing_rmse_const_mean": 21.579935,
+            "speed_rmse_const_first": 55.390901,
+            "speed_rmse_const_mean": 15.829448,
+            "best_spacing_rmse": 21.579935,
+            "best_speed_rmse": 15.829448
+          },
+          "acceleration_rmse": 100.543287,
+          "acceleration_rmse_normalized": 0.992583,
+          "acceleration_bias": 2.868013,
+          "sigma_a": 101.294637
+        },
+        "event_3": {
+          "n_samples": 124,
+          "duration_s": 12.3,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 49.743095,
+          "sigma_v": 19.886424,
+          "spacing_rmse": 30.623411,
+          "speed_rmse": 17.936379,
+          "spacing_rmse_normalized": 0.615631,
+          "speed_rmse_normalized": 0.901941,
+          "j_spacing": 0.379002,
+          "j_speed": 0.813497,
+          "j_total": 1.192499,
+          "zero_model": {
+            "spacing_rmse_const_first": 96.425235,
+            "spacing_rmse_const_mean": 49.743095,
+            "speed_rmse_const_first": 20.703154,
+            "speed_rmse_const_mean": 19.886424,
+            "best_spacing_rmse": 49.743095,
+            "best_speed_rmse": 19.886424
+          },
+          "acceleration_rmse": 128.58341,
+          "acceleration_rmse_normalized": 1.002586,
+          "acceleration_bias": -8.427308,
+          "sigma_a": 128.251782
+        }
+      },
+      "acceleration_objective": {
+        "value": 166.261768,
+        "definition": "0.5 * sum(residual^2) as returned by scipy.optimize.least_squares",
+        "residual_count": 335
+      },
+      "acceleration_fit": {
+        "residual_rms_normalized": 0.996297,
+        "residual_rms": 111.74554,
+        "residual_sum_squares": 4183166.979736
+      },
+      "convergence": {
+        "status": 2,
+        "success": true,
+        "message": "`ftol` termination condition is satisfied.",
+        "optimality": 3.043700461469046e-07,
+        "nfev": 14,
+        "njev": 14,
+        "cost": 166.261768,
+        "initial_theta": [
+          120.0,
+          1.2,
+          100.0,
+          80.0,
+          100.0
+        ],
+        "solver": "scipy.optimize.least_squares (trf, bounds=LOWER/UPPER)"
+      }
+    },
+    "run_2": {
+      "theta": {
+        "v0": 141.455377,
+        "T": 2.048543,
+        "s0": 52.338557,
+        "a": 10.0,
+        "b": 200.0
+      },
+      "theta_vector": [
+        141.455377,
+        2.048543,
+        52.338557,
+        10.0,
+        200.0
+      ],
+      "parameters_within_bounds": true,
+      "total_error": 7.845609,
+      "total_error_method": "equal weight mean of the per-event normalised costs",
+      "n_events": 8,
+      "n_samples": 1140,
+      "mean_spacing_rmse": 51.721944,
+      "mean_speed_rmse": 12.370391,
+      "worst_spacing_rmse": 177.102415,
+      "worst_speed_rmse": 19.971868,
+      "events": {
+        "event_1": {
+          "n_samples": 184,
+          "duration_s": 29.0,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 40.919926,
+          "sigma_v": 12.26427,
+          "spacing_rmse": 177.102415,
+          "speed_rmse": 19.971868,
+          "spacing_rmse_normalized": 4.328024,
+          "speed_rmse_normalized": 1.62846,
+          "j_spacing": 18.731791,
+          "j_speed": 2.651881,
+          "j_total": 21.383671,
+          "zero_model": {
+            "spacing_rmse_const_first": 111.532398,
+            "spacing_rmse_const_mean": 40.919926,
+            "speed_rmse_const_first": 26.055444,
+            "speed_rmse_const_mean": 12.26427,
+            "best_spacing_rmse": 40.919926,
+            "best_speed_rmse": 12.26427
+          },
+          "acceleration_rmse": 76.214953,
+          "acceleration_rmse_normalized": 1.003008,
+          "acceleration_bias": 7.084665,
+          "sigma_a": 75.986405
+        },
+        "event_3": {
+          "n_samples": 49,
+          "duration_s": 4.8,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 30.031952,
+          "sigma_v": 16.501935,
+          "spacing_rmse": 13.618227,
+          "speed_rmse": 14.822525,
+          "spacing_rmse_normalized": 0.453458,
+          "speed_rmse_normalized": 0.89823,
+          "j_spacing": 0.205624,
+          "j_speed": 0.806816,
+          "j_total": 1.01244,
+          "zero_model": {
+            "spacing_rmse_const_first": 72.018328,
+            "spacing_rmse_const_mean": 30.031952,
+            "speed_rmse_const_first": 22.989232,
+            "speed_rmse_const_mean": 16.501935,
+            "best_spacing_rmse": 30.031952,
+            "best_speed_rmse": 16.501935
+          },
+          "acceleration_rmse": 81.167674,
+          "acceleration_rmse_normalized": 1.0047,
+          "acceleration_bias": -5.476258,
+          "sigma_a": 80.787953
+        },
+        "event_6": {
+          "n_samples": 251,
+          "duration_s": 25.0,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 13.540161,
+          "sigma_v": 6.999723,
+          "spacing_rmse": 23.900709,
+          "speed_rmse": 7.022891,
+          "spacing_rmse_normalized": 1.765172,
+          "speed_rmse_normalized": 1.00331,
+          "j_spacing": 3.115831,
+          "j_speed": 1.006631,
+          "j_total": 4.122462,
+          "zero_model": {
+            "spacing_rmse_const_first": 26.608092,
+            "spacing_rmse_const_mean": 13.540161,
+            "speed_rmse_const_first": 8.003301,
+            "speed_rmse_const_mean": 6.999723,
+            "best_spacing_rmse": 13.540161,
+            "best_speed_rmse": 6.999723
+          },
+          "acceleration_rmse": 45.840147,
+          "acceleration_rmse_normalized": 0.999898,
+          "acceleration_bias": -1.354651,
+          "sigma_a": 45.844819
+        },
+        "event_7": {
+          "n_samples": 216,
+          "duration_s": 22.4,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 38.023605,
+          "sigma_v": 12.581182,
+          "spacing_rmse": 63.187542,
+          "speed_rmse": 13.955884,
+          "spacing_rmse_normalized": 1.661798,
+          "speed_rmse_normalized": 1.109266,
+          "j_spacing": 2.761572,
+          "j_speed": 1.230472,
+          "j_total": 3.992044,
+          "zero_model": {
+            "spacing_rmse_const_first": 53.883716,
+            "spacing_rmse_const_mean": 38.023605,
+            "speed_rmse_const_first": 24.894757,
+            "speed_rmse_const_mean": 12.581182,
+            "best_spacing_rmse": 38.023605,
+            "best_speed_rmse": 12.581182
+          },
+          "acceleration_rmse": 88.443256,
+          "acceleration_rmse_normalized": 1.000249,
+          "acceleration_bias": 1.02944,
+          "sigma_a": 88.421219
+        },
+        "event_8": {
+          "n_samples": 28,
+          "duration_s": 2.7,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 7.724662,
+          "sigma_v": 7.686826,
+          "spacing_rmse": 10.14214,
+          "speed_rmse": 10.25934,
+          "spacing_rmse_normalized": 1.312956,
+          "speed_rmse_normalized": 1.334665,
+          "j_spacing": 1.723853,
+          "j_speed": 1.781332,
+          "j_total": 3.505184,
+          "zero_model": {
+            "spacing_rmse_const_first": 17.525489,
+            "spacing_rmse_const_mean": 7.724662,
+            "speed_rmse_const_first": 15.549393,
+            "speed_rmse_const_mean": 7.686826,
+            "best_spacing_rmse": 7.724662,
+            "best_speed_rmse": 7.686826
+          },
+          "acceleration_rmse": 49.568729,
+          "acceleration_rmse_normalized": 1.000706,
+          "acceleration_bias": 1.530068,
+          "sigma_a": 49.533781
+        },
+        "event_9": {
+          "n_samples": 101,
+          "duration_s": 10.0,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 15.020663,
+          "sigma_v": 9.209724,
+          "spacing_rmse": 43.842235,
+          "speed_rmse": 11.118644,
+          "spacing_rmse_normalized": 2.918795,
+          "speed_rmse_normalized": 1.207272,
+          "j_spacing": 8.519364,
+          "j_speed": 1.457506,
+          "j_total": 9.97687,
+          "zero_model": {
+            "spacing_rmse_const_first": 40.59863,
+            "spacing_rmse_const_mean": 15.020663,
+            "speed_rmse_const_first": 9.330076,
+            "speed_rmse_const_mean": 9.209724,
+            "best_spacing_rmse": 15.020663,
+            "best_speed_rmse": 9.209724
+          },
+          "acceleration_rmse": 62.059182,
+          "acceleration_rmse_normalized": 1.002,
+          "acceleration_bias": 2.966727,
+          "sigma_a": 61.935308
+        },
+        "event_12": {
+          "n_samples": 169,
+          "duration_s": 19.1,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 12.843953,
+          "sigma_v": 9.175353,
+          "spacing_rmse": 48.43929,
+          "speed_rmse": 10.792774,
+          "spacing_rmse_normalized": 3.771369,
+          "speed_rmse_normalized": 1.176279,
+          "j_spacing": 14.223226,
+          "j_speed": 1.383632,
+          "j_total": 15.606858,
+          "zero_model": {
+            "spacing_rmse_const_first": 29.370343,
+            "spacing_rmse_const_mean": 12.843953,
+            "speed_rmse_const_first": 19.87652,
+            "speed_rmse_const_mean": 9.175353,
+            "best_spacing_rmse": 12.843953,
+            "best_speed_rmse": 9.175353
+          },
+          "acceleration_rmse": 72.151111,
+          "acceleration_rmse_normalized": 0.999998,
+          "acceleration_bias": 1.631258,
+          "sigma_a": 72.15123
+        },
+        "event_13": {
+          "n_samples": 142,
+          "duration_s": 16.3,
+          "method": "rk4",
+          "diverged": false,
+          "finite": true,
+          "s_violations": 0,
+          "sigma_s": 28.212267,
+          "sigma_v": 8.325593,
+          "spacing_rmse": 33.542992,
+          "speed_rmse": 11.019201,
+          "spacing_rmse_normalized": 1.188951,
+          "speed_rmse_normalized": 1.323533,
+          "j_spacing": 1.413604,
+          "j_speed": 1.751741,
+          "j_total": 3.165344,
+          "zero_model": {
+            "spacing_rmse_const_first": 64.220338,
+            "spacing_rmse_const_mean": 28.212267,
+            "speed_rmse_const_first": 15.087975,
+            "speed_rmse_const_mean": 8.325593,
+            "best_spacing_rmse": 28.212267,
+            "best_speed_rmse": 8.325593
+          },
+          "acceleration_rmse": 60.266208,
+          "acceleration_rmse_normalized": 1.001944,
+          "acceleration_bias": 1.476184,
+          "sigma_a": 60.149259
+        }
+      },
+      "acceleration_objective": {
+        "value": 571.311423,
+        "definition": "0.5 * sum(residual^2) as returned by scipy.optimize.least_squares",
+        "residual_count": 1140
+      },
+      "acceleration_fit": {
+        "residual_rms_normalized": 1.00115,
+        "residual_rms": 69.218449,
+        "residual_sum_squares": 5461960.759994
+      },
+      "convergence": {
+        "status": 2,
+        "success": true,
+        "message": "`ftol` termination condition is satisfied.",
+        "optimality": 2e-06,
+        "nfev": 12,
+        "njev": 12,
+        "cost": 571.311423,
+        "initial_theta": [
+          120.0,
+          1.2,
+          100.0,
+          80.0,
+          100.0
+        ],
+        "solver": "scipy.optimize.least_squares (trf, bounds=LOWER/UPPER)"
+      }
+    }
+  },
+  "run_registry": {
+    "available": true,
+    "path": "data/run_registry.json",
+    "runs": {
+      "run_1": {
+        "collection": "collection_20260917_144342",
+        "source": "data/raw/collection_20260917_144342/straight_trajectory.csv",
+        "sha256": "0a9baed906809a3905d6d56e41f2da6a18b6111647896a363d2d493969457ee9",
+        "stage1_file": "data/preprocess/stage_1/run_1.csv",
+        "rows": 727
+      },
+      "run_2": {
+        "collection": "collection_20260922_142956",
+        "source": "data/raw/collection_20260922_142956/straight_trajectory.csv",
+        "sha256": "cc073d4122e65ac3c532146648f4d451ca7e25c5c62c25f8e22a98cd06f16581",
+        "stage1_file": "data/preprocess/stage_1/run_2.csv",
+        "rows": 3435
+      }
+    },
+    "collections": {
+      "collection_20260917_144342": "run_1",
+      "collection_20260922_142956": "run_2"
+    }
+  },
+  "self_checks": {
+    "run_1_has_parameters": true,
+    "run_1_parameters_within_bounds": true,
+    "run_2_has_parameters": true,
+    "run_2_parameters_within_bounds": true,
+    "runs_found": [
+      "run_1",
+      "run_2"
+    ],
+    "runs_found_nonempty": true,
+    "focus_run": "run_1",
+    "focus_event": "event_2",
+    "focus_beats_zero_model": false,
+    "focus_improvement_factor": 0.774864,
+    "run_1_event_2_spacing_rmse": 27.849975,
+    "run_1_event_2_zero_model_spacing_rmse": 21.579935,
+    "run_1_event_2_beats_zero_model": false,
+    "run_1_event_2_improvement_factor": 0.774864
+  }
+}

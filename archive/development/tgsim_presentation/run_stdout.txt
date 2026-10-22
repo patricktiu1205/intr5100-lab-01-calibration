@@ -1,0 +1,49 @@
+source analysis: results/tgsim_analysis.json
+source events  : data/tgsim/<pair>/event_*.csv  (18 events)
+
+Sparse / non-interacting events (mean spacing > 20 m):
+  HV-HV    none
+  HV-AV    event_7 (28.10 m), event_8 (41.23 m)
+
+metric              pair      all_mean  all_median  all_pooled  sub_mean  sub_median  sub_pooled
+speed_mean          HV-HV       1.7259      2.0271      2.2490    1.7259      2.0271      2.2490
+speed_mean          HV-AV       1.9942      2.2517      2.2338    1.6905      2.1674      2.0325
+moving_fraction     HV-HV       0.7550      0.9146      0.9017    0.7550      0.9146      0.9017
+moving_fraction     HV-AV       0.7806      0.8813      0.8634    0.7191      0.8106      0.8384
+spacing_mean        HV-HV       8.5052      8.3169     10.5743    8.5052      8.3169     10.5743
+spacing_mean        HV-AV      14.2643      8.7867     13.3179    7.4647      8.2093      8.2545
+spacing_min         HV-HV       4.2383      4.1633      4.7792    4.2383      4.1633      4.7792
+spacing_min         HV-AV       8.7968      4.7681      7.5043    4.6108      3.9882      4.8533
+accel_rms           HV-HV       0.3806      0.3078      0.3909    0.3806      0.3078      0.3909
+accel_rms           HV-AV       0.3369      0.3400      0.3548    0.3049      0.3400      0.3268
+jerk_rms_smoothed   HV-HV       0.3774      0.3074      0.3886    0.3774      0.3074      0.3886
+jerk_rms_smoothed   HV-AV       0.3351      0.3399      0.3538    0.3026      0.3399      0.3256
+
+Self-check 1: HV-AV interaction subset spacing
+  event_mean   = 7.4647 m (brief ballpark ~10.4)
+  event_median = 8.2093 m
+  HV-HV all-event spacing median = 8.3169 m (brief ballpark ~8.3)
+  reconciliation: exclude event_8 only -> mean 10.4127 m (the brief's ~10.4); strict >20 m rule also drops event_7.
+
+Self-check 2: HV-AV events with spacing_mean < 10 m: 6/8 (fraction 0.750)
+
+Self-check 3: event-mean vs event-median ordering reversal
+  accel_rms            by mean: HV-HV  (HV-HV 0.3806 vs HV-AV 0.3369)  |  by median: HV-AV  (HV-HV 0.3078 vs HV-AV 0.3400)  -> reverse=True
+  jerk_rms_smoothed    by mean: HV-HV  (HV-HV 0.3774 vs HV-AV 0.3351)  |  by median: HV-AV  (HV-HV 0.3074 vs HV-AV 0.3399)  -> reverse=True
+
+Self-check 4: effect size (all events) and agreement with tgsim_analysis.json
+  metric                   U        r     p (new)  p (existing)  agree
+  speed_mean              39   -0.025    0.965401      0.965401   True
+  moving_fraction         37   -0.075    0.828557      0.828557   True
+  spacing_mean            33   -0.175    0.572604      0.572604   True
+  spacing_min             23   -0.425    0.145710      0.145710   True
+  accel_rms               40    0.000    1.000000      1.000000   True
+  jerk_rms_smoothed       40    0.000    1.000000      1.000000   True
+
+Self-check 5: recomputation matches tgsim_analysis.json per-event values: True (0 mismatches over 18 events x 6 metrics)
+Self-check 6: independent mid-rank U == scipy U for every metric: True
+
+all hard checks pass: True
+written: results/tgsim_presentation_stats.json (20690 bytes)
+.tmp leftovers: none
+on-disk reparse: True

@@ -1,0 +1,33 @@
+radar self-checks (values re-derived from results/tgsim_analysis.json)
+
+  raw event means:
+    HV-HV: moving_fraction=0.754953, spacing_mean_m=8.505220, spacing_min_m=4.238255, jerk_rms_smoothed_mps3=0.377389, accel_rms_mps2=0.380578
+    HV-AV: moving_fraction=0.780595, spacing_mean_m=14.264327, spacing_min_m=8.796755, jerk_rms_smoothed_mps3=0.335113, accel_rms_mps2=0.336877
+
+  scores:
+    HV-HV: moving_fraction=0.754953, spacing_mean_m=0.701044, spacing_min_m=0.559564, jerk_rms_smoothed_mps3=1.000000, accel_rms_mps2=1.000000
+    HV-AV: moving_fraction=0.780595, spacing_mean_m=1.000000, spacing_min_m=1.000000, jerk_rms_smoothed_mps3=1.000000, accel_rms_mps2=1.000000
+
+  PASS  all 10 scores inside [0, 1]  min=0.559564 max=1.000000
+  PASS  polygon closure: 5 axes + repeat of first point
+  PASS  radar uses exactly the five rubric axes of the brief
+  PASS  removing the other pair leaves every score bit-identical
+  PASS  a hypothetical third dataset scores on the same fixed scale  third A=0.500, 1.000, 0.750, 0.800, 0.600 | third B=0.990, 0.000, 0.000, 0.000, 0.000
+  PASS  HV-HV jerk_rms_smoothed_mps3: 1.0 is the anchors' own plateau [-inf,0.5], [0.5,0.5]  raw=0.3774
+  PASS  HV-HV accel_rms_mps2: 1.0 is the anchors' own plateau [-inf,0.5], [0.5,0.5]  raw=0.3806
+  PASS  HV-AV spacing_mean_m: 1.0 is the anchors' own plateau [10,10], [10,25], [25,25]  raw=14.2643
+  PASS  HV-AV spacing_min_m: 1.0 is the anchors' own plateau [6,inf], [6,6]  raw=8.7968
+  PASS  HV-AV jerk_rms_smoothed_mps3: 1.0 is the anchors' own plateau [-inf,0.5], [0.5,0.5]  raw=0.3351
+  PASS  HV-AV accel_rms_mps2: 1.0 is the anchors' own plateau [-inf,0.5], [0.5,0.5]  raw=0.3369
+
+  old vs new (old: larger of the pair forced to 1.0 on every axis)
+    moving_fraction            new: HV-HV=0.7550, HV-AV=0.7806   axes at 1.0: 0/2   old normalised: 0.9672, 1.0000
+    spacing_mean_m             new: HV-HV=0.7010, HV-AV=1.0000   axes at 1.0: 1/2   old normalised: 0.5963, 1.0000
+    spacing_min_m              new: HV-HV=0.5596, HV-AV=1.0000   axes at 1.0: 1/2   old normalised: 0.4818, 1.0000
+    jerk_rms_smoothed_mps3     new: HV-HV=1.0000, HV-AV=1.0000   axes at 1.0: 2/2   old normalised: 0.8880, 1.0000
+    accel_rms_mps2             new: HV-HV=1.0000, HV-AV=1.0000   axes at 1.0: 2/2   old normalised: 0.8852, 1.0000
+  PASS  old scheme would put the larger pair at exactly 1.0 on all 5 axes (the problem this change removes)  5/5 (larger value normalised, before any rubric)
+  PASS  new scheme: at least one axis separates the two pairs (not all saturated)  axes where BOTH pairs are at 1.0: 2/5
+  PASS  HV-HV (human follower) polygon is not all-ones
+
+verification: ALL PASS

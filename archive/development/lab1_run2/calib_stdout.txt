@@ -1,0 +1,170 @@
+===== m1_instant_ls =====
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+input dir    : data/preprocess/stage_4
+method       : M1 - instantaneous-acceleration least squares
+model        : a_idm = a*(1 - (v/v0)^4 - (s*/s)^2), s* = s0 + max(0, v*T + v*dv/(2*sqrt(a*b)))
+observed a   : central difference of fv (ends one-sided), dt from the real time column
+spacing      : s = dhw - 250
+normalisation: per-event residuals divided by std(a_obs) of that event
+solver       : scipy.optimize.least_squares (trf), bounds=v0[40,200] T[0.3,5] s0[10,400] a[10,200] b[10,200]
+initial point: v0=120.0000  T=1.2000  s0=100.0000  a=80.0000  b=100.0000
+trajectory   : integration method for the reported metrics = rk4
+
+events:
+  run_1      event_2 (n=211), event_3 (n=124)
+  run_2      event_1 (n=184), event_3 (n=49), event_6 (n=251), event_7 (n=216), event_8 (n=28), event_9 (n=101), event_12 (n=169), event_13 (n=142)
+
+run_1:
+  theta              : v0=200.0000  T=1.6846  s0=60.9783  a=27.1435  b=79.9784
+  within bounds      : True
+  least_squares      : success=True status=2 nfev=14 optimality=3.044e-07
+  acceleration LS    : cost=166.261768 residual RMS (normalised)=0.996297 over 335 residuals
+  trajectory cost    : total_error=2.194745  (equal weight mean of 2 events, 335 samples)
+  event         n     s_RMSE     v_RMSE        J_e     a_RMSE     zero_s
+  event_2     211    27.8500    19.5894     3.1970    100.543    21.5799
+  event_3     124    30.6234    17.9364     1.1925    128.583    49.7431
+
+run_2:
+  theta              : v0=141.4554  T=2.0485  s0=52.3386  a=10.0000  b=200.0000
+  within bounds      : True
+  least_squares      : success=True status=2 nfev=12 optimality=1.624e-06
+  acceleration LS    : cost=571.311423 residual RMS (normalised)=1.001150 over 1140 residuals
+  trajectory cost    : total_error=7.845609  (equal weight mean of 8 events, 1140 samples)
+  event         n     s_RMSE     v_RMSE        J_e     a_RMSE     zero_s
+  event_1     184   177.1024    19.9719    21.3837     76.215    40.9199
+  event_3      49    13.6182    14.8225     1.0124     81.168    30.0320
+  event_6     251    23.9007     7.0229     4.1225     45.840    13.5402
+  event_7     216    63.1875    13.9559     3.9920     88.443    38.0236
+  event_8      28    10.1421    10.2593     3.5052     49.569     7.7247
+  event_9     101    43.8422    11.1186     9.9769     62.059    15.0207
+  event_12    169    48.4393    10.7928    15.6069     72.151    12.8440
+  event_13    142    33.5430    11.0192     3.1653     60.266    28.2123
+
+self-checks:
+  focus_beats_zero_model                         False
+  focus_event                                    event_2
+  focus_improvement_factor                       0.7748636964504176
+  focus_run                                      run_1
+  run_1_event_2_beats_zero_model                 False
+  run_1_event_2_improvement_factor               0.7748636964504176
+  run_1_event_2_spacing_rmse                     27.84997539439495
+  run_1_event_2_zero_model_spacing_rmse          21.57993488015405
+  run_1_has_parameters                           True
+  run_1_parameters_within_bounds                 True
+  run_2_has_parameters                           True
+  run_2_parameters_within_bounds                 True
+  runs_found_nonempty                            True
+  runs_found                                  ['run_1', 'run_2']
+
+WARNING: the focus event (run_1/event_2) spacing RMSE is NOT better than the constant zero model - see results for the numbers (warning only, not an error).
+
+written: results/m1_params.json
+.tmp leftovers: none
+exit=0
+===== m2_neldermead =====
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+input dir    : data/preprocess/stage_4
+method       : M2 - Nelder-Mead trajectory fit, multi-start
+objective    : constrained_total_error = equal weight mean of the per-event
+               [ mean(ds^2)/sigma_s^2 + mean(dv^2)/sigma_v^2 + penalty*violations ]
+spacing      : s = dhw - 250   (spacing violation = simulated s <= 0)
+references   : start 0 = v0=120.0000  T=1.2000  s0=100.0000  a=80.0000  b=100.0000
+starts       : 13 (1 reference + 12 Latin hypercube, seed 20260921)
+nelder-mead  : adaptive=True, xatol=1e-08, fatol=1e-10, maxiter=4000
+bounds       : v0[40,200] T[0.3,5] s0[10,400] a[10,200] b[10,200] (out-of-box penalty 1e+06)
+integration  : rk4 on the real time deltas, leader speed interpolated from lv
+
+run_1: Nelder-Mead multi-start
+    start  0/12 reference theta0           J=    1.203707 nit= 1951 nfev= 3379 feasible    7.65 s
+    start  1/12 lhs 1 (seed 20260921)      J=    1.203764 nit= 2149 nfev= 3749 feasible    7.99 s
+    start  2/12 lhs 2 (seed 20260921)      J=    1.204580 nit= 1470 nfev= 2593 feasible    4.67 s
+    start  3/12 lhs 3 (seed 20260921)      J=    1.463530 nit=  732 nfev= 1356 feasible    2.64 s
+    start  4/12 lhs 4 (seed 20260921)      J=    1.288055 nit= 1318 nfev= 2396 feasible    4.51 s
+    start  5/12 lhs 5 (seed 20260921)      J=         inf nit=   94 nfev=  657 INFEASIBLE    0.50 s
+    start  6/12 lhs 6 (seed 20260921)      J=    1.213492 nit=  802 nfev= 1428 feasible    3.08 s
+    start  7/12 lhs 7 (seed 20260921)      J=    1.321482 nit= 1217 nfev= 2159 feasible    4.05 s
+    start  8/12 lhs 8 (seed 20260921)      J=    1.214648 nit= 1457 nfev= 2567 feasible    4.82 s
+    start  9/12 lhs 9 (seed 20260921)      J=    1.210015 nit=  739 nfev= 1369 feasible    2.49 s
+    start 10/12 lhs 10 (seed 20260921)     J=    1.204167 nit= 1399 nfev= 2478 feasible    4.73 s
+    start 11/12 lhs 11 (seed 20260921)     J=         inf nit=   92 nfev=  643 INFEASIBLE    0.56 s
+    start 12/12 lhs 12 (seed 20260921)     J=    1.209424 nit= 1073 nfev= 1931 feasible    3.89 s
+  best theta         : v0=146.3575  T=1.9212  s0=10.0000  a=56.8908  b=10.0000
+  within bounds      : True
+  multi-start        : 13 starts, 11 feasible, best J=1.203707, worst feasible J=1.463530
+  distinct solutions : 11   reference theta0 J=8.904643   improvement=7.700936023041074
+  total_error        : 1.203707  (equal weight mean of the per-event J_e)
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_2     211    14.7712    14.8586     0.4685    0.8811     1.3496    21.5799
+  event_3     124    28.6793    16.9372     0.3324    0.7254     1.0578    49.7431
+
+run_2: Nelder-Mead multi-start
+    start  0/12 reference theta0           J=    4.785865 nit=  613 nfev= 1168 feasible    7.31 s
+    start  1/12 lhs 1 (seed 20260921)      J=    4.755449 nit= 1612 nfev= 2840 feasible   18.16 s
+    start  2/12 lhs 2 (seed 20260921)      J=    4.935821 nit=  925 nfev= 1672 feasible   10.45 s
+    start  3/12 lhs 3 (seed 20260921)      J=    4.755391 nit= 1362 nfev= 2419 feasible   14.50 s
+    start  4/12 lhs 4 (seed 20260921)      J=    4.755840 nit= 1554 nfev= 2739 feasible   16.68 s
+    start  5/12 lhs 5 (seed 20260921)      J=    4.935644 nit=  780 nfev= 1440 feasible    9.22 s
+    start  6/12 lhs 6 (seed 20260921)      J=    4.765620 nit= 1455 nfev= 2570 feasible   15.10 s
+    start  7/12 lhs 7 (seed 20260921)      J=    4.758272 nit= 1697 nfev= 2980 feasible   17.85 s
+    start  8/12 lhs 8 (seed 20260921)      J=    4.762902 nit=  847 nfev= 1583 feasible    9.23 s
+    start  9/12 lhs 9 (seed 20260921)      J=    4.768371 nit=  999 nfev= 1774 feasible   11.02 s
+    start 10/12 lhs 10 (seed 20260921)     J=    4.821747 nit= 1007 nfev= 1813 feasible   11.74 s
+    start 11/12 lhs 11 (seed 20260921)     J=    4.755883 nit=  906 nfev= 1620 feasible   10.06 s
+    start 12/12 lhs 12 (seed 20260921)     J=    4.755250 nit= 1623 nfev= 2794 feasible   22.46 s
+  best theta         : v0=123.8175  T=2.2935  s0=10.0000  a=15.9080  b=200.0000
+  within bounds      : True
+  multi-start        : 13 starts, 13 feasible, best J=4.755250, worst feasible J=4.935821
+  distinct solutions : 13   reference theta0 J=5.249928   improvement=0.4946774416254973
+  total_error        : 4.755250  (equal weight mean of the per-event J_e)
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_1     184   184.9407    17.7110    20.4266    2.0855    22.5120    40.9199
+  event_3      49    21.7627    18.4833     0.5251    1.2546     1.7797    30.0320
+  event_6     251    18.3878     6.8507     1.8442    0.9579     2.8021    13.5402
+  event_7     216    30.6718    12.9102     0.6507    1.0530     1.7037    38.0236
+  event_8      28     8.1668     9.1035     1.1177    1.4026     2.5203     7.7247
+  event_9     101    21.8883     9.1113     2.1235    0.9787     3.1022    15.0207
+  event_12    169    14.4448     9.8053     1.2648    1.1420     2.4068    12.8440
+  event_13    142     8.6583     8.8149     0.0942    1.1210     1.2152    28.2123
+
+self-checks:
+  focus_beats_zero_model                         True
+  focus_event                                    event_2
+  focus_improvement_factor                       1.4609485308473404
+  focus_run                                      run_1
+  run_1_event_2_beats_zero_model                 True
+  run_1_event_2_improvement_factor               1.4609485308473404
+  run_1_event_2_spacing_rmse                     14.771180794191174
+  run_1_event_2_zero_model_spacing_rmse          21.57993488015405
+  run_1_has_parameters                           True
+  run_1_parameters_within_bounds                 True
+  run_2_has_parameters                           True
+  run_2_parameters_within_bounds                 True
+  runs_found_nonempty                            True
+  runs_found                                  ['run_1', 'run_2']
+
+total runtime: 225.36 s
+written: results/m2_params.json
+.tmp leftovers: none
+exit=0
+===== m3_ga =====
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+input dir    : data/preprocess/stage_4
+method       : M3 - real-coded genetic algorithm (own implementation, no DE)
+objective    : constrained_total_error = equal weight mean of the per-event
+               [ mean(ds^2)/sigma_s^2 + mean(dv^2)/sigma_v^2 + penalty*violations ]
+spacing      : s = dhw - 250   (spacing violation = simulated s <= 0)
+ga           : population=60, generations=80, seed=20260921 per run, elite=2
+operators    : tournament k=3, SBX eta=15 (pc=0.9), polynomial mutation eta=20 (pm=0.2 per coordinate), clip to box
+bounds       : v0[40,200] T[0.3,5] s0[10,400] a[10,200] b[10,200]
+integration  : rk4 on the real time deltas, leader speed interpolated from lv
+
+run_1: genetic algorithm
+    gen   1/80  best J=    1.692615  mean J=33333333420.822914  evals=120
+    gen   2/80  best J=    1.692615  mean J=   22.311906  evals=180
+    gen   3/80  best J=    1.674061  mean J=    5.865821  evals=240
+    gen  10/80  best J=    1.523852  mean J=    1.905202  evals=660
+    gen  20/80  best J=    1.487536  mean J=    1.926490  evals=1260
+    gen  30/80  best J=    1.391275  mean J=    1.867636  evals=1860
+    gen  40/80  best J=    1.276758  mean J=    1.697896  evals=2460
+    gen  50/80  best J=    1.213744  mean J=16666666668.571150  evals=3060
+    gen  60/80  best J=    1.208348  mean J=    2.273814  evals=3660

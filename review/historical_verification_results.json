@@ -1,0 +1,259 @@
+{
+  "scope": "Existing outputs remain unchanged; no calibration was refitted.",
+  "idm_sign_check": {
+    "scenario": "gap=20, follower speed=10, leader speed=5; theta=[30,1.5,2,1,2]",
+    "guideline_and_ta_acceleration": -2.0186975890337595,
+    "existing_calibration_acceleration": 0.9776543209876544,
+    "existing_torch_training_acceleration": 0.9776543209876465,
+    "existing_tgsim_acceleration": 0.9776543209876544,
+    "opposite_sign_confirmed": true
+  },
+  "ttc_sign_check": {
+    "closing_scenario_correct_ttc_s": 4.0,
+    "closing_scenario_current_ttc_s": null,
+    "opening_scenario_correct_ttc_s": null,
+    "opening_scenario_current_ttc_s": 4.0
+  },
+  "run_2_existing_model_reproduction": {
+    "event_1": {
+      "spacing_rmse": 180.64836718187792,
+      "speed_rmse": 17.660781139962427,
+      "saved_spacing_rmse": 180.648369
+    },
+    "event_3": {
+      "spacing_rmse": 23.00064228548,
+      "speed_rmse": 18.902582632231507,
+      "saved_spacing_rmse": 23.000643
+    },
+    "event_6": {
+      "spacing_rmse": 19.556531675543088,
+      "speed_rmse": 6.8752149453240445,
+      "saved_spacing_rmse": 19.556529
+    },
+    "event_7": {
+      "spacing_rmse": 36.31503824773978,
+      "speed_rmse": 12.96285345313027,
+      "saved_spacing_rmse": 36.315039
+    },
+    "event_8": {
+      "spacing_rmse": 9.204640508995112,
+      "speed_rmse": 9.716769963764833,
+      "saved_spacing_rmse": 9.204641
+    },
+    "event_9": {
+      "spacing_rmse": 20.918772803324952,
+      "speed_rmse": 9.065531488330759,
+      "saved_spacing_rmse": 20.918773
+    },
+    "event_12": {
+      "spacing_rmse": 15.913998115405063,
+      "speed_rmse": 9.912583710159545,
+      "saved_spacing_rmse": 15.913998
+    },
+    "event_13": {
+      "spacing_rmse": 10.077325366503525,
+      "speed_rmse": 8.839363921955835,
+      "saved_spacing_rmse": 10.077325
+    }
+  },
+  "run_2_standard_sign_same_parameters_diagnostic_only": {
+    "event_1": {
+      "spacing_rmse": 171.4218454208804,
+      "speed_rmse": 16.231100740760404,
+      "status": {
+        "diverged": false,
+        "s_violations": 0,
+        "finite": true,
+        "min_spacing": 213.20227431693192,
+        "max_abs_speed": 104.86567735629866,
+        "method": "rk4"
+      }
+    },
+    "event_3": {
+      "spacing_rmse": 20.79170760905017,
+      "speed_rmse": 18.08793513363797,
+      "status": {
+        "diverged": false,
+        "s_violations": 0,
+        "finite": true,
+        "min_spacing": 828.5554299999999,
+        "max_abs_speed": 119.85594731018384,
+        "method": "rk4"
+      }
+    },
+    "event_6": {
+      "spacing_rmse": 19.90649747449011,
+      "speed_rmse": 6.7186061775316315,
+      "status": {
+        "diverged": false,
+        "s_violations": 0,
+        "finite": true,
+        "min_spacing": 237.5849458411866,
+        "max_abs_speed": 93.32185,
+        "method": "rk4"
+      }
+    },
+    "event_7": {
+      "spacing_rmse": 37.5094333340304,
+      "speed_rmse": 13.024087637944621,
+      "status": {
+        "diverged": false,
+        "s_violations": 0,
+        "finite": true,
+        "min_spacing": 571.3817764953945,
+        "max_abs_speed": 116.52216584873288,
+        "method": "rk4"
+      }
+    },
+    "event_8": {
+      "spacing_rmse": 7.663595938042391,
+      "speed_rmse": 8.834045887603864,
+      "status": {
+        "diverged": false,
+        "s_violations": 0,
+        "finite": true,
+        "min_spacing": 400.793812,
+        "max_abs_speed": 102.55855802487888,
+        "method": "rk4"
+      }
+    },
+    "event_9": {
+      "spacing_rmse": 23.335820873238834,
+      "speed_rmse": 9.172037769539752,
+      "status": {
+        "diverged": false,
+        "s_violations": 0,
+        "finite": true,
+        "min_spacing": 424.852935,
+        "max_abs_speed": 111.12231225390549,
+        "method": "rk4"
+      }
+    },
+    "event_12": {
+      "spacing_rmse": 13.588484687069974,
+      "speed_rmse": 9.675389423286997,
+      "status": {
+        "diverged": false,
+        "s_violations": 0,
+        "finite": true,
+        "min_spacing": 338.9258923402895,
+        "max_abs_speed": 126.54941,
+        "method": "rk4"
+      }
+    },
+    "event_13": {
+      "spacing_rmse": 9.710304871801549,
+      "speed_rmse": 8.79559912813482,
+      "status": {
+        "diverged": false,
+        "s_violations": 0,
+        "finite": true,
+        "min_spacing": 374.452176,
+        "max_abs_speed": 111.21149753602229,
+        "method": "rk4"
+      }
+    }
+  },
+  "calibration_event_mean_spacing_rmse_existing": 39.45441452310868,
+  "validation_raw_logs": {
+    "152115": {
+      "idm_params": {
+        "v0": 123.36,
+        "T": 2.09,
+        "s0": 28.72,
+        "a": 13.97,
+        "b": 185.16,
+        "delta": 4.0,
+        "vehicle_length": 250.0,
+        "min_spacing": 80.0,
+        "emergency_spacing": 80.0,
+        "max_decel_per_sec": 80.0,
+        "max_accel_per_sec": 50.0
+      },
+      "command_rows": 737,
+      "logged_spacing_min": 52.2790878645701,
+      "emergency_rows": 17,
+      "emergency_episodes": 5,
+      "gap_minus_spacing_range": [
+        249.99999999999977,
+        250.00000000000023
+      ],
+      "flagged_rows_by_reason": {
+        "spacing_emergency": 10,
+        "center_sensor_emergency": 7
+      },
+      "episodes": [
+        {
+          "start_s": 13.254752159118652,
+          "reason": "spacing_emergency"
+        },
+        {
+          "start_s": 26.862662076950073,
+          "reason": "spacing_emergency"
+        },
+        {
+          "start_s": 106.6596040725708,
+          "reason": "center_sensor_emergency"
+        },
+        {
+          "start_s": 128.26545214653015,
+          "reason": "spacing_emergency"
+        },
+        {
+          "start_s": 140.058287858963,
+          "reason": "center_sensor_emergency"
+        }
+      ],
+      "spacing_min_by_mode": {
+        "curve_fixed": 191.43188764387745,
+        "idm_straight": 52.2790878645701
+      }
+    },
+    "155015": {
+      "idm_params": {
+        "v0": 41.12,
+        "T": 2.09,
+        "s0": 28.72,
+        "a": 13.97,
+        "b": 185.16,
+        "delta": 4.0,
+        "vehicle_length": 250.0,
+        "min_spacing": 80.0,
+        "emergency_spacing": 20.0,
+        "max_decel_per_sec": 80.0,
+        "max_accel_per_sec": 50.0
+      },
+      "command_rows": 749,
+      "logged_spacing_min": 143.28612102184888,
+      "emergency_rows": 0,
+      "emergency_episodes": 0,
+      "gap_minus_spacing_range": [
+        249.99999999999977,
+        250.00000000000023
+      ],
+      "flagged_rows_by_reason": {},
+      "episodes": [],
+      "spacing_min_by_mode": {
+        "curve_fixed": 143.28612102184888,
+        "idm_straight": 149.26100993865293
+      }
+    }
+  },
+  "group_mean_logged_spacing": {
+    "group_1": 1561.69154,
+    "group_2": 258.017108,
+    "group_3": 276.587756,
+    "group_4": 589.739475,
+    "group_5": 569.488468
+  },
+  "stage_1_run_2_rows": 3435,
+  "stage_4_run_2_events": 8,
+  "stage_4_run_2_samples": 1140,
+  "map_top_level_keys": [
+    "all_point",
+    "cross_line",
+    "path",
+    "stop_point"
+  ],
+  "map_has_explicit_top_level_unit_or_scale": false
+}

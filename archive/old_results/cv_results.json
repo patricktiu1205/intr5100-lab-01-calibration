@@ -1,0 +1,5061 @@
+{
+  "script": "src/calibrate/cross_validate.py",
+  "stage": "Step C - leave-one-event-out cross-validation",
+  "input_dir": "data/preprocess/stage_4",
+  "seed": 20260921,
+  "integration_method": "rk4",
+  "units": {
+    "spacing_rmse": "coordinate units (raw, un-normalised)",
+    "speed_rmse": "coordinate units/s (raw, un-normalised)",
+    "objective_j": "dimensionless (event-normalised, idm_core convention)",
+    "mse": "coordinate units^2 for the spacing, (coordinate units/s)^2 for the speed",
+    "mae": "coordinate units for the spacing, coordinate units/s for the speed",
+    "mape_percent": "percent (samples with a zero measurement skipped and counted)",
+    "r2": "dimensionless, 1 - SS_res/SS_tot about the measured mean",
+    "scale_s": "coordinate units (pooled std of all measured s of the driver)",
+    "scale_v": "coordinate units/s (pooled std of all measured v of the driver)",
+    "score": "dimensionless"
+  },
+  "cv_scheme": {
+    "type": "leave-one-event-out",
+    "folds": {
+      "driver_1": [
+        "leave_event_1_out",
+        "leave_event_2_out",
+        "leave_event_3_out"
+      ],
+      "driver_2": [
+        "leave_event_2_out",
+        "leave_event_3_out"
+      ]
+    },
+    "training": "all remaining events of the same driver",
+    "prediction": "pure forward simulation of the held-out event from its first measured (s, v) with the measured lv series; the held-out event is never used to fit",
+    "per_fold_metrics": [
+      "spacing_rmse",
+      "speed_rmse",
+      "s_violations",
+      "objective_j",
+      "spacing/speed mse, rmse, mae, mape_percent, r2"
+    ],
+    "aggregation": "equal weight mean over the feasible folds for every error metric (mse/rmse/mae/mape); violation counts summed; r2 rebuilt on the pooled residuals (1 - sum SS_res / sum SS_tot, each fold about its own mean)"
+  },
+  "score": {
+    "formula": "mean_folds(spacing_rmse)/scale_s + mean_folds(speed_rmse)/scale_v + 1.0 * sum_folds(s_violations)",
+    "violation_penalty_per_occurrence": 1.0,
+    "infeasible_methods": "excluded from the ranking"
+  },
+  "budgets": {
+    "cross_validation": {
+      "M1": {
+        "mode": "full",
+        "note": "one bounded least-squares fit (no budget parameter)"
+      },
+      "M2": {
+        "mode": "full",
+        "starts": 13,
+        "maxiter": 4000,
+        "note": "multi-start Nelder-Mead; the module requires at least 11 starts"
+      },
+      "M3": {
+        "mode": "halved",
+        "population": 30,
+        "generations": 40,
+        "full_population": 60,
+        "full_generations": 80
+      },
+      "M4": {
+        "mode": "halved",
+        "particles": 20,
+        "iterations": 40,
+        "full_particles": 40,
+        "full_iterations": 80
+      },
+      "M5": {
+        "mode": "halved",
+        "starts": 5,
+        "steps": 150,
+        "lr": 0.05,
+        "full_starts": 10,
+        "full_steps": 300
+      }
+    },
+    "final_retrain": {
+      "M1": {
+        "mode": "full",
+        "note": "one bounded least-squares fit (no budget parameter)"
+      },
+      "M2": {
+        "mode": "full",
+        "starts": 13,
+        "maxiter": 4000
+      },
+      "M3": {
+        "mode": "full",
+        "population": 60,
+        "generations": 80
+      },
+      "M4": {
+        "mode": "full",
+        "particles": 40,
+        "iterations": 80
+      },
+      "M5": {
+        "mode": "full",
+        "starts": 10,
+        "steps": 300,
+        "lr": 0.05
+      }
+    },
+    "note": "the brief allows the global methods (GA/PSO/M5 multi-start) to run at half budget inside the cross-validation; the final retrain always uses the full budget"
+  },
+  "folds": {
+    "driver_1": {
+      "leave_event_1_out": {
+        "M1": {
+          "driver": "driver_1",
+          "fold": "leave_event_1_out",
+          "held_out_event": "event_1",
+          "method": "M1",
+          "method_description": "instantaneous-acceleration least squares (bounded trf)",
+          "training_events": [
+            "event_2",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "full",
+          "infeasible": true,
+          "infeasible_reason": "held-out prediction: the simulation diverged on the held-out event",
+          "theta": {
+            "v0": 175.368433,
+            "T": 0.3,
+            "s0": 10.0,
+            "a": 12.694611,
+            "b": 200.0
+          },
+          "train_total_error": 6.07515,
+          "metrics": null,
+          "regression": null,
+          "elapsed_seconds": 0.05902,
+          "theta_vector": [
+            175.368433,
+            0.3,
+            10.0,
+            12.694611,
+            200.0
+          ]
+        },
+        "M2": {
+          "driver": "driver_1",
+          "fold": "leave_event_1_out",
+          "held_out_event": "event_1",
+          "method": "M2",
+          "method_description": "Nelder-Mead trajectory fit, multi-start",
+          "training_events": [
+            "event_2",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "full",
+          "infeasible": true,
+          "infeasible_reason": "held-out prediction: the simulation diverged on the held-out event",
+          "theta": {
+            "v0": 143.108253,
+            "T": 0.376687,
+            "s0": 10.012547,
+            "a": 112.442546,
+            "b": 10.0
+          },
+          "train_total_error": 1.097742,
+          "metrics": null,
+          "regression": null,
+          "elapsed_seconds": 27.436971,
+          "theta_vector": [
+            143.108253,
+            0.376687,
+            10.012547,
+            112.442546,
+            10.0
+          ]
+        },
+        "M3": {
+          "driver": "driver_1",
+          "fold": "leave_event_1_out",
+          "held_out_event": "event_1",
+          "method": "M3",
+          "method_description": "real-coded genetic algorithm",
+          "training_events": [
+            "event_2",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 145.195233,
+            "T": 0.727725,
+            "s0": 10.478784,
+            "a": 113.606262,
+            "b": 26.351488
+          },
+          "train_total_error": 1.249197,
+          "metrics": {
+            "spacing_rmse": 190.014635,
+            "speed_rmse": 31.68837,
+            "s_violations": 0,
+            "objective_j": 9.409872,
+            "j_spacing": 7.79429,
+            "j_speed": 1.615582,
+            "spacing_rmse_normalized": 2.791826,
+            "speed_rmse_normalized": 1.271055,
+            "n_samples": 138,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 68.061069,
+            "zero_model_best_speed_rmse": 24.930752
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 138,
+            "spacing": {
+              "mse": 36105.561419,
+              "rmse": 190.014635,
+              "mae": 173.350816,
+              "mape_percent": 46.168044,
+              "mape_skipped_points": 0,
+              "r2": -6.79429,
+              "n_points": 138,
+              "ss_res": 4982567.475765,
+              "ss_tot": 639258.666293
+            },
+            "speed": {
+              "mse": 1004.15277,
+              "rmse": 31.68837,
+              "mae": 27.236639,
+              "mape_percent": 31.254412,
+              "mape_skipped_points": 0,
+              "r2": -0.615582,
+              "n_points": 138,
+              "ss_res": 138573.082319,
+              "ss_tot": 85772.853098
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 0.974192,
+          "theta_vector": [
+            145.195233,
+            0.727725,
+            10.478784,
+            113.606262,
+            26.351488
+          ]
+        },
+        "M4": {
+          "driver": "driver_1",
+          "fold": "leave_event_1_out",
+          "held_out_event": "event_1",
+          "method": "M4",
+          "method_description": "gbest particle swarm",
+          "training_events": [
+            "event_2",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "halved",
+          "infeasible": true,
+          "infeasible_reason": "held-out prediction: the simulation diverged on the held-out event",
+          "theta": {
+            "v0": 142.96031,
+            "T": 0.390175,
+            "s0": 10.0,
+            "a": 117.233099,
+            "b": 10.045644
+          },
+          "train_total_error": 1.098661,
+          "metrics": null,
+          "regression": null,
+          "elapsed_seconds": 0.742028,
+          "theta_vector": [
+            142.96031,
+            0.390175,
+            10.0,
+            117.233099,
+            10.045644
+          ]
+        },
+        "M5": {
+          "driver": "driver_1",
+          "fold": "leave_event_1_out",
+          "held_out_event": "event_1",
+          "method": "M5",
+          "method_description": "differentiable IDM (torch) + Adam, multi-start",
+          "training_events": [
+            "event_2",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 144.446942,
+            "T": 0.578934,
+            "s0": 37.026386,
+            "a": 135.594649,
+            "b": 144.542429
+          },
+          "train_total_error": 1.349638,
+          "metrics": {
+            "spacing_rmse": 175.831951,
+            "speed_rmse": 28.69432,
+            "s_violations": 0,
+            "objective_j": 7.998893,
+            "j_spacing": 6.674182,
+            "j_speed": 1.324711,
+            "spacing_rmse_normalized": 2.583444,
+            "speed_rmse_normalized": 1.150961,
+            "n_samples": 138,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 68.061069,
+            "zero_model_best_speed_rmse": 24.930752
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 138,
+            "spacing": {
+              "mse": 30916.874988,
+              "rmse": 175.831951,
+              "mae": 161.657219,
+              "mape_percent": 42.896263,
+              "mape_skipped_points": 0,
+              "r2": -5.674182,
+              "n_points": 138,
+              "ss_res": 4266528.748408,
+              "ss_tot": 639258.666293
+            },
+            "speed": {
+              "mse": 823.364015,
+              "rmse": 28.69432,
+              "mae": 23.491565,
+              "mape_percent": 28.485494,
+              "mape_skipped_points": 0,
+              "r2": -0.324711,
+              "n_points": 138,
+              "ss_res": 113624.234135,
+              "ss_tot": 85772.853098
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 13.048881,
+          "theta_vector": [
+            144.446942,
+            0.578934,
+            37.026386,
+            135.594649,
+            144.542429
+          ]
+        }
+      },
+      "leave_event_2_out": {
+        "M1": {
+          "driver": "driver_1",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M1",
+          "method_description": "instantaneous-acceleration least squares (bounded trf)",
+          "training_events": [
+            "event_1",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "full",
+          "infeasible": true,
+          "infeasible_reason": "calibration: the calibrated parameters give a diverged trajectory on the training events",
+          "theta": null,
+          "train_total_error": null,
+          "metrics": null,
+          "regression": null,
+          "elapsed_seconds": 0.019064
+        },
+        "M2": {
+          "driver": "driver_1",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M2",
+          "method_description": "Nelder-Mead trajectory fit, multi-start",
+          "training_events": [
+            "event_1",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "full",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 118.198692,
+            "T": 0.3,
+            "s0": 10.000346,
+            "a": 199.719679,
+            "b": 192.821509
+          },
+          "train_total_error": 1.521253,
+          "metrics": {
+            "spacing_rmse": 31.720689,
+            "speed_rmse": 22.495013,
+            "s_violations": 0,
+            "objective_j": 17.512657,
+            "j_spacing": 14.463674,
+            "j_speed": 3.048982,
+            "spacing_rmse_normalized": 3.803114,
+            "speed_rmse_normalized": 1.746134,
+            "n_samples": 27,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 8.340715,
+            "zero_model_best_speed_rmse": 12.882756
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 27,
+            "spacing": {
+              "mse": 1006.202096,
+              "rmse": 31.720689,
+              "mae": 24.846299,
+              "mape_percent": 7.434781,
+              "mape_skipped_points": 0,
+              "r2": -13.463674,
+              "n_points": 27,
+              "ss_res": 27167.45659,
+              "ss_tot": 1878.323302
+            },
+            "speed": {
+              "mse": 506.025607,
+              "rmse": 22.495013,
+              "mae": 19.631578,
+              "mape_percent": 13.81176,
+              "mape_skipped_points": 0,
+              "r2": -2.048982,
+              "n_points": 27,
+              "ss_res": 13662.691386,
+              "ss_tot": 4481.06606
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 49.208963,
+          "theta_vector": [
+            118.198692,
+            0.3,
+            10.000346,
+            199.719679,
+            192.821509
+          ]
+        },
+        "M3": {
+          "driver": "driver_1",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M3",
+          "method_description": "real-coded genetic algorithm",
+          "training_events": [
+            "event_1",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 118.726059,
+            "T": 0.300646,
+            "s0": 10.053194,
+            "a": 152.811454,
+            "b": 147.510592
+          },
+          "train_total_error": 1.539223,
+          "metrics": {
+            "spacing_rmse": 31.244236,
+            "speed_rmse": 22.115655,
+            "s_violations": 0,
+            "objective_j": 16.979454,
+            "j_spacing": 14.032441,
+            "j_speed": 2.947013,
+            "spacing_rmse_normalized": 3.74599,
+            "speed_rmse_normalized": 1.716687,
+            "n_samples": 27,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 8.340715,
+            "zero_model_best_speed_rmse": 12.882756
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 27,
+            "spacing": {
+              "mse": 976.202268,
+              "rmse": 31.244236,
+              "mae": 24.49129,
+              "mape_percent": 7.328276,
+              "mape_skipped_points": 0,
+              "r2": -13.032441,
+              "n_points": 27,
+              "ss_res": 26357.461223,
+              "ss_tot": 1878.323302
+            },
+            "speed": {
+              "mse": 489.102191,
+              "rmse": 22.115655,
+              "mae": 19.279954,
+              "mape_percent": 13.562046,
+              "mape_skipped_points": 0,
+              "r2": -1.947013,
+              "n_points": 27,
+              "ss_res": 13205.759145,
+              "ss_tot": 4481.06606
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 1.561523,
+          "theta_vector": [
+            118.726059,
+            0.300646,
+            10.053194,
+            152.811454,
+            147.510592
+          ]
+        },
+        "M4": {
+          "driver": "driver_1",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M4",
+          "method_description": "gbest particle swarm",
+          "training_events": [
+            "event_1",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 118.194345,
+            "T": 0.3,
+            "s0": 10.0,
+            "a": 200.0,
+            "b": 200.0
+          },
+          "train_total_error": 1.520052,
+          "metrics": {
+            "spacing_rmse": 31.723165,
+            "speed_rmse": 22.496777,
+            "s_violations": 0,
+            "objective_j": 17.515394,
+            "j_spacing": 14.465933,
+            "j_speed": 3.04946,
+            "spacing_rmse_normalized": 3.803411,
+            "speed_rmse_normalized": 1.74627,
+            "n_samples": 27,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 8.340715,
+            "zero_model_best_speed_rmse": 12.882756
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 27,
+            "spacing": {
+              "mse": 1006.359226,
+              "rmse": 31.723165,
+              "mae": 24.848182,
+              "mape_percent": 7.435345,
+              "mape_skipped_points": 0,
+              "r2": -13.465933,
+              "n_points": 27,
+              "ss_res": 27171.699095,
+              "ss_tot": 1878.323302
+            },
+            "speed": {
+              "mse": 506.104956,
+              "rmse": 22.496777,
+              "mae": 19.633249,
+              "mape_percent": 13.812948,
+              "mape_skipped_points": 0,
+              "r2": -2.04946,
+              "n_points": 27,
+              "ss_res": 13664.833825,
+              "ss_tot": 4481.06606
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 1.108229,
+          "theta_vector": [
+            118.194345,
+            0.3,
+            10.0,
+            200.0,
+            200.0
+          ]
+        },
+        "M5": {
+          "driver": "driver_1",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M5",
+          "method_description": "differentiable IDM (torch) + Adam, multi-start",
+          "training_events": [
+            "event_1",
+            "event_3"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 119.530521,
+            "T": 0.451324,
+            "s0": 16.004617,
+            "a": 132.394236,
+            "b": 147.036695
+          },
+          "train_total_error": 1.627408,
+          "metrics": {
+            "spacing_rmse": 31.283189,
+            "speed_rmse": 22.058488,
+            "s_violations": 0,
+            "objective_j": 16.99925,
+            "j_spacing": 14.067453,
+            "j_speed": 2.931797,
+            "spacing_rmse_normalized": 3.75066,
+            "speed_rmse_normalized": 1.712249,
+            "n_samples": 27,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 8.340715,
+            "zero_model_best_speed_rmse": 12.882756
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 27,
+            "spacing": {
+              "mse": 978.637927,
+              "rmse": 31.283189,
+              "mae": 24.560057,
+              "mape_percent": 7.348232,
+              "mape_skipped_points": 0,
+              "r2": -13.067453,
+              "n_points": 27,
+              "ss_res": 26423.224026,
+              "ss_tot": 1878.323302
+            },
+            "speed": {
+              "mse": 486.5769,
+              "rmse": 22.058488,
+              "mae": 19.243792,
+              "mape_percent": 13.537504,
+              "mape_skipped_points": 0,
+              "r2": -1.931797,
+              "n_points": 27,
+              "ss_res": 13137.576306,
+              "ss_tot": 4481.06606
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 20.393484,
+          "theta_vector": [
+            119.530521,
+            0.451324,
+            16.004617,
+            132.394236,
+            147.036695
+          ]
+        }
+      },
+      "leave_event_3_out": {
+        "M1": {
+          "driver": "driver_1",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M1",
+          "method_description": "instantaneous-acceleration least squares (bounded trf)",
+          "training_events": [
+            "event_1",
+            "event_2"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "full",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 198.169567,
+            "T": 0.510447,
+            "s0": 247.55803,
+            "a": 15.851869,
+            "b": 66.224709
+          },
+          "train_total_error": 13.524386,
+          "metrics": {
+            "spacing_rmse": 380.063378,
+            "speed_rmse": 71.189852,
+            "s_violations": 0,
+            "objective_j": 56.722907,
+            "j_spacing": 9.772778,
+            "j_speed": 46.950129,
+            "spacing_rmse_normalized": 3.126144,
+            "speed_rmse_normalized": 6.852016,
+            "n_samples": 79,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 121.575764,
+            "zero_model_best_speed_rmse": 10.389621
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 79,
+            "spacing": {
+              "mse": 144448.171368,
+              "rmse": 380.063378,
+              "mae": 333.966862,
+              "mape_percent": 101.704246,
+              "mape_skipped_points": 0,
+              "r2": -8.772778,
+              "n_points": 79,
+              "ss_res": 11411405.538093,
+              "ss_tot": 1167672.639832
+            },
+            "speed": {
+              "mse": 5067.995039,
+              "rmse": 71.189852,
+              "mae": 67.75478,
+              "mape_percent": 54.68912,
+              "mape_skipped_points": 0,
+              "r2": -45.950129,
+              "n_points": 79,
+              "ss_res": 400371.608118,
+              "ss_tot": 8527.593312
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 22.163255,
+          "theta_vector": [
+            198.169567,
+            0.510447,
+            247.55803,
+            15.851869,
+            66.224709
+          ]
+        },
+        "M2": {
+          "driver": "driver_1",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M2",
+          "method_description": "Nelder-Mead trajectory fit, multi-start",
+          "training_events": [
+            "event_1",
+            "event_2"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "full",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 193.799476,
+            "T": 0.3,
+            "s0": 244.831275,
+            "a": 200.0,
+            "b": 194.618641
+          },
+          "train_total_error": 2.952306,
+          "metrics": {
+            "spacing_rmse": 212.78538,
+            "speed_rmse": 84.819143,
+            "s_violations": 0,
+            "objective_j": 69.711492,
+            "j_spacing": 3.0633,
+            "j_speed": 66.648191,
+            "spacing_rmse_normalized": 1.750229,
+            "speed_rmse_normalized": 8.163834,
+            "n_samples": 79,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 121.575764,
+            "zero_model_best_speed_rmse": 10.389621
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 79,
+            "spacing": {
+              "mse": 45277.617878,
+              "rmse": 212.78538,
+              "mae": 190.230293,
+              "mape_percent": 77.567439,
+              "mape_skipped_points": 0,
+              "r2": -2.0633,
+              "n_points": 79,
+              "ss_res": 3576931.812383,
+              "ss_tot": 1167672.639832
+            },
+            "speed": {
+              "mse": 7194.286976,
+              "rmse": 84.819143,
+              "mae": 67.600502,
+              "mape_percent": 56.763341,
+              "mape_skipped_points": 0,
+              "r2": -65.648191,
+              "n_points": 79,
+              "ss_res": 568348.671097,
+              "ss_tot": 8527.593312
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 52.356001,
+          "theta_vector": [
+            193.799476,
+            0.3,
+            244.831275,
+            200.0,
+            194.618641
+          ]
+        },
+        "M3": {
+          "driver": "driver_1",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M3",
+          "method_description": "real-coded genetic algorithm",
+          "training_events": [
+            "event_1",
+            "event_2"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 199.992378,
+            "T": 1.665229,
+            "s0": 69.12761,
+            "a": 199.980372,
+            "b": 198.93554
+          },
+          "train_total_error": 3.290277,
+          "metrics": {
+            "spacing_rmse": 75.875149,
+            "speed_rmse": 34.245925,
+            "s_violations": 0,
+            "objective_j": 11.254215,
+            "j_spacing": 0.389498,
+            "j_speed": 10.864717,
+            "spacing_rmse_normalized": 0.624098,
+            "speed_rmse_normalized": 3.296167,
+            "n_samples": 79,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 121.575764,
+            "zero_model_best_speed_rmse": 10.389621
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 79,
+            "spacing": {
+              "mse": 5757.038285,
+              "rmse": 75.875149,
+              "mae": 66.137628,
+              "mape_percent": 27.899806,
+              "mape_skipped_points": 0,
+              "r2": 0.610502,
+              "n_points": 79,
+              "ss_res": 454806.024476,
+              "ss_tot": 1167672.639832
+            },
+            "speed": {
+              "mse": 1172.783413,
+              "rmse": 34.245925,
+              "mae": 28.064558,
+              "mape_percent": 23.259504,
+              "mape_skipped_points": 0,
+              "r2": -9.864717,
+              "n_points": 79,
+              "ss_res": 92649.889626,
+              "ss_tot": 8527.593312
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 1.249237,
+          "theta_vector": [
+            199.992378,
+            1.665229,
+            69.12761,
+            199.980372,
+            198.93554
+          ]
+        },
+        "M4": {
+          "driver": "driver_1",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M4",
+          "method_description": "gbest particle swarm",
+          "training_events": [
+            "event_1",
+            "event_2"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 199.995308,
+            "T": 0.653258,
+            "s0": 203.171664,
+            "a": 199.773921,
+            "b": 200.0
+          },
+          "train_total_error": 3.041096,
+          "metrics": {
+            "spacing_rmse": 128.280466,
+            "speed_rmse": 60.780864,
+            "s_violations": 0,
+            "objective_j": 35.337621,
+            "j_spacing": 1.113338,
+            "j_speed": 34.224283,
+            "spacing_rmse_normalized": 1.055148,
+            "speed_rmse_normalized": 5.850152,
+            "n_samples": 79,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 121.575764,
+            "zero_model_best_speed_rmse": 10.389621
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 79,
+            "spacing": {
+              "mse": 16455.877901,
+              "rmse": 128.280466,
+              "mae": 108.546735,
+              "mape_percent": 47.221563,
+              "mape_skipped_points": 0,
+              "r2": -0.113338,
+              "n_points": 79,
+              "ss_res": 1300014.354144,
+              "ss_tot": 1167672.639832
+            },
+            "speed": {
+              "mse": 3694.313462,
+              "rmse": 60.780864,
+              "mae": 49.999411,
+              "mape_percent": 41.729281,
+              "mape_skipped_points": 0,
+              "r2": -33.224283,
+              "n_points": 79,
+              "ss_res": 291850.763515,
+              "ss_tot": 8527.593312
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 0.906544,
+          "theta_vector": [
+            199.995308,
+            0.653258,
+            203.171664,
+            199.773921,
+            200.0
+          ]
+        },
+        "M5": {
+          "driver": "driver_1",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M5",
+          "method_description": "differentiable IDM (torch) + Adam, multi-start",
+          "training_events": [
+            "event_1",
+            "event_2"
+          ],
+          "n_training_events": 2,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 188.035273,
+            "T": 1.451956,
+            "s0": 85.47715,
+            "a": 185.957072,
+            "b": 179.098939
+          },
+          "train_total_error": 3.289999,
+          "metrics": {
+            "spacing_rmse": 78.651544,
+            "speed_rmse": 33.901484,
+            "s_violations": 0,
+            "objective_j": 11.065788,
+            "j_spacing": 0.418524,
+            "j_speed": 10.647264,
+            "spacing_rmse_normalized": 0.646934,
+            "speed_rmse_normalized": 3.263015,
+            "n_samples": 79,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 121.575764,
+            "zero_model_best_speed_rmse": 10.389621
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 79,
+            "spacing": {
+              "mse": 6186.065434,
+              "rmse": 78.651544,
+              "mae": 68.551443,
+              "mape_percent": 28.871413,
+              "mape_skipped_points": 0,
+              "r2": 0.581476,
+              "n_points": 79,
+              "ss_res": 488699.169295,
+              "ss_tot": 1167672.639832
+            },
+            "speed": {
+              "mse": 1149.310629,
+              "rmse": 33.901484,
+              "mae": 27.354961,
+              "mape_percent": 22.747687,
+              "mape_skipped_points": 0,
+              "r2": -9.647264,
+              "n_points": 79,
+              "ss_res": 90795.539655,
+              "ss_tot": 8527.593312
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 14.287477,
+          "theta_vector": [
+            188.035273,
+            1.451956,
+            85.47715,
+            185.957072,
+            179.098939
+          ]
+        }
+      }
+    },
+    "driver_2": {
+      "leave_event_2_out": {
+        "M1": {
+          "driver": "driver_2",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M1",
+          "method_description": "instantaneous-acceleration least squares (bounded trf)",
+          "training_events": [
+            "event_3"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "full",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 200.0,
+            "T": 1.204571,
+            "s0": 79.635703,
+            "a": 24.728469,
+            "b": 200.0
+          },
+          "train_total_error": 1.357351,
+          "metrics": {
+            "spacing_rmse": 49.760037,
+            "speed_rmse": 23.263782,
+            "s_violations": 0,
+            "objective_j": 7.47681,
+            "j_spacing": 5.316932,
+            "j_speed": 2.159877,
+            "spacing_rmse_normalized": 2.305847,
+            "speed_rmse_normalized": 1.469652,
+            "n_samples": 211,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 21.579935,
+            "zero_model_best_speed_rmse": 15.829448
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 211,
+            "spacing": {
+              "mse": 2476.061255,
+              "rmse": 49.760037,
+              "mae": 38.16492,
+              "mape_percent": 14.92022,
+              "mape_skipped_points": 0,
+              "r2": -4.316932,
+              "n_points": 211,
+              "ss_res": 522448.92486,
+              "ss_tot": 98261.34737
+            },
+            "speed": {
+              "mse": 541.203533,
+              "rmse": 23.263782,
+              "mae": 15.916439,
+              "mape_percent": 16.650036,
+              "mape_skipped_points": 0,
+              "r2": -1.159877,
+              "n_points": 211,
+              "ss_res": 114193.945519,
+              "ss_tot": 52870.569048
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 0.018816,
+          "theta_vector": [
+            200.0,
+            1.204571,
+            79.635703,
+            24.728469,
+            200.0
+          ]
+        },
+        "M2": {
+          "driver": "driver_2",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M2",
+          "method_description": "Nelder-Mead trajectory fit, multi-start",
+          "training_events": [
+            "event_3"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "full",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 148.878464,
+            "T": 1.576053,
+            "s0": 10.000082,
+            "a": 31.427292,
+            "b": 200.0
+          },
+          "train_total_error": 0.67455,
+          "metrics": {
+            "spacing_rmse": 53.411452,
+            "speed_rmse": 19.446672,
+            "s_violations": 0,
+            "objective_j": 7.635123,
+            "j_spacing": 6.12588,
+            "j_speed": 1.509243,
+            "spacing_rmse_normalized": 2.475052,
+            "speed_rmse_normalized": 1.228512,
+            "n_samples": 211,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 21.579935,
+            "zero_model_best_speed_rmse": 15.829448
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 211,
+            "spacing": {
+              "mse": 2852.783241,
+              "rmse": 53.411452,
+              "mae": 47.518604,
+              "mape_percent": 18.847453,
+              "mape_skipped_points": 0,
+              "r2": -5.12588,
+              "n_points": 211,
+              "ss_res": 601937.263908,
+              "ss_tot": 98261.34737
+            },
+            "speed": {
+              "mse": 378.173037,
+              "rmse": 19.446672,
+              "mae": 13.511297,
+              "mape_percent": 14.369707,
+              "mape_skipped_points": 0,
+              "r2": -0.509243,
+              "n_points": 211,
+              "ss_res": 79794.510792,
+              "ss_tot": 52870.569048
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 22.489156,
+          "theta_vector": [
+            148.878464,
+            1.576053,
+            10.000082,
+            31.427292,
+            200.0
+          ]
+        },
+        "M3": {
+          "driver": "driver_2",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M3",
+          "method_description": "real-coded genetic algorithm",
+          "training_events": [
+            "event_3"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 134.516662,
+            "T": 0.345706,
+            "s0": 113.556385,
+            "a": 115.406619,
+            "b": 53.44022
+          },
+          "train_total_error": 0.679519,
+          "metrics": {
+            "spacing_rmse": 57.779398,
+            "speed_rmse": 18.030809,
+            "s_violations": 0,
+            "objective_j": 8.466263,
+            "j_spacing": 7.168789,
+            "j_speed": 1.297475,
+            "spacing_rmse_normalized": 2.677459,
+            "speed_rmse_normalized": 1.139067,
+            "n_samples": 211,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 21.579935,
+            "zero_model_best_speed_rmse": 15.829448
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 211,
+            "spacing": {
+              "mse": 3338.458862,
+              "rmse": 57.779398,
+              "mae": 53.249986,
+              "mape_percent": 21.358619,
+              "mape_skipped_points": 0,
+              "r2": -6.168789,
+              "n_points": 211,
+              "ss_res": 704414.819847,
+              "ss_tot": 98261.34737
+            },
+            "speed": {
+              "mse": 325.110066,
+              "rmse": 18.030809,
+              "mae": 13.046007,
+              "mape_percent": 13.929691,
+              "mape_skipped_points": 0,
+              "r2": -0.297475,
+              "n_points": 211,
+              "ss_res": 68598.223848,
+              "ss_tot": 52870.569048
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 0.885809,
+          "theta_vector": [
+            134.516662,
+            0.345706,
+            113.556385,
+            115.406619,
+            53.44022
+          ]
+        },
+        "M4": {
+          "driver": "driver_2",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M4",
+          "method_description": "gbest particle swarm",
+          "training_events": [
+            "event_3"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 135.890508,
+            "T": 0.3,
+            "s0": 121.535606,
+            "a": 78.163903,
+            "b": 163.93897
+          },
+          "train_total_error": 0.677131,
+          "metrics": {
+            "spacing_rmse": 57.508878,
+            "speed_rmse": 18.341425,
+            "s_violations": 0,
+            "objective_j": 8.444381,
+            "j_spacing": 7.101818,
+            "j_speed": 1.342563,
+            "spacing_rmse_normalized": 2.664924,
+            "speed_rmse_normalized": 1.15869,
+            "n_samples": 211,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 21.579935,
+            "zero_model_best_speed_rmse": 15.829448
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 211,
+            "spacing": {
+              "mse": 3307.271101,
+              "rmse": 57.508878,
+              "mae": 52.853645,
+              "mape_percent": 21.154195,
+              "mape_skipped_points": 0,
+              "r2": -6.101818,
+              "n_points": 211,
+              "ss_res": 697834.202209,
+              "ss_tot": 98261.34737
+            },
+            "speed": {
+              "mse": 336.407885,
+              "rmse": 18.341425,
+              "mae": 13.153751,
+              "mape_percent": 14.026681,
+              "mape_skipped_points": 0,
+              "r2": -0.342563,
+              "n_points": 211,
+              "ss_res": 70982.063679,
+              "ss_tot": 52870.569048
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 0.602247,
+          "theta_vector": [
+            135.890508,
+            0.3,
+            121.535606,
+            78.163903,
+            163.93897
+          ]
+        },
+        "M5": {
+          "driver": "driver_2",
+          "fold": "leave_event_2_out",
+          "held_out_event": "event_2",
+          "method": "M5",
+          "method_description": "differentiable IDM (torch) + Adam, multi-start",
+          "training_events": [
+            "event_3"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 141.202534,
+            "T": 1.07543,
+            "s0": 49.72306,
+            "a": 46.839994,
+            "b": 168.243127
+          },
+          "train_total_error": 0.676939,
+          "metrics": {
+            "spacing_rmse": 56.020454,
+            "speed_rmse": 18.705691,
+            "s_violations": 0,
+            "objective_j": 8.135381,
+            "j_spacing": 6.738962,
+            "j_speed": 1.39642,
+            "spacing_rmse_normalized": 2.595951,
+            "speed_rmse_normalized": 1.181702,
+            "n_samples": 211,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 21.579935,
+            "zero_model_best_speed_rmse": 15.829448
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 211,
+            "spacing": {
+              "mse": 3138.291315,
+              "rmse": 56.020454,
+              "mae": 51.232684,
+              "mape_percent": 20.457383,
+              "mape_skipped_points": 0,
+              "r2": -5.738962,
+              "n_points": 211,
+              "ss_res": 662179.467497,
+              "ss_tot": 98261.34737
+            },
+            "speed": {
+              "mse": 349.90286,
+              "rmse": 18.705691,
+              "mae": 13.192515,
+              "mape_percent": 14.068333,
+              "mape_skipped_points": 0,
+              "r2": -0.39642,
+              "n_points": 211,
+              "ss_res": 73829.503378,
+              "ss_tot": 52870.569048
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 10.406738,
+          "theta_vector": [
+            141.202534,
+            1.07543,
+            49.72306,
+            46.839994,
+            168.243127
+          ]
+        }
+      },
+      "leave_event_3_out": {
+        "M1": {
+          "driver": "driver_2",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M1",
+          "method_description": "instantaneous-acceleration least squares (bounded trf)",
+          "training_events": [
+            "event_2"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "full",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 200.0,
+            "T": 1.081142,
+            "s0": 126.003921,
+            "a": 70.449903,
+            "b": 38.499912
+          },
+          "train_total_error": 1.596899,
+          "metrics": {
+            "spacing_rmse": 48.934449,
+            "speed_rmse": 22.490804,
+            "s_violations": 0,
+            "objective_j": 2.246828,
+            "j_spacing": 0.967751,
+            "j_speed": 1.279077,
+            "spacing_rmse_normalized": 0.983744,
+            "speed_rmse_normalized": 1.130963,
+            "n_samples": 124,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 49.743095,
+            "zero_model_best_speed_rmse": 19.886424
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 124,
+            "spacing": {
+              "mse": 2394.580266,
+              "rmse": 48.934449,
+              "mae": 40.177826,
+              "mape_percent": 21.454289,
+              "mape_skipped_points": 0,
+              "r2": 0.032249,
+              "n_points": 124,
+              "ss_res": 296927.952982,
+              "ss_tot": 306822.559668
+            },
+            "speed": {
+              "mse": 505.836277,
+              "rmse": 22.490804,
+              "mae": 18.544061,
+              "mape_percent": 16.854621,
+              "mape_skipped_points": 0,
+              "r2": -0.279077,
+              "n_points": 124,
+              "ss_res": 62723.698325,
+              "ss_tot": 49038.260124
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 0.013988,
+          "theta_vector": [
+            200.0,
+            1.081142,
+            126.003921,
+            70.449903,
+            38.499912
+          ]
+        },
+        "M2": {
+          "driver": "driver_2",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M2",
+          "method_description": "Nelder-Mead trajectory fit, multi-start",
+          "training_events": [
+            "event_2"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "full",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 131.410671,
+            "T": 0.300024,
+            "s0": 159.826613,
+            "a": 78.203944,
+            "b": 10.0
+          },
+          "train_total_error": 1.15893,
+          "metrics": {
+            "spacing_rmse": 37.097221,
+            "speed_rmse": 17.51159,
+            "s_violations": 0,
+            "objective_j": 1.331604,
+            "j_spacing": 0.556182,
+            "j_speed": 0.775421,
+            "spacing_rmse_normalized": 0.745776,
+            "speed_rmse_normalized": 0.88058,
+            "n_samples": 124,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 49.743095,
+            "zero_model_best_speed_rmse": 19.886424
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 124,
+            "spacing": {
+              "mse": 1376.203821,
+              "rmse": 37.097221,
+              "mae": 32.474943,
+              "mape_percent": 17.10562,
+              "mape_skipped_points": 0,
+              "r2": 0.443818,
+              "n_points": 124,
+              "ss_res": 170649.273804,
+              "ss_tot": 306822.559668
+            },
+            "speed": {
+              "mse": 306.6558,
+              "rmse": 17.51159,
+              "mae": 13.271298,
+              "mape_percent": 11.750306,
+              "mape_skipped_points": 0,
+              "r2": 0.224579,
+              "n_points": 124,
+              "ss_res": 38025.319203,
+              "ss_tot": 49038.260124
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 34.314669,
+          "theta_vector": [
+            131.410671,
+            0.300024,
+            159.826613,
+            78.203944,
+            10.0
+          ]
+        },
+        "M3": {
+          "driver": "driver_2",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M3",
+          "method_description": "real-coded genetic algorithm",
+          "training_events": [
+            "event_2"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 132.30541,
+            "T": 0.700694,
+            "s0": 121.307865,
+            "a": 71.207074,
+            "b": 10.000001
+          },
+          "train_total_error": 1.215895,
+          "metrics": {
+            "spacing_rmse": 35.973805,
+            "speed_rmse": 17.438037,
+            "s_violations": 0,
+            "objective_j": 1.291928,
+            "j_spacing": 0.523007,
+            "j_speed": 0.768921,
+            "spacing_rmse_normalized": 0.723192,
+            "speed_rmse_normalized": 0.876882,
+            "n_samples": 124,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 49.743095,
+            "zero_model_best_speed_rmse": 19.886424
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 124,
+            "spacing": {
+              "mse": 1294.11461,
+              "rmse": 35.973805,
+              "mae": 31.869522,
+              "mape_percent": 16.661083,
+              "mape_skipped_points": 0,
+              "r2": 0.476993,
+              "n_points": 124,
+              "ss_res": 160470.211686,
+              "ss_tot": 306822.559668
+            },
+            "speed": {
+              "mse": 304.08514,
+              "rmse": 17.438037,
+              "mae": 13.155586,
+              "mape_percent": 11.634268,
+              "mape_skipped_points": 0,
+              "r2": 0.231079,
+              "n_points": 124,
+              "ss_res": 37706.557376,
+              "ss_tot": 49038.260124
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 1.301976,
+          "theta_vector": [
+            132.30541,
+            0.700694,
+            121.307865,
+            71.207074,
+            10.000001
+          ]
+        },
+        "M4": {
+          "driver": "driver_2",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M4",
+          "method_description": "gbest particle swarm",
+          "training_events": [
+            "event_2"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 188.287824,
+            "T": 1.0975,
+            "s0": 122.382166,
+            "a": 81.249019,
+            "b": 184.491611
+          },
+          "train_total_error": 1.536359,
+          "metrics": {
+            "spacing_rmse": 43.470693,
+            "speed_rmse": 18.756309,
+            "s_violations": 0,
+            "objective_j": 1.653281,
+            "j_spacing": 0.763708,
+            "j_speed": 0.889573,
+            "spacing_rmse_normalized": 0.873904,
+            "speed_rmse_normalized": 0.943172,
+            "n_samples": 124,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 49.743095,
+            "zero_model_best_speed_rmse": 19.886424
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 124,
+            "spacing": {
+              "mse": 1889.701179,
+              "rmse": 43.470693,
+              "mae": 35.00547,
+              "mape_percent": 19.043647,
+              "mape_skipped_points": 0,
+              "r2": 0.236292,
+              "n_points": 124,
+              "ss_res": 234322.946237,
+              "ss_tot": 306822.559668
+            },
+            "speed": {
+              "mse": 351.79911,
+              "rmse": 18.756309,
+              "mae": 14.956087,
+              "mape_percent": 13.347147,
+              "mape_skipped_points": 0,
+              "r2": 0.110427,
+              "n_points": 124,
+              "ss_res": 43623.089616,
+              "ss_tot": 49038.260124
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 0.91325,
+          "theta_vector": [
+            188.287824,
+            1.0975,
+            122.382166,
+            81.249019,
+            184.491611
+          ]
+        },
+        "M5": {
+          "driver": "driver_2",
+          "fold": "leave_event_3_out",
+          "held_out_event": "event_3",
+          "method": "M5",
+          "method_description": "differentiable IDM (torch) + Adam, multi-start",
+          "training_events": [
+            "event_2"
+          ],
+          "n_training_events": 1,
+          "budget_mode": "halved",
+          "infeasible": false,
+          "infeasible_reason": null,
+          "theta": {
+            "v0": 136.086947,
+            "T": 1.061126,
+            "s0": 89.392478,
+            "a": 66.012914,
+            "b": 11.040261
+          },
+          "train_total_error": 1.276397,
+          "metrics": {
+            "spacing_rmse": 34.032009,
+            "speed_rmse": 17.203214,
+            "s_violations": 0,
+            "objective_j": 1.216421,
+            "j_spacing": 0.468069,
+            "j_speed": 0.748352,
+            "spacing_rmse_normalized": 0.684155,
+            "speed_rmse_normalized": 0.865073,
+            "n_samples": 124,
+            "diverged": false,
+            "zero_model_best_spacing_rmse": 49.743095,
+            "zero_model_best_speed_rmse": 19.886424
+          },
+          "regression": {
+            "feasible": true,
+            "diverged": false,
+            "s_violations": 0,
+            "n_points": 124,
+            "spacing": {
+              "mse": 1158.177669,
+              "rmse": 34.032009,
+              "mae": 29.851015,
+              "mape_percent": 15.702318,
+              "mape_skipped_points": 0,
+              "r2": 0.531931,
+              "n_points": 124,
+              "ss_res": 143614.030898,
+              "ss_tot": 306822.559668
+            },
+            "speed": {
+              "mse": 295.950576,
+              "rmse": 17.203214,
+              "mae": 12.950998,
+              "mape_percent": 11.439925,
+              "mape_skipped_points": 0,
+              "r2": 0.251648,
+              "n_points": 124,
+              "ss_res": 36697.871371,
+              "ss_tot": 49038.260124
+            },
+            "rmse_matches_core": true
+          },
+          "elapsed_seconds": 17.731741,
+          "theta_vector": [
+            136.086947,
+            1.061126,
+            89.392478,
+            66.012914,
+            11.040261
+          ]
+        }
+      }
+    }
+  },
+  "drivers": {
+    "driver_1": {
+      "scale_s": 99.58868,
+      "scale_v": 22.162725,
+      "score_formula": "mean_folds(spacing_rmse)/scale_s + mean_folds(speed_rmse)/scale_v + 1.0 * sum_folds(s_violations)",
+      "events": [
+        {
+          "event": "event_1",
+          "n_samples": 138
+        },
+        {
+          "event": "event_2",
+          "n_samples": 27
+        },
+        {
+          "event": "event_3",
+          "n_samples": 79
+        }
+      ],
+      "folds": [
+        "leave_event_1_out",
+        "leave_event_2_out",
+        "leave_event_3_out"
+      ],
+      "per_method": {
+        "M1": {
+          "method": "M1",
+          "method_description": "instantaneous-acceleration least squares (bounded trf)",
+          "budget_mode": "full",
+          "n_folds": 3,
+          "n_feasible_folds": 1,
+          "n_infeasible_folds": 2,
+          "infeasible_folds": [
+            {
+              "fold": "leave_event_1_out",
+              "held_out_event": "event_1",
+              "reason": "held-out prediction: the simulation diverged on the held-out event"
+            },
+            {
+              "fold": "leave_event_2_out",
+              "held_out_event": "event_2",
+              "reason": "calibration: the calibrated parameters give a diverged trajectory on the training events"
+            }
+          ],
+          "mean_spacing_rmse": 380.063378,
+          "mean_speed_rmse": 71.189852,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 7.028475,
+          "mean_objective_j": 56.722907,
+          "fold_spacing_rmse": [
+            380.063378
+          ],
+          "fold_speed_rmse": [
+            71.189852
+          ],
+          "fold_s_violations": [
+            0
+          ],
+          "fold_held_out": [
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 144448.171368,
+              "mean_rmse": 380.063378,
+              "mean_mae": 333.966862,
+              "mean_mape_percent": 101.704246,
+              "mean_r2": -8.772778,
+              "pooled_r2": -8.772778,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 1,
+              "fold_mse": [
+                144448.171368
+              ],
+              "fold_rmse": [
+                380.063378
+              ],
+              "fold_mae": [
+                333.966862
+              ],
+              "fold_mape_percent": [
+                101.704246
+              ],
+              "fold_r2": [
+                -8.772778
+              ],
+              "fold_ss_res": [
+                11411405.538093
+              ],
+              "fold_ss_tot": [
+                1167672.639832
+              ]
+            },
+            "speed": {
+              "mean_mse": 5067.995039,
+              "mean_rmse": 71.189852,
+              "mean_mae": 67.75478,
+              "mean_mape_percent": 54.68912,
+              "mean_r2": -45.950129,
+              "pooled_r2": -45.950129,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 1,
+              "fold_mse": [
+                5067.995039
+              ],
+              "fold_rmse": [
+                71.189852
+              ],
+              "fold_mae": [
+                67.75478
+              ],
+              "fold_mape_percent": [
+                54.68912
+              ],
+              "fold_r2": [
+                -45.950129
+              ],
+              "fold_ss_res": [
+                400371.608118
+              ],
+              "fold_ss_tot": [
+                8527.593312
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 5
+        },
+        "M2": {
+          "method": "M2",
+          "method_description": "Nelder-Mead trajectory fit, multi-start",
+          "budget_mode": "full",
+          "n_folds": 3,
+          "n_feasible_folds": 2,
+          "n_infeasible_folds": 1,
+          "infeasible_folds": [
+            {
+              "fold": "leave_event_1_out",
+              "held_out_event": "event_1",
+              "reason": "held-out prediction: the simulation diverged on the held-out event"
+            }
+          ],
+          "mean_spacing_rmse": 122.253034,
+          "mean_speed_rmse": 53.657078,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 3.64863,
+          "mean_objective_j": 43.612074,
+          "fold_spacing_rmse": [
+            31.720689,
+            212.78538
+          ],
+          "fold_speed_rmse": [
+            22.495013,
+            84.819143
+          ],
+          "fold_s_violations": [
+            0,
+            0
+          ],
+          "fold_held_out": [
+            "event_2",
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 23141.909987,
+              "mean_rmse": 122.253034,
+              "mean_mae": 107.538296,
+              "mean_mape_percent": 42.50111,
+              "mean_r2": -7.763487,
+              "pooled_r2": -2.081609,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                1006.202096,
+                45277.617878
+              ],
+              "fold_rmse": [
+                31.720689,
+                212.78538
+              ],
+              "fold_mae": [
+                24.846299,
+                190.230293
+              ],
+              "fold_mape_percent": [
+                7.434781,
+                77.567439
+              ],
+              "fold_r2": [
+                -13.463674,
+                -2.0633
+              ],
+              "fold_ss_res": [
+                27167.45659,
+                3576931.812383
+              ],
+              "fold_ss_tot": [
+                1878.323302,
+                1167672.639832
+              ]
+            },
+            "speed": {
+              "mean_mse": 3850.156291,
+              "mean_rmse": 53.657078,
+              "mean_mae": 43.61604,
+              "mean_mape_percent": 35.287551,
+              "mean_r2": -33.848587,
+              "pooled_r2": -43.740303,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                506.025607,
+                7194.286976
+              ],
+              "fold_rmse": [
+                22.495013,
+                84.819143
+              ],
+              "fold_mae": [
+                19.631578,
+                67.600502
+              ],
+              "fold_mape_percent": [
+                13.81176,
+                56.763341
+              ],
+              "fold_r2": [
+                -2.048982,
+                -65.648191
+              ],
+              "fold_ss_res": [
+                13662.691386,
+                568348.671097
+              ],
+              "fold_ss_tot": [
+                4481.06606,
+                8527.593312
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 4
+        },
+        "M3": {
+          "method": "M3",
+          "method_description": "real-coded genetic algorithm",
+          "budget_mode": "halved",
+          "n_folds": 3,
+          "n_feasible_folds": 3,
+          "n_infeasible_folds": 0,
+          "infeasible_folds": [],
+          "mean_spacing_rmse": 99.044673,
+          "mean_speed_rmse": 29.349983,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 2.318832,
+          "mean_objective_j": 12.547847,
+          "fold_spacing_rmse": [
+            190.014635,
+            31.244236,
+            75.875149
+          ],
+          "fold_speed_rmse": [
+            31.68837,
+            22.115655,
+            34.245925
+          ],
+          "fold_s_violations": [
+            0,
+            0,
+            0
+          ],
+          "fold_held_out": [
+            "event_1",
+            "event_2",
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 14279.600657,
+              "mean_rmse": 99.044673,
+              "mean_mae": 87.993244,
+              "mean_mape_percent": 27.132042,
+              "mean_r2": -6.40541,
+              "pooled_r2": -2.020622,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                36105.561419,
+                976.202268,
+                5757.038285
+              ],
+              "fold_rmse": [
+                190.014635,
+                31.244236,
+                75.875149
+              ],
+              "fold_mae": [
+                173.350816,
+                24.49129,
+                66.137628
+              ],
+              "fold_mape_percent": [
+                46.168044,
+                7.328276,
+                27.899806
+              ],
+              "fold_r2": [
+                -6.79429,
+                -13.032441,
+                0.610502
+              ],
+              "fold_ss_res": [
+                4982567.475765,
+                26357.461223,
+                454806.024476
+              ],
+              "fold_ss_tot": [
+                639258.666293,
+                1878.323302,
+                1167672.639832
+              ]
+            },
+            "speed": {
+              "mean_mse": 888.679458,
+              "mean_rmse": 29.349983,
+              "mean_mae": 24.860383,
+              "mean_mape_percent": 22.691987,
+              "mean_r2": -4.142437,
+              "pooled_r2": -1.474438,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                1004.15277,
+                489.102191,
+                1172.783413
+              ],
+              "fold_rmse": [
+                31.68837,
+                22.115655,
+                34.245925
+              ],
+              "fold_mae": [
+                27.236639,
+                19.279954,
+                28.064558
+              ],
+              "fold_mape_percent": [
+                31.254412,
+                13.562046,
+                23.259504
+              ],
+              "fold_r2": [
+                -0.615582,
+                -1.947013,
+                -9.864717
+              ],
+              "fold_ss_res": [
+                138573.082319,
+                13205.759145,
+                92649.889626
+              ],
+              "fold_ss_tot": [
+                85772.853098,
+                4481.06606,
+                8527.593312
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 2
+        },
+        "M4": {
+          "method": "M4",
+          "method_description": "gbest particle swarm",
+          "budget_mode": "halved",
+          "n_folds": 3,
+          "n_feasible_folds": 2,
+          "n_infeasible_folds": 1,
+          "infeasible_folds": [
+            {
+              "fold": "leave_event_1_out",
+              "held_out_event": "event_1",
+              "reason": "held-out prediction: the simulation diverged on the held-out event"
+            }
+          ],
+          "mean_spacing_rmse": 80.001816,
+          "mean_speed_rmse": 41.63882,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 2.6821,
+          "mean_objective_j": 26.426507,
+          "fold_spacing_rmse": [
+            31.723165,
+            128.280466
+          ],
+          "fold_speed_rmse": [
+            22.496777,
+            60.780864
+          ],
+          "fold_s_violations": [
+            0,
+            0
+          ],
+          "fold_held_out": [
+            "event_2",
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 8731.118563,
+              "mean_rmse": 80.001816,
+              "mean_mae": 66.697459,
+              "mean_mape_percent": 27.328454,
+              "mean_r2": -6.789636,
+              "pooled_r2": -0.134783,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                1006.359226,
+                16455.877901
+              ],
+              "fold_rmse": [
+                31.723165,
+                128.280466
+              ],
+              "fold_mae": [
+                24.848182,
+                108.546735
+              ],
+              "fold_mape_percent": [
+                7.435345,
+                47.221563
+              ],
+              "fold_r2": [
+                -13.465933,
+                -0.113338
+              ],
+              "fold_ss_res": [
+                27171.699095,
+                1300014.354144
+              ],
+              "fold_ss_tot": [
+                1878.323302,
+                1167672.639832
+              ]
+            },
+            "speed": {
+              "mean_mse": 2100.209209,
+              "mean_rmse": 41.63882,
+              "mean_mae": 34.81633,
+              "mean_mape_percent": 27.771114,
+              "mean_r2": -17.636872,
+              "pooled_r2": -22.485556,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                506.104956,
+                3694.313462
+              ],
+              "fold_rmse": [
+                22.496777,
+                60.780864
+              ],
+              "fold_mae": [
+                19.633249,
+                49.999411
+              ],
+              "fold_mape_percent": [
+                13.812948,
+                41.729281
+              ],
+              "fold_r2": [
+                -2.04946,
+                -33.224283
+              ],
+              "fold_ss_res": [
+                13664.833825,
+                291850.763515
+              ],
+              "fold_ss_tot": [
+                4481.06606,
+                8527.593312
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 3
+        },
+        "M5": {
+          "method": "M5",
+          "method_description": "differentiable IDM (torch) + Adam, multi-start",
+          "budget_mode": "halved",
+          "n_folds": 3,
+          "n_feasible_folds": 3,
+          "n_infeasible_folds": 0,
+          "infeasible_folds": [],
+          "mean_spacing_rmse": 95.255562,
+          "mean_speed_rmse": 28.218098,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 2.229713,
+          "mean_objective_j": 12.02131,
+          "fold_spacing_rmse": [
+            175.831951,
+            31.283189,
+            78.651544
+          ],
+          "fold_speed_rmse": [
+            28.69432,
+            22.058488,
+            33.901484
+          ],
+          "fold_s_violations": [
+            0,
+            0,
+            0
+          ],
+          "fold_held_out": [
+            "event_1",
+            "event_2",
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 12693.85945,
+              "mean_rmse": 95.255562,
+              "mean_mae": 84.922906,
+              "mean_mape_percent": 26.37197,
+              "mean_r2": -6.053386,
+              "pooled_r2": -1.643535,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                30916.874988,
+                978.637927,
+                6186.065434
+              ],
+              "fold_rmse": [
+                175.831951,
+                31.283189,
+                78.651544
+              ],
+              "fold_mae": [
+                161.657219,
+                24.560057,
+                68.551443
+              ],
+              "fold_mape_percent": [
+                42.896263,
+                7.348232,
+                28.871413
+              ],
+              "fold_r2": [
+                -5.674182,
+                -13.067453,
+                0.581476
+              ],
+              "fold_ss_res": [
+                4266528.748408,
+                26423.224026,
+                488699.169295
+              ],
+              "fold_ss_tot": [
+                639258.666293,
+                1878.323302,
+                1167672.639832
+              ]
+            },
+            "speed": {
+              "mean_mse": 819.750515,
+              "mean_rmse": 28.218098,
+              "mean_mae": 23.363439,
+              "mean_mape_percent": 21.590228,
+              "mean_r2": -3.967924,
+              "pooled_r2": -1.20241,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                823.364015,
+                486.5769,
+                1149.310629
+              ],
+              "fold_rmse": [
+                28.69432,
+                22.058488,
+                33.901484
+              ],
+              "fold_mae": [
+                23.491565,
+                19.243792,
+                27.354961
+              ],
+              "fold_mape_percent": [
+                28.485494,
+                13.537504,
+                22.747687
+              ],
+              "fold_r2": [
+                -0.324711,
+                -1.931797,
+                -9.647264
+              ],
+              "fold_ss_res": [
+                113624.234135,
+                13137.576306,
+                90795.539655
+              ],
+              "fold_ss_tot": [
+                85772.853098,
+                4481.06606,
+                8527.593312
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 1
+        }
+      },
+      "ranking": [
+        {
+          "rank": 1,
+          "method": "M5",
+          "method_description": "differentiable IDM (torch) + Adam, multi-start",
+          "score": 2.229713,
+          "mean_spacing_rmse": 95.255562,
+          "mean_speed_rmse": 28.218098,
+          "s_violations_sum": 0,
+          "feasible_folds": 3,
+          "infeasible_folds": 0
+        },
+        {
+          "rank": 2,
+          "method": "M3",
+          "method_description": "real-coded genetic algorithm",
+          "score": 2.318832,
+          "mean_spacing_rmse": 99.044673,
+          "mean_speed_rmse": 29.349983,
+          "s_violations_sum": 0,
+          "feasible_folds": 3,
+          "infeasible_folds": 0
+        },
+        {
+          "rank": 3,
+          "method": "M4",
+          "method_description": "gbest particle swarm",
+          "score": 2.6821,
+          "mean_spacing_rmse": 80.001816,
+          "mean_speed_rmse": 41.63882,
+          "s_violations_sum": 0,
+          "feasible_folds": 2,
+          "infeasible_folds": 1
+        },
+        {
+          "rank": 4,
+          "method": "M2",
+          "method_description": "Nelder-Mead trajectory fit, multi-start",
+          "score": 3.64863,
+          "mean_spacing_rmse": 122.253034,
+          "mean_speed_rmse": 53.657078,
+          "s_violations_sum": 0,
+          "feasible_folds": 2,
+          "infeasible_folds": 1
+        },
+        {
+          "rank": 5,
+          "method": "M1",
+          "method_description": "instantaneous-acceleration least squares (bounded trf)",
+          "score": 7.028475,
+          "mean_spacing_rmse": 380.063378,
+          "mean_speed_rmse": 71.189852,
+          "s_violations_sum": 0,
+          "feasible_folds": 1,
+          "infeasible_folds": 2
+        }
+      ],
+      "best_method": "M5",
+      "excluded_methods": [],
+      "calibration_set_reference": {
+        "M1": {
+          "source": "results/m1_params.json",
+          "available": true,
+          "theta": {
+            "v0": 179.631162,
+            "T": 0.3,
+            "s0": 10.0,
+            "a": 10.0,
+            "b": 200.0
+          },
+          "total_error": null,
+          "mean_spacing_rmse": null,
+          "mean_speed_rmse": null,
+          "per_event": {
+            "event_1": {
+              "spacing_rmse": null,
+              "speed_rmse": null,
+              "j_total": null,
+              "s_violations": 1
+            },
+            "event_2": {
+              "spacing_rmse": 26.183256,
+              "speed_rmse": 16.200344,
+              "j_total": 11.435999,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 26.801023,
+              "speed_rmse": 14.799981,
+              "j_total": 2.077788,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_1": {
+              "feasible": false,
+              "diverged": true,
+              "s_violations": 1,
+              "n_points": 138,
+              "spacing": {
+                "mse": null,
+                "rmse": null,
+                "mae": null,
+                "mape_percent": null,
+                "r2": null,
+                "n_points": 138,
+                "mape_skipped_points": 138,
+                "ss_res": null,
+                "ss_tot": null
+              },
+              "speed": {
+                "mse": null,
+                "rmse": null,
+                "mae": null,
+                "mape_percent": null,
+                "r2": null,
+                "n_points": 138,
+                "mape_skipped_points": 138,
+                "ss_res": null,
+                "ss_tot": null
+              }
+            },
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 27,
+              "spacing": {
+                "mse": 685.562877,
+                "rmse": 26.183256,
+                "mae": 21.262146,
+                "mape_percent": 6.349647,
+                "mape_skipped_points": 0,
+                "r2": -8.854639,
+                "n_points": 27,
+                "ss_res": 18510.197688,
+                "ss_tot": 1878.323302
+              },
+              "speed": {
+                "mse": 262.451157,
+                "rmse": 16.200344,
+                "mae": 13.850051,
+                "mape_percent": 9.778284,
+                "mape_skipped_points": 0,
+                "r2": -0.581361,
+                "n_points": 27,
+                "ss_res": 7086.181227,
+                "ss_tot": 4481.06606
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 79,
+              "spacing": {
+                "mse": 718.294833,
+                "rmse": 26.801023,
+                "mae": 24.154132,
+                "mape_percent": 9.673984,
+                "mape_skipped_points": 0,
+                "r2": 0.951403,
+                "n_points": 79,
+                "ss_res": 56745.291797,
+                "ss_tot": 1167672.639832
+              },
+              "speed": {
+                "mse": 219.039426,
+                "rmse": 14.799981,
+                "mae": 11.450747,
+                "mape_percent": 9.323136,
+                "mape_skipped_points": 0,
+                "r2": -1.029191,
+                "n_points": 79,
+                "ss_res": 17304.114667,
+                "ss_tot": 8527.593312
+              }
+            }
+          },
+          "regression": null,
+          "regression_note": "the published parameters diverge on ['event_1']: no regression metrics"
+        },
+        "M2": {
+          "source": "results/m2_params.json",
+          "available": true,
+          "theta": {
+            "v0": 141.197858,
+            "T": 0.984908,
+            "s0": 10.0,
+            "a": 200.0,
+            "b": 199.689295
+          },
+          "total_error": 3.176314,
+          "mean_spacing_rmse": 59.21151,
+          "mean_speed_rmse": 17.048405,
+          "per_event": {
+            "event_1": {
+              "spacing_rmse": 149.500209,
+              "speed_rmse": 27.588472,
+              "j_total": 6.049448,
+              "s_violations": 0
+            },
+            "event_2": {
+              "spacing_rmse": 9.359359,
+              "speed_rmse": 10.933477,
+              "j_total": 1.97945,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 18.774962,
+              "speed_rmse": 12.623266,
+              "j_total": 1.500045,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_1": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 138,
+              "spacing": {
+                "mse": 22350.308303,
+                "rmse": 149.500195,
+                "mae": 138.495367,
+                "mape_percent": 36.551884,
+                "mape_skipped_points": 0,
+                "r2": -3.824874,
+                "n_points": 138,
+                "ss_res": 3084342.54581,
+                "ss_tot": 639258.666293
+              },
+              "speed": {
+                "mse": 761.123777,
+                "rmse": 27.588472,
+                "mae": 21.581204,
+                "mape_percent": 27.86302,
+                "mape_skipped_points": 0,
+                "r2": -0.224573,
+                "n_points": 138,
+                "ss_res": 105035.081176,
+                "ss_tot": 85772.853098
+              }
+            },
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 27,
+              "spacing": {
+                "mse": 87.597644,
+                "rmse": 9.359361,
+                "mae": 6.33667,
+                "mape_percent": 1.909383,
+                "mape_skipped_points": 0,
+                "r2": -0.259174,
+                "n_points": 27,
+                "ss_res": 2365.136375,
+                "ss_tot": 1878.323302
+              },
+              "speed": {
+                "mse": 119.540936,
+                "rmse": 10.933478,
+                "mae": 8.880811,
+                "mape_percent": 6.447689,
+                "mape_skipped_points": 0,
+                "r2": 0.279724,
+                "n_points": 27,
+                "ss_res": 3227.605266,
+                "ss_tot": 4481.06606
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 79,
+              "spacing": {
+                "mse": 352.499514,
+                "rmse": 18.77497,
+                "mae": 16.921034,
+                "mape_percent": 7.279671,
+                "mape_skipped_points": 0,
+                "r2": 0.976151,
+                "n_points": 79,
+                "ss_res": 27847.461628,
+                "ss_tot": 1167672.639832
+              },
+              "speed": {
+                "mse": 159.34685,
+                "rmse": 12.623266,
+                "mae": 9.298007,
+                "mape_percent": 7.632909,
+                "mape_skipped_points": 0,
+                "r2": -0.476196,
+                "n_points": 79,
+                "ss_res": 12588.401148,
+                "ss_tot": 8527.593312
+              }
+            }
+          },
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 7596.80182,
+              "mean_rmse": 59.211509,
+              "mean_mae": 53.91769,
+              "mean_mape_percent": 15.246979,
+              "mean_r2": -1.035966,
+              "pooled_r2": -0.721881,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                22350.308303,
+                87.597644,
+                352.499514
+              ],
+              "fold_rmse": [
+                149.500195,
+                9.359361,
+                18.77497
+              ],
+              "fold_mae": [
+                138.495367,
+                6.33667,
+                16.921034
+              ],
+              "fold_mape_percent": [
+                36.551884,
+                1.909383,
+                7.279671
+              ],
+              "fold_r2": [
+                -3.824874,
+                -0.259174,
+                0.976151
+              ],
+              "fold_ss_res": [
+                3084342.54581,
+                2365.136375,
+                27847.461628
+              ],
+              "fold_ss_tot": [
+                639258.666293,
+                1878.323302,
+                1167672.639832
+              ]
+            },
+            "speed": {
+              "mean_mse": 346.670521,
+              "mean_rmse": 17.048405,
+              "mean_mae": 13.253341,
+              "mean_mape_percent": 13.981206,
+              "mean_r2": -0.140348,
+              "pooled_r2": -0.223418,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                761.123777,
+                119.540936,
+                159.34685
+              ],
+              "fold_rmse": [
+                27.588472,
+                10.933478,
+                12.623266
+              ],
+              "fold_mae": [
+                21.581204,
+                8.880811,
+                9.298007
+              ],
+              "fold_mape_percent": [
+                27.86302,
+                6.447689,
+                7.632909
+              ],
+              "fold_r2": [
+                -0.224573,
+                0.279724,
+                -0.476196
+              ],
+              "fold_ss_res": [
+                105035.081176,
+                3227.605266,
+                12588.401148
+              ],
+              "fold_ss_tot": [
+                85772.853098,
+                4481.06606,
+                8527.593312
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": null
+          }
+        },
+        "M3": {
+          "source": "results/m3_params.json",
+          "available": true,
+          "theta": {
+            "v0": 139.948568,
+            "T": 0.897315,
+            "s0": 15.424647,
+            "a": 199.979031,
+            "b": 200.0
+          },
+          "total_error": 3.181423,
+          "mean_spacing_rmse": 58.546211,
+          "mean_speed_rmse": 16.940257,
+          "per_event": {
+            "event_1": {
+              "spacing_rmse": 148.036778,
+              "speed_rmse": 27.433162,
+              "j_total": 5.941701,
+              "s_violations": 0
+            },
+            "event_2": {
+              "spacing_rmse": 10.023421,
+              "speed_rmse": 11.139111,
+              "j_total": 2.191818,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 17.578435,
+              "speed_rmse": 12.248497,
+              "j_total": 1.41075,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_1": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 138,
+              "spacing": {
+                "mse": 21914.88525,
+                "rmse": 148.03677,
+                "mae": 136.88181,
+                "mape_percent": 36.198518,
+                "mape_skipped_points": 0,
+                "r2": -3.730877,
+                "n_points": 138,
+                "ss_res": 3024254.164437,
+                "ss_tot": 639258.666293
+              },
+              "speed": {
+                "mse": 752.578342,
+                "rmse": 27.433161,
+                "mae": 21.415859,
+                "mape_percent": 27.841705,
+                "mape_skipped_points": 0,
+                "r2": -0.210824,
+                "n_points": 138,
+                "ss_res": 103855.81116,
+                "ss_tot": 85772.853098
+              }
+            },
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 27,
+              "spacing": {
+                "mse": 100.468995,
+                "rmse": 10.023422,
+                "mae": 6.821888,
+                "mape_percent": 2.055298,
+                "mape_skipped_points": 0,
+                "r2": -0.444194,
+                "n_points": 27,
+                "ss_res": 2712.662878,
+                "ss_tot": 1878.323302
+              },
+              "speed": {
+                "mse": 124.079808,
+                "rmse": 11.139112,
+                "mae": 9.068988,
+                "mape_percent": 6.562938,
+                "mape_skipped_points": 0,
+                "r2": 0.252375,
+                "n_points": 27,
+                "ss_res": 3350.154808,
+                "ss_tot": 4481.06606
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 79,
+              "spacing": {
+                "mse": 309.001554,
+                "rmse": 17.57844,
+                "mae": 15.840548,
+                "mape_percent": 6.828805,
+                "mape_skipped_points": 0,
+                "r2": 0.979094,
+                "n_points": 79,
+                "ss_res": 24411.122796,
+                "ss_tot": 1167672.639832
+              },
+              "speed": {
+                "mse": 150.0257,
+                "rmse": 12.248498,
+                "mae": 9.003019,
+                "mape_percent": 7.395501,
+                "mape_skipped_points": 0,
+                "r2": -0.389845,
+                "n_points": 79,
+                "ss_res": 11852.030312,
+                "ss_tot": 8527.593312
+              }
+            }
+          },
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 7441.451933,
+              "mean_rmse": 58.546211,
+              "mean_mae": 53.181416,
+              "mean_mape_percent": 15.02754,
+              "mean_r2": -1.065326,
+              "pooled_r2": -0.686954,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                21914.88525,
+                100.468995,
+                309.001554
+              ],
+              "fold_rmse": [
+                148.03677,
+                10.023422,
+                17.57844
+              ],
+              "fold_mae": [
+                136.88181,
+                6.821888,
+                15.840548
+              ],
+              "fold_mape_percent": [
+                36.198518,
+                2.055298,
+                6.828805
+              ],
+              "fold_r2": [
+                -3.730877,
+                -0.444194,
+                0.979094
+              ],
+              "fold_ss_res": [
+                3024254.164437,
+                2712.662878,
+                24411.122796
+              ],
+              "fold_ss_tot": [
+                639258.666293,
+                1878.323302,
+                1167672.639832
+              ]
+            },
+            "speed": {
+              "mean_mse": 342.22795,
+              "mean_rmse": 16.940257,
+              "mean_mae": 13.162622,
+              "mean_mape_percent": 13.933381,
+              "mean_r2": -0.116098,
+              "pooled_r2": -0.205266,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                752.578342,
+                124.079808,
+                150.0257
+              ],
+              "fold_rmse": [
+                27.433161,
+                11.139112,
+                12.248498
+              ],
+              "fold_mae": [
+                21.415859,
+                9.068988,
+                9.003019
+              ],
+              "fold_mape_percent": [
+                27.841705,
+                6.562938,
+                7.395501
+              ],
+              "fold_r2": [
+                -0.210824,
+                0.252375,
+                -0.389845
+              ],
+              "fold_ss_res": [
+                103855.81116,
+                3350.154808,
+                11852.030312
+              ],
+              "fold_ss_tot": [
+                85772.853098,
+                4481.06606,
+                8527.593312
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": null
+          }
+        },
+        "M4": {
+          "source": "results/m4_params.json",
+          "available": true,
+          "theta": {
+            "v0": 141.201242,
+            "T": 0.985261,
+            "s0": 10.0,
+            "a": 200.0,
+            "b": 199.997527
+          },
+          "total_error": 3.176213,
+          "mean_spacing_rmse": 59.209615,
+          "mean_speed_rmse": 17.049042,
+          "per_event": {
+            "event_1": {
+              "spacing_rmse": 149.481353,
+              "speed_rmse": 27.58823,
+              "j_total": 6.048209,
+              "s_violations": 0
+            },
+            "event_2": {
+              "spacing_rmse": 9.361014,
+              "speed_rmse": 10.933894,
+              "j_total": 1.97995,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 18.786478,
+              "speed_rmse": 12.625002,
+              "j_total": 1.50048,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_1": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 138,
+              "spacing": {
+                "mse": 22344.684748,
+                "rmse": 149.481386,
+                "mae": 138.479647,
+                "mape_percent": 36.547196,
+                "mape_skipped_points": 0,
+                "r2": -3.82366,
+                "n_points": 138,
+                "ss_res": 3083566.495197,
+                "ss_tot": 639258.666293
+              },
+              "speed": {
+                "mse": 761.110511,
+                "rmse": 27.588231,
+                "mae": 21.580431,
+                "mape_percent": 27.86215,
+                "mape_skipped_points": 0,
+                "r2": -0.224551,
+                "n_points": 138,
+                "ss_res": 105033.25048,
+                "ss_tot": 85772.853098
+              }
+            },
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 27,
+              "spacing": {
+                "mse": 87.628471,
+                "rmse": 9.361008,
+                "mae": 6.337866,
+                "mape_percent": 1.909743,
+                "mape_skipped_points": 0,
+                "r2": -0.259617,
+                "n_points": 27,
+                "ss_res": 2365.968717,
+                "ss_tot": 1878.323302
+              },
+              "speed": {
+                "mse": 119.549992,
+                "rmse": 10.933892,
+                "mae": 8.881191,
+                "mape_percent": 6.447909,
+                "mape_skipped_points": 0,
+                "r2": 0.279669,
+                "n_points": 27,
+                "ss_res": 3227.849794,
+                "ss_tot": 4481.06606
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 79,
+              "spacing": {
+                "mse": 352.931007,
+                "rmse": 18.786458,
+                "mae": 16.932168,
+                "mape_percent": 7.284588,
+                "mape_skipped_points": 0,
+                "r2": 0.976122,
+                "n_points": 79,
+                "ss_res": 27881.549567,
+                "ss_tot": 1167672.639832
+              },
+              "speed": {
+                "mse": 159.390637,
+                "rmse": 12.625,
+                "mae": 9.298886,
+                "mape_percent": 7.633536,
+                "mape_skipped_points": 0,
+                "r2": -0.476602,
+                "n_points": 79,
+                "ss_res": 12591.860314,
+                "ss_tot": 8527.593312
+              }
+            }
+          },
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 7595.081409,
+              "mean_rmse": 59.209617,
+              "mean_mae": 53.91656,
+              "mean_mape_percent": 15.247175,
+              "mean_r2": -1.035718,
+              "pooled_r2": -0.721471,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                22344.684748,
+                87.628471,
+                352.931007
+              ],
+              "fold_rmse": [
+                149.481386,
+                9.361008,
+                18.786458
+              ],
+              "fold_mae": [
+                138.479647,
+                6.337866,
+                16.932168
+              ],
+              "fold_mape_percent": [
+                36.547196,
+                1.909743,
+                7.284588
+              ],
+              "fold_r2": [
+                -3.82366,
+                -0.259617,
+                0.976122
+              ],
+              "fold_ss_res": [
+                3083566.495197,
+                2365.968717,
+                27881.549567
+              ],
+              "fold_ss_tot": [
+                639258.666293,
+                1878.323302,
+                1167672.639832
+              ]
+            },
+            "speed": {
+              "mean_mse": 346.683713,
+              "mean_rmse": 17.049041,
+              "mean_mae": 13.253503,
+              "mean_mape_percent": 13.981198,
+              "mean_r2": -0.140495,
+              "pooled_r2": -0.223437,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                761.110511,
+                119.549992,
+                159.390637
+              ],
+              "fold_rmse": [
+                27.588231,
+                10.933892,
+                12.625
+              ],
+              "fold_mae": [
+                21.580431,
+                8.881191,
+                9.298886
+              ],
+              "fold_mape_percent": [
+                27.86215,
+                6.447909,
+                7.633536
+              ],
+              "fold_r2": [
+                -0.224551,
+                0.279669,
+                -0.476602
+              ],
+              "fold_ss_res": [
+                105033.25048,
+                3227.849794,
+                12591.860314
+              ],
+              "fold_ss_tot": [
+                85772.853098,
+                4481.06606,
+                8527.593312
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": null
+          }
+        },
+        "M5": {
+          "source": "results/m5_params.json",
+          "available": true,
+          "theta": {
+            "v0": 139.802957,
+            "T": 0.841212,
+            "s0": 19.94914,
+            "a": 198.322638,
+            "b": 199.359872
+          },
+          "total_error": 3.183963,
+          "mean_spacing_rmse": 58.631104,
+          "mean_speed_rmse": 16.907273,
+          "per_event": {
+            "event_1": {
+              "spacing_rmse": 148.958056,
+              "speed_rmse": 27.421129,
+              "j_total": 5.999706,
+              "s_violations": 0
+            },
+            "event_2": {
+              "spacing_rmse": 9.903937,
+              "speed_rmse": 11.087117,
+              "j_total": 2.150629,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 17.031318,
+              "speed_rmse": 12.213572,
+              "j_total": 1.401554,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_1": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 138,
+              "spacing": {
+                "mse": 22188.499992,
+                "rmse": 148.958048,
+                "mae": 137.645596,
+                "mape_percent": 36.425467,
+                "mape_skipped_points": 0,
+                "r2": -3.789944,
+                "n_points": 138,
+                "ss_res": 3062012.99885,
+                "ss_tot": 639258.666293
+              },
+              "speed": {
+                "mse": 751.918307,
+                "rmse": 27.421129,
+                "mae": 21.439251,
+                "mape_percent": 27.845278,
+                "mape_skipped_points": 0,
+                "r2": -0.209762,
+                "n_points": 138,
+                "ss_res": 103764.726306,
+                "ss_tot": 85772.853098
+              }
+            },
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 27,
+              "spacing": {
+                "mse": 98.087996,
+                "rmse": 9.903938,
+                "mae": 6.735675,
+                "mape_percent": 2.029369,
+                "mape_skipped_points": 0,
+                "r2": -0.409968,
+                "n_points": 27,
+                "ss_res": 2648.375894,
+                "ss_tot": 1878.323302
+              },
+              "speed": {
+                "mse": 122.924175,
+                "rmse": 11.087118,
+                "mae": 9.020882,
+                "mape_percent": 6.531546,
+                "mape_skipped_points": 0,
+                "r2": 0.259339,
+                "n_points": 27,
+                "ss_res": 3318.952732,
+                "ss_tot": 4481.06606
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 79,
+              "spacing": {
+                "mse": 290.065941,
+                "rmse": 17.031322,
+                "mae": 15.302139,
+                "mape_percent": 6.577098,
+                "mape_skipped_points": 0,
+                "r2": 0.980375,
+                "n_points": 79,
+                "ss_res": 22915.209309,
+                "ss_tot": 1167672.639832
+              },
+              "speed": {
+                "mse": 149.17134,
+                "rmse": 12.213572,
+                "mae": 8.999047,
+                "mape_percent": 7.39815,
+                "mape_skipped_points": 0,
+                "r2": -0.38193,
+                "n_points": 79,
+                "ss_res": 11784.535833,
+                "ss_tot": 8527.593312
+              }
+            }
+          },
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 7525.551309,
+              "mean_rmse": 58.631103,
+              "mean_mae": 53.227803,
+              "mean_mape_percent": 15.010645,
+              "mean_r2": -1.073179,
+              "pooled_r2": -0.706966,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                22188.499992,
+                98.087996,
+                290.065941
+              ],
+              "fold_rmse": [
+                148.958048,
+                9.903938,
+                17.031322
+              ],
+              "fold_mae": [
+                137.645596,
+                6.735675,
+                15.302139
+              ],
+              "fold_mape_percent": [
+                36.425467,
+                2.029369,
+                6.577098
+              ],
+              "fold_r2": [
+                -3.789944,
+                -0.409968,
+                0.980375
+              ],
+              "fold_ss_res": [
+                3062012.99885,
+                2648.375894,
+                22915.209309
+              ],
+              "fold_ss_tot": [
+                639258.666293,
+                1878.323302,
+                1167672.639832
+              ]
+            },
+            "speed": {
+              "mean_mse": 341.33794,
+              "mean_rmse": 16.907273,
+              "mean_mae": 13.15306,
+              "mean_mape_percent": 13.924991,
+              "mean_r2": -0.110784,
+              "pooled_r2": -0.203345,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 3,
+              "fold_mse": [
+                751.918307,
+                122.924175,
+                149.17134
+              ],
+              "fold_rmse": [
+                27.421129,
+                11.087118,
+                12.213572
+              ],
+              "fold_mae": [
+                21.439251,
+                9.020882,
+                8.999047
+              ],
+              "fold_mape_percent": [
+                27.845278,
+                6.531546,
+                7.39815
+              ],
+              "fold_r2": [
+                -0.209762,
+                0.259339,
+                -0.38193
+              ],
+              "fold_ss_res": [
+                103764.726306,
+                3318.952732,
+                11784.535833
+              ],
+              "fold_ss_tot": [
+                85772.853098,
+                4481.06606,
+                8527.593312
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": null
+          }
+        }
+      }
+    },
+    "driver_2": {
+      "scale_s": 36.385422,
+      "scale_v": 18.280244,
+      "score_formula": "mean_folds(spacing_rmse)/scale_s + mean_folds(speed_rmse)/scale_v + 1.0 * sum_folds(s_violations)",
+      "events": [
+        {
+          "event": "event_2",
+          "n_samples": 211
+        },
+        {
+          "event": "event_3",
+          "n_samples": 124
+        }
+      ],
+      "folds": [
+        "leave_event_2_out",
+        "leave_event_3_out"
+      ],
+      "per_method": {
+        "M1": {
+          "method": "M1",
+          "method_description": "instantaneous-acceleration least squares (bounded trf)",
+          "budget_mode": "full",
+          "n_folds": 2,
+          "n_feasible_folds": 2,
+          "n_infeasible_folds": 0,
+          "infeasible_folds": [],
+          "mean_spacing_rmse": 49.347243,
+          "mean_speed_rmse": 22.877293,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 2.607713,
+          "mean_objective_j": 4.861819,
+          "fold_spacing_rmse": [
+            49.760037,
+            48.934449
+          ],
+          "fold_speed_rmse": [
+            23.263782,
+            22.490804
+          ],
+          "fold_s_violations": [
+            0,
+            0
+          ],
+          "fold_held_out": [
+            "event_2",
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 2435.320761,
+              "mean_rmse": 49.347243,
+              "mean_mae": 39.171373,
+              "mean_mape_percent": 18.187255,
+              "mean_r2": -2.142342,
+              "pooled_r2": -1.022734,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                2476.061255,
+                2394.580266
+              ],
+              "fold_rmse": [
+                49.760037,
+                48.934449
+              ],
+              "fold_mae": [
+                38.16492,
+                40.177826
+              ],
+              "fold_mape_percent": [
+                14.92022,
+                21.454289
+              ],
+              "fold_r2": [
+                -4.316932,
+                0.032249
+              ],
+              "fold_ss_res": [
+                522448.92486,
+                296927.952982
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 523.519905,
+              "mean_rmse": 22.877293,
+              "mean_mae": 17.23025,
+              "mean_mape_percent": 16.752328,
+              "mean_r2": -0.719477,
+              "pooled_r2": -0.736038,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                541.203533,
+                505.836277
+              ],
+              "fold_rmse": [
+                23.263782,
+                22.490804
+              ],
+              "fold_mae": [
+                15.916439,
+                18.544061
+              ],
+              "fold_mape_percent": [
+                16.650036,
+                16.854621
+              ],
+              "fold_r2": [
+                -1.159877,
+                -0.279077
+              ],
+              "fold_ss_res": [
+                114193.945519,
+                62723.698325
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 5
+        },
+        "M2": {
+          "method": "M2",
+          "method_description": "Nelder-Mead trajectory fit, multi-start",
+          "budget_mode": "full",
+          "n_folds": 2,
+          "n_feasible_folds": 2,
+          "n_infeasible_folds": 0,
+          "infeasible_folds": [],
+          "mean_spacing_rmse": 45.254337,
+          "mean_speed_rmse": 18.479131,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 2.254629,
+          "mean_objective_j": 4.483363,
+          "fold_spacing_rmse": [
+            53.411452,
+            37.097221
+          ],
+          "fold_speed_rmse": [
+            19.446672,
+            17.51159
+          ],
+          "fold_s_violations": [
+            0,
+            0
+          ],
+          "fold_held_out": [
+            "event_2",
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 2114.493531,
+              "mean_rmse": 45.254337,
+              "mean_mae": 39.996774,
+              "mean_mape_percent": 17.976536,
+              "mean_r2": -2.341031,
+              "pooled_r2": -0.907226,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                2852.783241,
+                1376.203821
+              ],
+              "fold_rmse": [
+                53.411452,
+                37.097221
+              ],
+              "fold_mae": [
+                47.518604,
+                32.474943
+              ],
+              "fold_mape_percent": [
+                18.847453,
+                17.10562
+              ],
+              "fold_r2": [
+                -5.12588,
+                0.443818
+              ],
+              "fold_ss_res": [
+                601937.263908,
+                170649.273804
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 342.414418,
+              "mean_rmse": 18.479131,
+              "mean_mae": 13.391297,
+              "mean_mape_percent": 13.060007,
+              "mean_r2": -0.142332,
+              "pooled_r2": -0.15613,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                378.173037,
+                306.6558
+              ],
+              "fold_rmse": [
+                19.446672,
+                17.51159
+              ],
+              "fold_mae": [
+                13.511297,
+                13.271298
+              ],
+              "fold_mape_percent": [
+                14.369707,
+                11.750306
+              ],
+              "fold_r2": [
+                -0.509243,
+                0.224579
+              ],
+              "fold_ss_res": [
+                79794.510792,
+                38025.319203
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 2
+        },
+        "M3": {
+          "method": "M3",
+          "method_description": "real-coded genetic algorithm",
+          "budget_mode": "halved",
+          "n_folds": 2,
+          "n_feasible_folds": 2,
+          "n_infeasible_folds": 0,
+          "infeasible_folds": [],
+          "mean_spacing_rmse": 46.876601,
+          "mean_speed_rmse": 17.734423,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 2.258476,
+          "mean_objective_j": 4.879095,
+          "fold_spacing_rmse": [
+            57.779398,
+            35.973805
+          ],
+          "fold_speed_rmse": [
+            18.030809,
+            17.438037
+          ],
+          "fold_s_violations": [
+            0,
+            0
+          ],
+          "fold_held_out": [
+            "event_2",
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 2316.286736,
+              "mean_rmse": 46.876601,
+              "mean_mae": 42.559754,
+              "mean_mape_percent": 19.009851,
+              "mean_r2": -2.845898,
+              "pooled_r2": -1.135076,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                3338.458862,
+                1294.11461
+              ],
+              "fold_rmse": [
+                57.779398,
+                35.973805
+              ],
+              "fold_mae": [
+                53.249986,
+                31.869522
+              ],
+              "fold_mape_percent": [
+                21.358619,
+                16.661083
+              ],
+              "fold_r2": [
+                -6.168789,
+                0.476993
+              ],
+              "fold_ss_res": [
+                704414.819847,
+                160470.211686
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 314.597603,
+              "mean_rmse": 17.734423,
+              "mean_mae": 13.100796,
+              "mean_mape_percent": 12.781979,
+              "mean_r2": -0.033198,
+              "pooled_r2": -0.043136,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                325.110066,
+                304.08514
+              ],
+              "fold_rmse": [
+                18.030809,
+                17.438037
+              ],
+              "fold_mae": [
+                13.046007,
+                13.155586
+              ],
+              "fold_mape_percent": [
+                13.929691,
+                11.634268
+              ],
+              "fold_r2": [
+                -0.297475,
+                0.231079
+              ],
+              "fold_ss_res": [
+                68598.223848,
+                37706.557376
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 3
+        },
+        "M4": {
+          "method": "M4",
+          "method_description": "gbest particle swarm",
+          "budget_mode": "halved",
+          "n_folds": 2,
+          "n_feasible_folds": 2,
+          "n_infeasible_folds": 0,
+          "infeasible_folds": [],
+          "mean_spacing_rmse": 50.489786,
+          "mean_speed_rmse": 18.548867,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 2.402333,
+          "mean_objective_j": 5.048831,
+          "fold_spacing_rmse": [
+            57.508878,
+            43.470693
+          ],
+          "fold_speed_rmse": [
+            18.341425,
+            18.756309
+          ],
+          "fold_s_violations": [
+            0,
+            0
+          ],
+          "fold_held_out": [
+            "event_2",
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 2598.48614,
+              "mean_rmse": 50.489786,
+              "mean_mae": 43.929558,
+              "mean_mape_percent": 20.098921,
+              "mean_r2": -2.932763,
+              "pooled_r2": -1.301146,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                3307.271101,
+                1889.701179
+              ],
+              "fold_rmse": [
+                57.508878,
+                43.470693
+              ],
+              "fold_mae": [
+                52.853645,
+                35.00547
+              ],
+              "fold_mape_percent": [
+                21.154195,
+                19.043647
+              ],
+              "fold_r2": [
+                -6.101818,
+                0.236292
+              ],
+              "fold_ss_res": [
+                697834.202209,
+                234322.946237
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 344.103497,
+              "mean_rmse": 18.548867,
+              "mean_mae": 14.054919,
+              "mean_mape_percent": 13.686914,
+              "mean_r2": -0.116068,
+              "pooled_r2": -0.124585,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                336.407885,
+                351.79911
+              ],
+              "fold_rmse": [
+                18.341425,
+                18.756309
+              ],
+              "fold_mae": [
+                13.153751,
+                14.956087
+              ],
+              "fold_mape_percent": [
+                14.026681,
+                13.347147
+              ],
+              "fold_r2": [
+                -0.342563,
+                0.110427
+              ],
+              "fold_ss_res": [
+                70982.063679,
+                43623.089616
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 4
+        },
+        "M5": {
+          "method": "M5",
+          "method_description": "differentiable IDM (torch) + Adam, multi-start",
+          "budget_mode": "halved",
+          "n_folds": 2,
+          "n_feasible_folds": 2,
+          "n_infeasible_folds": 0,
+          "infeasible_folds": [],
+          "mean_spacing_rmse": 45.026232,
+          "mean_speed_rmse": 17.954452,
+          "s_violations_sum": 0,
+          "s_violations_penalty": 0.0,
+          "score": 2.219658,
+          "mean_objective_j": 4.675901,
+          "fold_spacing_rmse": [
+            56.020454,
+            34.032009
+          ],
+          "fold_speed_rmse": [
+            18.705691,
+            17.203214
+          ],
+          "fold_s_violations": [
+            0,
+            0
+          ],
+          "fold_held_out": [
+            "event_2",
+            "event_3"
+          ],
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 2148.234492,
+              "mean_rmse": 45.026232,
+              "mean_mae": 40.54185,
+              "mean_mape_percent": 18.07985,
+              "mean_r2": -2.603515,
+              "pooled_r2": -0.989201,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                3138.291315,
+                1158.177669
+              ],
+              "fold_rmse": [
+                56.020454,
+                34.032009
+              ],
+              "fold_mae": [
+                51.232684,
+                29.851015
+              ],
+              "fold_mape_percent": [
+                20.457383,
+                15.702318
+              ],
+              "fold_r2": [
+                -5.738962,
+                0.531931
+              ],
+              "fold_ss_res": [
+                662179.467497,
+                143614.030898
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 322.926718,
+              "mean_rmse": 17.954452,
+              "mean_mae": 13.071757,
+              "mean_mape_percent": 12.754129,
+              "mean_r2": -0.072386,
+              "pooled_r2": -0.084571,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                349.90286,
+                295.950576
+              ],
+              "fold_rmse": [
+                18.705691,
+                17.203214
+              ],
+              "fold_mae": [
+                13.192515,
+                12.950998
+              ],
+              "fold_mape_percent": [
+                14.068333,
+                11.439925
+              ],
+              "fold_r2": [
+                -0.39642,
+                0.251648
+              ],
+              "fold_ss_res": [
+                73829.503378,
+                36697.871371
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": true
+          },
+          "rank": 1
+        }
+      },
+      "ranking": [
+        {
+          "rank": 1,
+          "method": "M5",
+          "method_description": "differentiable IDM (torch) + Adam, multi-start",
+          "score": 2.219658,
+          "mean_spacing_rmse": 45.026232,
+          "mean_speed_rmse": 17.954452,
+          "s_violations_sum": 0,
+          "feasible_folds": 2,
+          "infeasible_folds": 0
+        },
+        {
+          "rank": 2,
+          "method": "M2",
+          "method_description": "Nelder-Mead trajectory fit, multi-start",
+          "score": 2.254629,
+          "mean_spacing_rmse": 45.254337,
+          "mean_speed_rmse": 18.479131,
+          "s_violations_sum": 0,
+          "feasible_folds": 2,
+          "infeasible_folds": 0
+        },
+        {
+          "rank": 3,
+          "method": "M3",
+          "method_description": "real-coded genetic algorithm",
+          "score": 2.258476,
+          "mean_spacing_rmse": 46.876601,
+          "mean_speed_rmse": 17.734423,
+          "s_violations_sum": 0,
+          "feasible_folds": 2,
+          "infeasible_folds": 0
+        },
+        {
+          "rank": 4,
+          "method": "M4",
+          "method_description": "gbest particle swarm",
+          "score": 2.402333,
+          "mean_spacing_rmse": 50.489786,
+          "mean_speed_rmse": 18.548867,
+          "s_violations_sum": 0,
+          "feasible_folds": 2,
+          "infeasible_folds": 0
+        },
+        {
+          "rank": 5,
+          "method": "M1",
+          "method_description": "instantaneous-acceleration least squares (bounded trf)",
+          "score": 2.607713,
+          "mean_spacing_rmse": 49.347243,
+          "mean_speed_rmse": 22.877293,
+          "s_violations_sum": 0,
+          "feasible_folds": 2,
+          "infeasible_folds": 0
+        }
+      ],
+      "best_method": "M5",
+      "excluded_methods": [],
+      "calibration_set_reference": {
+        "M1": {
+          "source": "results/m1_params.json",
+          "available": true,
+          "theta": {
+            "v0": 200.0,
+            "T": 1.684615,
+            "s0": 60.978288,
+            "a": 27.143481,
+            "b": 79.978442
+          },
+          "total_error": 2.194745,
+          "mean_spacing_rmse": 29.236693,
+          "mean_speed_rmse": 18.762869,
+          "per_event": {
+            "event_2": {
+              "spacing_rmse": 27.849975,
+              "speed_rmse": 19.589359,
+              "j_total": 3.19699,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 30.623411,
+              "speed_rmse": 17.936379,
+              "j_total": 1.192499,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 211,
+              "spacing": {
+                "mse": 775.620482,
+                "rmse": 27.849964,
+                "mae": 20.931039,
+                "mape_percent": 8.340743,
+                "mape_skipped_points": 0,
+                "r2": -0.665517,
+                "n_points": 211,
+                "ss_res": 163655.921627,
+                "ss_tot": 98261.34737
+              },
+              "speed": {
+                "mse": 383.742827,
+                "rmse": 19.589355,
+                "mae": 13.188028,
+                "mape_percent": 13.723639,
+                "mape_skipped_points": 0,
+                "r2": -0.531471,
+                "n_points": 211,
+                "ss_res": 80969.736596,
+                "ss_tot": 52870.569048
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 124,
+              "spacing": {
+                "mse": 937.794759,
+                "rmse": 30.623435,
+                "mae": 21.529076,
+                "mape_percent": 11.863061,
+                "mape_skipped_points": 0,
+                "r2": 0.620997,
+                "n_points": 124,
+                "ss_res": 116286.550069,
+                "ss_tot": 306822.559668
+              },
+              "speed": {
+                "mse": 321.71361,
+                "rmse": 17.936377,
+                "mae": 13.344248,
+                "mape_percent": 11.746614,
+                "mape_skipped_points": 0,
+                "r2": 0.186503,
+                "n_points": 124,
+                "ss_res": 39892.48767,
+                "ss_tot": 49038.260124
+              }
+            }
+          },
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 856.70762,
+              "mean_rmse": 29.236699,
+              "mean_mae": 21.230058,
+              "mean_mape_percent": 10.101902,
+              "mean_r2": -0.02226,
+              "pooled_r2": 0.308927,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                775.620482,
+                937.794759
+              ],
+              "fold_rmse": [
+                27.849964,
+                30.623435
+              ],
+              "fold_mae": [
+                20.931039,
+                21.529076
+              ],
+              "fold_mape_percent": [
+                8.340743,
+                11.863061
+              ],
+              "fold_r2": [
+                -0.665517,
+                0.620997
+              ],
+              "fold_ss_res": [
+                163655.921627,
+                116286.550069
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 352.728219,
+              "mean_rmse": 18.762866,
+              "mean_mae": 13.266138,
+              "mean_mape_percent": 12.735126,
+              "mean_r2": -0.172484,
+              "pooled_r2": -0.185984,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                383.742827,
+                321.71361
+              ],
+              "fold_rmse": [
+                19.589355,
+                17.936377
+              ],
+              "fold_mae": [
+                13.188028,
+                13.344248
+              ],
+              "fold_mape_percent": [
+                13.723639,
+                11.746614
+              ],
+              "fold_r2": [
+                -0.531471,
+                0.186503
+              ],
+              "fold_ss_res": [
+                80969.736596,
+                39892.48767
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": null
+          }
+        },
+        "M2": {
+          "source": "results/m2_params.json",
+          "available": true,
+          "theta": {
+            "v0": 146.357486,
+            "T": 1.921215,
+            "s0": 10.0,
+            "a": 56.890818,
+            "b": 10.000034
+          },
+          "total_error": 1.203707,
+          "mean_spacing_rmse": 21.725243,
+          "mean_speed_rmse": 15.897893,
+          "per_event": {
+            "event_2": {
+              "spacing_rmse": 14.771181,
+              "speed_rmse": 14.858608,
+              "j_total": 1.349621,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 28.679306,
+              "speed_rmse": 16.937178,
+              "j_total": 1.057793,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 211,
+              "spacing": {
+                "mse": 218.187729,
+                "rmse": 14.771179,
+                "mae": 13.403109,
+                "mape_percent": 5.459832,
+                "mape_skipped_points": 0,
+                "r2": 0.531478,
+                "n_points": 211,
+                "ss_res": 46037.610743,
+                "ss_tot": 98261.34737
+              },
+              "speed": {
+                "mse": 220.77821,
+                "rmse": 14.858607,
+                "mae": 9.868183,
+                "mape_percent": 10.392108,
+                "mape_skipped_points": 0,
+                "r2": 0.118901,
+                "n_points": 211,
+                "ss_res": 46584.202318,
+                "ss_tot": 52870.569048
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 124,
+              "spacing": {
+                "mse": 822.502949,
+                "rmse": 28.679312,
+                "mae": 24.22243,
+                "mape_percent": 12.937336,
+                "mape_skipped_points": 0,
+                "r2": 0.667592,
+                "n_points": 124,
+                "ss_res": 101990.365727,
+                "ss_tot": 306822.559668
+              },
+              "speed": {
+                "mse": 286.868017,
+                "rmse": 16.937179,
+                "mae": 12.724303,
+                "mape_percent": 11.257618,
+                "mape_skipped_points": 0,
+                "r2": 0.274615,
+                "n_points": 124,
+                "ss_res": 35571.634126,
+                "ss_tot": 49038.260124
+              }
+            }
+          },
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 520.345339,
+              "mean_rmse": 21.725246,
+              "mean_mae": 18.812769,
+              "mean_mape_percent": 9.198584,
+              "mean_r2": 0.599535,
+              "pooled_r2": 0.634575,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                218.187729,
+                822.502949
+              ],
+              "fold_rmse": [
+                14.771179,
+                28.679312
+              ],
+              "fold_mae": [
+                13.403109,
+                24.22243
+              ],
+              "fold_mape_percent": [
+                5.459832,
+                12.937336
+              ],
+              "fold_r2": [
+                0.531478,
+                0.667592
+              ],
+              "fold_ss_res": [
+                46037.610743,
+                101990.365727
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 253.823114,
+              "mean_rmse": 15.897893,
+              "mean_mae": 11.296243,
+              "mean_mape_percent": 10.824863,
+              "mean_r2": 0.196758,
+              "pooled_r2": 0.19383,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                220.77821,
+                286.868017
+              ],
+              "fold_rmse": [
+                14.858607,
+                16.937179
+              ],
+              "fold_mae": [
+                9.868183,
+                12.724303
+              ],
+              "fold_mape_percent": [
+                10.392108,
+                11.257618
+              ],
+              "fold_r2": [
+                0.118901,
+                0.274615
+              ],
+              "fold_ss_res": [
+                46584.202318,
+                35571.634126
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": null
+          }
+        },
+        "M3": {
+          "source": "results/m3_params.json",
+          "available": true,
+          "theta": {
+            "v0": 140.122638,
+            "T": 1.407196,
+            "s0": 56.291871,
+            "a": 61.740796,
+            "b": 10.0
+          },
+          "total_error": 1.207964,
+          "mean_spacing_rmse": 22.04335,
+          "mean_speed_rmse": 15.960364,
+          "per_event": {
+            "event_2": {
+              "spacing_rmse": 14.319984,
+              "speed_rmse": 14.866992,
+              "j_total": 1.32243,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 29.766716,
+              "speed_rmse": 17.053735,
+              "j_total": 1.093497,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 211,
+              "spacing": {
+                "mse": 205.061629,
+                "rmse": 14.319973,
+                "mae": 13.081768,
+                "mape_percent": 5.341164,
+                "mape_skipped_points": 0,
+                "r2": 0.559664,
+                "n_points": 211,
+                "ss_res": 43268.00378,
+                "ss_tot": 98261.34737
+              },
+              "speed": {
+                "mse": 221.027383,
+                "rmse": 14.86699,
+                "mae": 9.873076,
+                "mape_percent": 10.407155,
+                "mape_skipped_points": 0,
+                "r2": 0.117907,
+                "n_points": 211,
+                "ss_res": 46636.777774,
+                "ss_tot": 52870.569048
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 124,
+              "spacing": {
+                "mse": 886.059607,
+                "rmse": 29.766753,
+                "mae": 25.443503,
+                "mape_percent": 13.512313,
+                "mape_skipped_points": 0,
+                "r2": 0.641906,
+                "n_points": 124,
+                "ss_res": 109871.391267,
+                "ss_tot": 306822.559668
+              },
+              "speed": {
+                "mse": 290.829902,
+                "rmse": 17.053736,
+                "mae": 12.731644,
+                "mape_percent": 11.227664,
+                "mape_skipped_points": 0,
+                "r2": 0.264597,
+                "n_points": 124,
+                "ss_res": 36062.907856,
+                "ss_tot": 49038.260124
+              }
+            }
+          },
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 545.560618,
+              "mean_rmse": 22.043363,
+              "mean_mae": 19.262635,
+              "mean_mape_percent": 9.426738,
+              "mean_r2": 0.600785,
+              "pooled_r2": 0.621956,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                205.061629,
+                886.059607
+              ],
+              "fold_rmse": [
+                14.319973,
+                29.766753
+              ],
+              "fold_mae": [
+                13.081768,
+                25.443503
+              ],
+              "fold_mape_percent": [
+                5.341164,
+                13.512313
+              ],
+              "fold_r2": [
+                0.559664,
+                0.641906
+              ],
+              "fold_ss_res": [
+                43268.00378,
+                109871.391267
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 255.928642,
+              "mean_rmse": 15.960363,
+              "mean_mae": 11.30236,
+              "mean_mape_percent": 10.817409,
+              "mean_r2": 0.191252,
+              "pooled_r2": 0.188493,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                221.027383,
+                290.829902
+              ],
+              "fold_rmse": [
+                14.86699,
+                17.053736
+              ],
+              "fold_mae": [
+                9.873076,
+                12.731644
+              ],
+              "fold_mape_percent": [
+                10.407155,
+                11.227664
+              ],
+              "fold_r2": [
+                0.117907,
+                0.264597
+              ],
+              "fold_ss_res": [
+                46636.777774,
+                36062.907856
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": null
+          }
+        },
+        "M4": {
+          "source": "results/m4_params.json",
+          "available": true,
+          "theta": {
+            "v0": 146.357753,
+            "T": 1.921218,
+            "s0": 10.0,
+            "a": 56.891226,
+            "b": 10.0
+          },
+          "total_error": 1.203707,
+          "mean_spacing_rmse": 21.72528,
+          "mean_speed_rmse": 15.897884,
+          "per_event": {
+            "event_2": {
+              "spacing_rmse": 14.771168,
+              "speed_rmse": 14.858587,
+              "j_total": 1.349618,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 28.679391,
+              "speed_rmse": 16.937181,
+              "j_total": 1.057796,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 211,
+              "spacing": {
+                "mse": 218.187231,
+                "rmse": 14.771162,
+                "mae": 13.4031,
+                "mape_percent": 5.459831,
+                "mape_skipped_points": 0,
+                "r2": 0.531479,
+                "n_points": 211,
+                "ss_res": 46037.505842,
+                "ss_tot": 98261.34737
+              },
+              "speed": {
+                "mse": 220.777548,
+                "rmse": 14.858585,
+                "mae": 9.868177,
+                "mape_percent": 10.392099,
+                "mape_skipped_points": 0,
+                "r2": 0.118904,
+                "n_points": 211,
+                "ss_res": 46584.062606,
+                "ss_tot": 52870.569048
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 124,
+              "spacing": {
+                "mse": 822.508832,
+                "rmse": 28.679415,
+                "mae": 24.222463,
+                "mape_percent": 12.937366,
+                "mape_skipped_points": 0,
+                "r2": 0.667589,
+                "n_points": 124,
+                "ss_res": 101991.095127,
+                "ss_tot": 306822.559668
+              },
+              "speed": {
+                "mse": 286.868112,
+                "rmse": 16.937181,
+                "mae": 12.72431,
+                "mape_percent": 11.257623,
+                "mape_skipped_points": 0,
+                "r2": 0.274614,
+                "n_points": 124,
+                "ss_res": 35571.645876,
+                "ss_tot": 49038.260124
+              }
+            }
+          },
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 520.348032,
+              "mean_rmse": 21.725288,
+              "mean_mae": 18.812781,
+              "mean_mape_percent": 9.198598,
+              "mean_r2": 0.599534,
+              "pooled_r2": 0.634573,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                218.187231,
+                822.508832
+              ],
+              "fold_rmse": [
+                14.771162,
+                28.679415
+              ],
+              "fold_mae": [
+                13.4031,
+                24.222463
+              ],
+              "fold_mape_percent": [
+                5.459831,
+                12.937366
+              ],
+              "fold_r2": [
+                0.531479,
+                0.667589
+              ],
+              "fold_ss_res": [
+                46037.505842,
+                101991.095127
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 253.82283,
+              "mean_rmse": 15.897883,
+              "mean_mae": 11.296243,
+              "mean_mape_percent": 10.824861,
+              "mean_r2": 0.196759,
+              "pooled_r2": 0.193831,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                220.777548,
+                286.868112
+              ],
+              "fold_rmse": [
+                14.858585,
+                16.937181
+              ],
+              "fold_mae": [
+                9.868177,
+                12.72431
+              ],
+              "fold_mape_percent": [
+                10.392099,
+                11.257623
+              ],
+              "fold_r2": [
+                0.118904,
+                0.274614
+              ],
+              "fold_ss_res": [
+                46584.062606,
+                35571.645876
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": null
+          }
+        },
+        "M5": {
+          "source": "results/m5_params.json",
+          "available": true,
+          "theta": {
+            "v0": 140.368591,
+            "T": 1.507387,
+            "s0": 45.409655,
+            "a": 57.559955,
+            "b": 10.212675
+          },
+          "total_error": 1.214134,
+          "mean_spacing_rmse": 21.51498,
+          "mean_speed_rmse": 16.045744,
+          "per_event": {
+            "event_2": {
+              "spacing_rmse": 14.723004,
+              "speed_rmse": 15.06974,
+              "j_total": 1.371788,
+              "s_violations": 0
+            },
+            "event_3": {
+              "spacing_rmse": 28.306957,
+              "speed_rmse": 17.021748,
+              "j_total": 1.05648,
+              "s_violations": 0
+            }
+          },
+          "per_event_regression": {
+            "event_2": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 211,
+              "spacing": {
+                "mse": 216.767045,
+                "rmse": 14.723011,
+                "mae": 13.355071,
+                "mape_percent": 5.417785,
+                "mape_skipped_points": 0,
+                "r2": 0.534529,
+                "n_points": 211,
+                "ss_res": 45737.846392,
+                "ss_tot": 98261.34737
+              },
+              "speed": {
+                "mse": 227.097119,
+                "rmse": 15.069742,
+                "mae": 9.968433,
+                "mape_percent": 10.519283,
+                "mape_skipped_points": 0,
+                "r2": 0.093683,
+                "n_points": 211,
+                "ss_res": 47917.492125,
+                "ss_tot": 52870.569048
+              }
+            },
+            "event_3": {
+              "feasible": true,
+              "diverged": false,
+              "s_violations": 0,
+              "n_points": 124,
+              "spacing": {
+                "mse": 801.28273,
+                "rmse": 28.306938,
+                "mae": 24.307988,
+                "mape_percent": 12.874433,
+                "mape_skipped_points": 0,
+                "r2": 0.676168,
+                "n_points": 124,
+                "ss_res": 99359.058494,
+                "ss_tot": 306822.559668
+              },
+              "speed": {
+                "mse": 289.739901,
+                "rmse": 17.021748,
+                "mae": 12.693701,
+                "mape_percent": 11.221239,
+                "mape_skipped_points": 0,
+                "r2": 0.267353,
+                "n_points": 124,
+                "ss_res": 35927.747705,
+                "ss_tot": 49038.260124
+              }
+            }
+          },
+          "regression": {
+            "unit": "coordinate units for the spacing, coordinate units/s for the speed",
+            "r2_aggregation": "pooled: 1 - sum(fold SS_res) / sum(fold SS_tot), each fold's SS_tot about that fold's own measured mean",
+            "spacing": {
+              "mean_mse": 509.024887,
+              "mean_rmse": 21.514974,
+              "mean_mae": 18.831529,
+              "mean_mape_percent": 9.146109,
+              "mean_r2": 0.605348,
+              "pooled_r2": 0.64181,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                216.767045,
+                801.28273
+              ],
+              "fold_rmse": [
+                14.723011,
+                28.306938
+              ],
+              "fold_mae": [
+                13.355071,
+                24.307988
+              ],
+              "fold_mape_percent": [
+                5.417785,
+                12.874433
+              ],
+              "fold_r2": [
+                0.534529,
+                0.676168
+              ],
+              "fold_ss_res": [
+                45737.846392,
+                99359.058494
+              ],
+              "fold_ss_tot": [
+                98261.34737,
+                306822.559668
+              ]
+            },
+            "speed": {
+              "mean_mse": 258.41851,
+              "mean_rmse": 16.045745,
+              "mean_mae": 11.331067,
+              "mean_mape_percent": 10.870261,
+              "mean_r2": 0.180518,
+              "pooled_r2": 0.177252,
+              "sum_mape_skipped_points": 0,
+              "n_folds": 2,
+              "fold_mse": [
+                227.097119,
+                289.739901
+              ],
+              "fold_rmse": [
+                15.069742,
+                17.021748
+              ],
+              "fold_mae": [
+                9.968433,
+                12.693701
+              ],
+              "fold_mape_percent": [
+                10.519283,
+                11.221239
+              ],
+              "fold_r2": [
+                0.093683,
+                0.267353
+              ],
+              "fold_ss_res": [
+                47917.492125,
+                35927.747705
+              ],
+              "fold_ss_tot": [
+                52870.569048,
+                49038.260124
+              ]
+            },
+            "mean_rmse_matches_spacing_rmse": null
+          }
+        }
+      }
+    }
+  },
+  "finals": {
+    "driver_1": "M5",
+    "driver_2": "M5"
+  },
+  "self_checks": {
+    "per_fold_rmse_matches_idm_core": {
+      "driver_1/leave_event_1_out/M3": true,
+      "driver_1/leave_event_1_out/M5": true,
+      "driver_1/leave_event_2_out/M2": true,
+      "driver_1/leave_event_2_out/M3": true,
+      "driver_1/leave_event_2_out/M4": true,
+      "driver_1/leave_event_2_out/M5": true,
+      "driver_1/leave_event_3_out/M1": true,
+      "driver_1/leave_event_3_out/M2": true,
+      "driver_1/leave_event_3_out/M3": true,
+      "driver_1/leave_event_3_out/M4": true,
+      "driver_1/leave_event_3_out/M5": true,
+      "driver_2/leave_event_2_out/M1": true,
+      "driver_2/leave_event_2_out/M2": true,
+      "driver_2/leave_event_2_out/M3": true,
+      "driver_2/leave_event_2_out/M4": true,
+      "driver_2/leave_event_2_out/M5": true,
+      "driver_2/leave_event_3_out/M1": true,
+      "driver_2/leave_event_3_out/M2": true,
+      "driver_2/leave_event_3_out/M3": true,
+      "driver_2/leave_event_3_out/M4": true,
+      "driver_2/leave_event_3_out/M5": true
+    },
+    "all_per_fold_rmse_match_idm_core": true,
+    "per_method_mean_rmse_matches_cv_table": {
+      "driver_1/M1": true,
+      "driver_1/M2": true,
+      "driver_1/M3": true,
+      "driver_1/M4": true,
+      "driver_1/M5": true,
+      "driver_2/M1": true,
+      "driver_2/M2": true,
+      "driver_2/M3": true,
+      "driver_2/M4": true,
+      "driver_2/M5": true
+    },
+    "all_mean_rmse_match_cv_table": true,
+    "mape_skipped_points": {
+      "driver_1/M1": {
+        "spacing": 0,
+        "speed": 0
+      },
+      "driver_1/M2": {
+        "spacing": 0,
+        "speed": 0
+      },
+      "driver_1/M3": {
+        "spacing": 0,
+        "speed": 0
+      },
+      "driver_1/M4": {
+        "spacing": 0,
+        "speed": 0
+      },
+      "driver_1/M5": {
+        "spacing": 0,
+        "speed": 0
+      },
+      "driver_2/M1": {
+        "spacing": 0,
+        "speed": 0
+      },
+      "driver_2/M2": {
+        "spacing": 0,
+        "speed": 0
+      },
+      "driver_2/M3": {
+        "spacing": 0,
+        "speed": 0
+      },
+      "driver_2/M4": {
+        "spacing": 0,
+        "speed": 0
+      },
+      "driver_2/M5": {
+        "spacing": 0,
+        "speed": 0
+      }
+    },
+    "mape_skipped_points_total": 0,
+    "methods_with_spacing_violations": [],
+    "final_per_event_regression_complete": {
+      "driver_1": true,
+      "driver_2": true
+    },
+    "all_final_blocks_complete": true,
+    "full_budget_retrain_reproduces_published_run": {
+      "driver_1": true,
+      "driver_2": true
+    },
+    "all_full_budget_retrains_reproduce_published_run": true
+  },
+  "timing": {
+    "per_fold_seconds": {
+      "driver_1/leave_event_1_out": 42.261573,
+      "driver_1/leave_event_2_out": 72.291706,
+      "driver_1/leave_event_3_out": 90.962979,
+      "driver_2/leave_event_2_out": 34.403223,
+      "driver_2/leave_event_3_out": 54.276068
+    },
+    "final_retrain_seconds": {
+      "driver_1": 42.14245,
+      "driver_2": 58.594574
+    },
+    "total_seconds": 394.972485
+  }
+}

@@ -1,0 +1,84 @@
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+input dir    : data/preprocess/stage_4
+method       : M3 - real-coded genetic algorithm (own implementation, no DE)
+objective    : constrained_total_error = equal weight mean of the per-event
+               [ mean(ds^2)/sigma_s^2 + mean(dv^2)/sigma_v^2 + penalty*violations ]
+spacing      : s = dhw - 250   (spacing violation = simulated s <= 0)
+ga           : population=60, generations=80, seed=20260921 per run, elite=2
+operators    : tournament k=3, SBX eta=15 (pc=0.9), polynomial mutation eta=20 (pm=0.2 per coordinate), clip to box
+bounds       : v0[40,200] T[0.3,5] s0[10,400] a[10,200] b[10,200]
+integration  : rk4 on the real time deltas, leader speed interpolated from lv
+
+run_1: genetic algorithm
+    gen   1/80  best J=    1.692615  mean J=33333333420.822914  evals=120
+    gen   2/80  best J=    1.692615  mean J=   22.311906  evals=180
+    gen   3/80  best J=    1.674061  mean J=    5.865821  evals=240
+    gen  10/80  best J=    1.523852  mean J=    1.905202  evals=660
+    gen  20/80  best J=    1.487536  mean J=    1.926490  evals=1260
+    gen  30/80  best J=    1.391275  mean J=    1.867636  evals=1860
+    gen  40/80  best J=    1.276758  mean J=    1.697896  evals=2460
+    gen  50/80  best J=    1.213744  mean J=16666666668.571150  evals=3060
+    gen  60/80  best J=    1.208348  mean J=    2.273814  evals=3660
+    gen  70/80  best J=    1.207965  mean J=    1.843063  evals=4260
+    gen  80/80  best J=    1.207964  mean J=    1.679752  evals=4860
+  best theta         : v0=140.1226  T=1.4072  s0=56.2919  a=61.7408  b=10.0000
+  within bounds      : True
+  total_error J      : 1.207964  (equal weight mean of the per-event J_e)
+  spacing RMSE (mean/worst): 22.0433 / 29.7667
+  speed   RMSE (mean/worst): 15.9604 / 17.0537
+  convergence        : gen 0 best J=1.858747 -> gen 80 best J=1.207964  (improvement 0.650784, best at generation 74)
+  curve monotone     : True   evaluations=4860 (distinct 4516, cache hits 344)   runtime=20.83 s
+  infeasible ind.    : 3 evaluations = the 1e12 wall   outside-box ind.=0 (must be 0)
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_2     211    14.3200    14.8670     0.4403    0.8821     1.3224    21.5799
+  event_3     124    29.7667    17.0537     0.3581    0.7354     1.0935    49.7431
+
+run_2: genetic algorithm
+    gen   1/80  best J=    5.230580  mean J=   96.315314  evals=120
+    gen   2/80  best J=    5.230580  mean J=   19.192704  evals=180
+    gen   3/80  best J=    5.130892  mean J=    9.751563  evals=240
+    gen  10/80  best J=    4.978693  mean J=    7.716886  evals=660
+    gen  20/80  best J=    4.898372  mean J=    6.054021  evals=1260
+    gen  30/80  best J=    4.870267  mean J=    7.840137  evals=1860
+    gen  40/80  best J=    4.851054  mean J=    5.836086  evals=2460
+    gen  50/80  best J=    4.848899  mean J=    7.132725  evals=3060
+    gen  60/80  best J=    4.847954  mean J=    8.675444  evals=3660
+    gen  70/80  best J=    4.847696  mean J=    5.816735  evals=4260
+    gen  80/80  best J=    4.847591  mean J=    5.983403  evals=4860
+  best theta         : v0=120.2013  T=1.2171  s0=101.5455  a=19.9662  b=200.0000
+  within bounds      : True
+  total_error J      : 4.847591  (equal weight mean of the per-event J_e)
+  spacing RMSE (mean/worst): 40.1400 / 186.9031
+  speed   RMSE (mean/worst): 11.7004 / 19.4591
+  convergence        : gen 0 best J=5.249928 -> gen 80 best J=4.847591  (improvement 0.402336, best at generation 78)
+  curve monotone     : True   evaluations=4860 (distinct 4520, cache hits 340)   runtime=71.68 s
+  infeasible ind.    : 0 evaluations = the 1e12 wall   outside-box ind.=0 (must be 0)
+  event         n     s_RMSE     v_RMSE  J_spacing   J_speed        J_e     zero_s
+  event_1     184   186.9031    18.1642    20.8623    2.1936    23.0559    40.9199
+  event_3      49    23.8820    19.4591     0.6324    1.3905     2.0229    30.0320
+  event_6     251    19.7038     6.8646     2.1176    0.9618     3.0794    13.5402
+  event_7     216    40.9390    13.1786     1.1592    1.0972     2.2565    38.0236
+  event_8      28     6.7906     8.3574     0.7728    1.1821     1.9549     7.7247
+  event_9     101    22.1680     9.1454     2.1781    0.9861     3.1642    15.0207
+  event_12    169    12.4710     9.6854     0.9428    1.1143     2.0570    12.8440
+  event_13    142     8.2625     8.7486     0.0858    1.1042     1.1900    28.2123
+
+self-checks:
+  focus_beats_zero_model                         True
+  focus_event                                    event_2
+  focus_improvement_factor                       1.5069804244611706
+  focus_run                                      run_1
+  run_1_event_2_beats_zero_model                 True
+  run_1_event_2_improvement_factor               1.5069804244611706
+  run_1_event_2_spacing_rmse                     14.319983544491015
+  run_1_event_2_zero_model_spacing_rmse          21.57993488015405
+  run_1_has_parameters                           True
+  run_1_parameters_within_bounds                 True
+  run_2_has_parameters                           True
+  run_2_parameters_within_bounds                 True
+  runs_found_nonempty                            True
+  runs_found                                  ['run_1', 'run_2']
+
+total runtime: 92.55 s
+written: results/m3_params.json
+.tmp leftovers: none

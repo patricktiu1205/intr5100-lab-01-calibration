@@ -1,0 +1,725 @@
+{
+  "script": "src/tgsim/presentation_stats.py",
+  "source_analysis": "results/tgsim_analysis.json",
+  "source_events": "data/tgsim/{HV-HV,HV-AV}/event_*.csv via data/tgsim/manifest.json",
+  "pairs": [
+    "HV-HV",
+    "HV-AV"
+  ],
+  "pair_labels": {
+    "HV-HV": "HV following HV",
+    "HV-AV": "AV following HV"
+  },
+  "sparse_events": {
+    "HV-HV": [],
+    "HV-AV": [
+      {
+        "event": "event_7",
+        "spacing_mean_m": 28.101117
+      },
+      {
+        "event": "event_8",
+        "spacing_mean_m": 41.225382
+      }
+    ]
+  },
+  "metrics": {
+    "speed_mean": {
+      "unit": "m/s",
+      "pairs": {
+        "HV-HV": {
+          "all_events": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 1.725919,
+            "event_median": 2.027125,
+            "pooled_sample_weighted": 2.249006
+          },
+          "interaction_subset": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 1.725919,
+            "event_median": 2.027125,
+            "pooled_sample_weighted": 2.249006,
+            "excluded_events": []
+          }
+        },
+        "HV-AV": {
+          "all_events": {
+            "n_events": 8,
+            "n_samples": 4370,
+            "event_mean": 1.994152,
+            "event_median": 2.251729,
+            "pooled_sample_weighted": 2.233826
+          },
+          "interaction_subset": {
+            "n_events": 6,
+            "n_samples": 3472,
+            "event_mean": 1.690474,
+            "event_median": 2.167364,
+            "pooled_sample_weighted": 2.032548,
+            "excluded_events": [
+              {
+                "event": "event_7",
+                "spacing_mean_m": 28.101117
+              },
+              {
+                "event": "event_8",
+                "spacing_mean_m": 41.225382
+              }
+            ]
+          }
+        }
+      },
+      "event_values": {
+        "HV-HV": [
+          2.309225,
+          1.466147,
+          2.365944,
+          0.160124,
+          2.746372,
+          0.482412,
+          0.25866,
+          3.131369,
+          1.745025,
+          2.593907
+        ],
+        "HV-AV": [
+          2.318461,
+          2.089977,
+          0.020082,
+          2.244751,
+          1.210865,
+          2.258707,
+          3.301698,
+          2.508675
+        ]
+      },
+      "effect_size": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 8,
+        "u_statistic": 39.0,
+        "u_independent_midrank": 39.0,
+        "u_agrees": true,
+        "rank_biserial_r": -0.025,
+        "p_value_two_sided": 0.965401,
+        "direction": "HV-AV larger"
+      },
+      "effect_size_interaction_subset": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 6,
+        "u_statistic": 36.0,
+        "u_independent_midrank": 36.0,
+        "u_agrees": true,
+        "rank_biserial_r": 0.2,
+        "p_value_two_sided": 0.562188,
+        "direction": "HV-HV larger"
+      }
+    },
+    "moving_fraction": {
+      "unit": "fraction",
+      "pairs": {
+        "HV-HV": {
+          "all_events": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 0.754953,
+            "event_median": 0.914612,
+            "pooled_sample_weighted": 0.90167
+          },
+          "interaction_subset": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 0.754953,
+            "event_median": 0.914612,
+            "pooled_sample_weighted": 0.90167,
+            "excluded_events": []
+          }
+        },
+        "HV-AV": {
+          "all_events": {
+            "n_events": 8,
+            "n_samples": 4370,
+            "event_mean": 0.780595,
+            "event_median": 0.881273,
+            "pooled_sample_weighted": 0.863387
+          },
+          "interaction_subset": {
+            "n_events": 6,
+            "n_samples": 3472,
+            "event_mean": 0.719065,
+            "event_median": 0.810591,
+            "pooled_sample_weighted": 0.838422,
+            "excluded_events": [
+              {
+                "event": "event_7",
+                "spacing_mean_m": 28.101117
+              },
+              {
+                "event": "event_8",
+                "spacing_mean_m": 41.225382
+              }
+            ]
+          }
+        }
+      },
+      "event_values": {
+        "HV-HV": [
+          0.886525,
+          0.967871,
+          0.982822,
+          0.253247,
+          0.981873,
+          0.544304,
+          0.329114,
+          0.942699,
+          0.684211,
+          0.976861
+        ],
+        "HV-AV": [
+          0.842991,
+          0.985958,
+          0.022989,
+          0.919556,
+          0.764706,
+          0.778191,
+          0.945614,
+          0.984756
+        ]
+      },
+      "effect_size": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 8,
+        "u_statistic": 37.0,
+        "u_independent_midrank": 37.0,
+        "u_agrees": true,
+        "rank_biserial_r": -0.075,
+        "p_value_two_sided": 0.828557,
+        "direction": "HV-AV larger"
+      },
+      "effect_size_interaction_subset": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 6,
+        "u_statistic": 33.0,
+        "u_independent_midrank": 33.0,
+        "u_agrees": true,
+        "rank_biserial_r": 0.1,
+        "p_value_two_sided": 0.792458,
+        "direction": "HV-HV larger"
+      }
+    },
+    "spacing_mean": {
+      "unit": "m",
+      "pairs": {
+        "HV-HV": {
+          "all_events": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 8.50522,
+            "event_median": 8.316927,
+            "pooled_sample_weighted": 10.57435
+          },
+          "interaction_subset": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 8.50522,
+            "event_median": 8.316927,
+            "pooled_sample_weighted": 10.57435,
+            "excluded_events": []
+          }
+        },
+        "HV-AV": {
+          "all_events": {
+            "n_events": 8,
+            "n_samples": 4370,
+            "event_mean": 14.264327,
+            "event_median": 8.786718,
+            "pooled_sample_weighted": 13.31792
+          },
+          "interaction_subset": {
+            "n_events": 6,
+            "n_samples": 3472,
+            "event_mean": 7.464687,
+            "event_median": 8.209269,
+            "pooled_sample_weighted": 8.254535,
+            "excluded_events": [
+              {
+                "event": "event_7",
+                "spacing_mean_m": 28.101117
+              },
+              {
+                "event": "event_8",
+                "spacing_mean_m": 41.225382
+              }
+            ]
+          }
+        }
+      },
+      "event_values": {
+        "HV-HV": [
+          8.286496,
+          6.602662,
+          8.629876,
+          4.883716,
+          13.352767,
+          4.391463,
+          3.694111,
+          12.279879,
+          8.347358,
+          14.583871
+        ],
+        "HV-AV": [
+          9.281643,
+          8.126745,
+          4.105512,
+          8.291792,
+          5.609592,
+          9.372836,
+          28.101117,
+          41.225382
+        ]
+      },
+      "counts": {
+        "HV-HV": {
+          "n_events_below_10m": 7,
+          "n_events": 10,
+          "fraction_below_10m": 0.7
+        },
+        "HV-AV": {
+          "n_events_below_10m": 6,
+          "n_events": 8,
+          "fraction_below_10m": 0.75
+        }
+      },
+      "effect_size": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 8,
+        "u_statistic": 33.0,
+        "u_independent_midrank": 33.0,
+        "u_agrees": true,
+        "rank_biserial_r": -0.175,
+        "p_value_two_sided": 0.572604,
+        "direction": "HV-AV larger"
+      },
+      "effect_size_interaction_subset": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 6,
+        "u_statistic": 33.0,
+        "u_independent_midrank": 33.0,
+        "u_agrees": true,
+        "rank_biserial_r": 0.1,
+        "p_value_two_sided": 0.792458,
+        "direction": "HV-HV larger"
+      }
+    },
+    "spacing_min": {
+      "unit": "m",
+      "pairs": {
+        "HV-HV": {
+          "all_events": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 4.238255,
+            "event_median": 4.163338,
+            "pooled_sample_weighted": 4.779151
+          },
+          "interaction_subset": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 4.238255,
+            "event_median": 4.163338,
+            "pooled_sample_weighted": 4.779151,
+            "excluded_events": []
+          }
+        },
+        "HV-AV": {
+          "all_events": {
+            "n_events": 8,
+            "n_samples": 4370,
+            "event_mean": 8.796755,
+            "event_median": 4.768142,
+            "pooled_sample_weighted": 7.504279
+          },
+          "interaction_subset": {
+            "n_events": 6,
+            "n_samples": 3472,
+            "event_mean": 4.610804,
+            "event_median": 3.988198,
+            "pooled_sample_weighted": 4.853315,
+            "excluded_events": [
+              {
+                "event": "event_7",
+                "spacing_mean_m": 28.101117
+              },
+              {
+                "event": "event_8",
+                "spacing_mean_m": 41.225382
+              }
+            ]
+          }
+        }
+      },
+      "event_values": {
+        "HV-HV": [
+          2.699187,
+          2.092181,
+          4.574985,
+          4.451409,
+          4.834687,
+          3.875266,
+          3.438369,
+          3.801015,
+          5.351653,
+          7.263799
+        ],
+        "HV-AV": [
+          3.831467,
+          4.028328,
+          3.914518,
+          5.507957,
+          3.948068,
+          6.434485,
+          7.993251,
+          34.715966
+        ]
+      },
+      "effect_size": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 8,
+        "u_statistic": 23.0,
+        "u_independent_midrank": 23.0,
+        "u_agrees": true,
+        "rank_biserial_r": -0.425,
+        "p_value_two_sided": 0.14571,
+        "direction": "HV-AV larger"
+      },
+      "effect_size_interaction_subset": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 6,
+        "u_statistic": 23.0,
+        "u_independent_midrank": 23.0,
+        "u_agrees": true,
+        "rank_biserial_r": -0.233333,
+        "p_value_two_sided": 0.492258,
+        "direction": "HV-AV larger"
+      }
+    },
+    "accel_rms": {
+      "unit": "m/s^2",
+      "pairs": {
+        "HV-HV": {
+          "all_events": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 0.380578,
+            "event_median": 0.307779,
+            "pooled_sample_weighted": 0.390878
+          },
+          "interaction_subset": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 0.380578,
+            "event_median": 0.307779,
+            "pooled_sample_weighted": 0.390878,
+            "excluded_events": []
+          }
+        },
+        "HV-AV": {
+          "all_events": {
+            "n_events": 8,
+            "n_samples": 4370,
+            "event_mean": 0.336877,
+            "event_median": 0.339953,
+            "pooled_sample_weighted": 0.35484
+          },
+          "interaction_subset": {
+            "n_events": 6,
+            "n_samples": 3472,
+            "event_mean": 0.304913,
+            "event_median": 0.339953,
+            "pooled_sample_weighted": 0.326807,
+            "excluded_events": [
+              {
+                "event": "event_7",
+                "spacing_mean_m": 28.101117
+              },
+              {
+                "event": "event_8",
+                "spacing_mean_m": 41.225382
+              }
+            ]
+          }
+        }
+      },
+      "event_values": {
+        "HV-HV": [
+          0.731752,
+          0.276839,
+          0.404946,
+          0.100454,
+          0.252472,
+          0.275493,
+          0.176102,
+          0.761374,
+          0.487627,
+          0.338719
+        ],
+        "HV-AV": [
+          0.419927,
+          0.320431,
+          0.096256,
+          0.266352,
+          0.359475,
+          0.367039,
+          0.545786,
+          0.319749
+        ]
+      },
+      "effect_size": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 8,
+        "u_statistic": 40.0,
+        "u_independent_midrank": 40.0,
+        "u_agrees": true,
+        "rank_biserial_r": 0.0,
+        "p_value_two_sided": 1.0,
+        "direction": "tie"
+      },
+      "effect_size_interaction_subset": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 6,
+        "u_statistic": 33.0,
+        "u_independent_midrank": 33.0,
+        "u_agrees": true,
+        "rank_biserial_r": 0.1,
+        "p_value_two_sided": 0.792458,
+        "direction": "HV-HV larger"
+      }
+    },
+    "jerk_rms_smoothed": {
+      "unit": "m/s^3",
+      "pairs": {
+        "HV-HV": {
+          "all_events": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 0.377389,
+            "event_median": 0.30744,
+            "pooled_sample_weighted": 0.388593
+          },
+          "interaction_subset": {
+            "n_events": 10,
+            "n_samples": 4251,
+            "event_mean": 0.377389,
+            "event_median": 0.30744,
+            "pooled_sample_weighted": 0.388593,
+            "excluded_events": []
+          }
+        },
+        "HV-AV": {
+          "all_events": {
+            "n_events": 8,
+            "n_samples": 4370,
+            "event_mean": 0.335113,
+            "event_median": 0.339932,
+            "pooled_sample_weighted": 0.353811
+          },
+          "interaction_subset": {
+            "n_events": 6,
+            "n_samples": 3472,
+            "event_mean": 0.302614,
+            "event_median": 0.339932,
+            "pooled_sample_weighted": 0.325561,
+            "excluded_events": [
+              {
+                "event": "event_7",
+                "spacing_mean_m": 28.101117
+              },
+              {
+                "event": "event_8",
+                "spacing_mean_m": 41.225382
+              }
+            ]
+          }
+        }
+      },
+      "event_values": {
+        "HV-HV": [
+          0.715074,
+          0.276235,
+          0.404316,
+          0.100706,
+          0.252082,
+          0.275846,
+          0.173337,
+          0.750161,
+          0.487491,
+          0.338644
+        ],
+        "HV-AV": [
+          0.41991,
+          0.320128,
+          0.085626,
+          0.263099,
+          0.359735,
+          0.367184,
+          0.545519,
+          0.3197
+        ]
+      },
+      "effect_size": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 8,
+        "u_statistic": 40.0,
+        "u_independent_midrank": 40.0,
+        "u_agrees": true,
+        "rank_biserial_r": 0.0,
+        "p_value_two_sided": 1.0,
+        "direction": "tie"
+      },
+      "effect_size_interaction_subset": {
+        "available": true,
+        "n_a": 10,
+        "n_b": 6,
+        "u_statistic": 33.0,
+        "u_independent_midrank": 33.0,
+        "u_agrees": true,
+        "rank_biserial_r": 0.1,
+        "p_value_two_sided": 0.792458,
+        "direction": "HV-HV larger"
+      }
+    }
+  },
+  "method": {
+    "moving_threshold_mps": 0.3,
+    "moving_threshold_source": "tgsim_core.STOP_SPEED = 0.3 m/s, reused by src/tgsim/analyze_events.py; moving_fraction = mean(follower speed >= 0.3 m/s)",
+    "speed_mean_definition": "mean of the follower speed series fv (m/s)",
+    "spacing_definition": "s = dhw - leader_length (bumper-to-bumper, m); dhw is the raw centre distance and leader_length comes from data/tgsim/manifest.json, the convention of src/tgsim/preprocess_events.py and tgsim_core",
+    "accel_rms_definition": "sqrt(mean(a^2)) with a = central difference of the raw follower speed over time (no smoothing), identical to analyze_events.event_style",
+    "jerk_rms_smoothed_definition": "sqrt(mean(j^2)) with j = central difference of the Savitzky-Golay smoothed follower speed; SG window = 11 samples (1.1 s), polyorder 2 (analyze_events.JERK_WINDOW), identical to analyze_events.event_style",
+    "sparse_rule": "an event is SPARSE / non-interacting when its mean spacing > 20 m; for such an event the IDM interaction term is inactive for most of the record, so it is excluded from the interaction subset",
+    "aggregations": {
+      "event_mean": "arithmetic mean of the per-event values (each event equal weight)",
+      "event_median": "median of the per-event values (across events)",
+      "pooled_sample_weighted": "sample-count weighted mean of the per-event values, sum(n_i v_i) / sum(n_i), the *_sample_weighted convention of results/tgsim_analysis.json part 2"
+    },
+    "effect_size": "rank-biserial r = 2U/(n_a n_b) - 1, U = scipy.stats.mannwhitneyu (group HV-HV vs group HV-AV, two-sided); r > 0 => HV-HV values tend to be larger, r < 0 => HV-AV values tend to be larger; the p-value is the two-sided Mann-Whitney p",
+    "power_note": "n = 10 HV-HV vs 8 HV-AV events gives very low power; a non-significant p-value is NOT evidence of no difference",
+    "ordering_note": "event-mean and event-median orderings of the two pairs REVERSE for jerk_rms_smoothed (and accel_rms), so BOTH aggregations are reported and must be read together: the mean is pulled by one high-jerk HV-HV event while the median reflects the typical event",
+    "source_analysis": "results/tgsim_analysis.json",
+    "source_events": "data/tgsim/{HV-HV,HV-AV}/event_*.csv via data/tgsim/manifest.json"
+  },
+  "self_checks": {
+    "sparse_events": {
+      "HV-HV": [],
+      "HV-AV": [
+        "event_7",
+        "event_8"
+      ]
+    },
+    "sparse_events_are_HV-AV_event_7_event_8": true,
+    "HV-AV_interaction_spacing_mean_m": 7.464687,
+    "HV-AV_interaction_spacing_median_m": 8.209269,
+    "HV-HV_spacing_median_m": 8.316927,
+    "brief_ballpark": {
+      "expected_HV-AV_interaction_mean_m": 10.4,
+      "computed_HV-AV_interaction_mean_m": 7.464687,
+      "expected_HV-AV_median_m": 8.8,
+      "computed_HV-AV_interaction_median_m": 8.209269,
+      "expected_HV-HV_median_m": 8.3,
+      "computed_HV-HV_median_m": 8.316927,
+      "note": "the brief's ~8.8 / ~8.3 are the FULL-pair event medians (the HV-AV median barely moves when the two sparse events are dropped); the brief's ~10.4 is the HV-AV mean-of-means EXCLUDING ONLY event_8 - the strict >20 m rule drops both event_7 and event_8, which lowers the subset mean",
+      "exclude_event_8_only_mean_m": 10.412748
+    },
+    "HV-AV_events_below_10m": {
+      "n_events_below_10m": 6,
+      "n_events": 8,
+      "fraction_below_10m": 0.75
+    },
+    "mean_vs_median_reversal": {
+      "accel_rms": {
+        "HV-HV_event_mean": 0.380578,
+        "HV-AV_event_mean": 0.336877,
+        "HV-HV_event_median": 0.307779,
+        "HV-AV_event_median": 0.339953,
+        "larger_by_event_mean": "HV-HV",
+        "larger_by_event_median": "HV-AV",
+        "orderings_reverse": true
+      },
+      "jerk_rms_smoothed": {
+        "HV-HV_event_mean": 0.377389,
+        "HV-AV_event_mean": 0.335113,
+        "HV-HV_event_median": 0.30744,
+        "HV-AV_event_median": 0.339932,
+        "larger_by_event_mean": "HV-HV",
+        "larger_by_event_median": "HV-AV",
+        "orderings_reverse": true
+      }
+    },
+    "recomputation_matches_analysis_json": true,
+    "recomputation_mismatches": [],
+    "existing_rank_tests_agree": true,
+    "rank_test_comparison": {
+      "speed_mean": {
+        "recomputed_u": 39.0,
+        "recomputed_p": 0.965401,
+        "existing_u": 39.0,
+        "existing_p": 0.965401,
+        "u_agrees": true,
+        "p_agrees": true
+      },
+      "moving_fraction": {
+        "recomputed_u": 37.0,
+        "recomputed_p": 0.828557,
+        "existing_u": 37.0,
+        "existing_p": 0.828557,
+        "u_agrees": true,
+        "p_agrees": true
+      },
+      "spacing_mean": {
+        "recomputed_u": 33.0,
+        "recomputed_p": 0.572604,
+        "existing_u": 33.0,
+        "existing_p": 0.572604,
+        "u_agrees": true,
+        "p_agrees": true
+      },
+      "spacing_min": {
+        "recomputed_u": 23.0,
+        "recomputed_p": 0.14571,
+        "existing_u": 23.0,
+        "existing_p": 0.14571,
+        "u_agrees": true,
+        "p_agrees": true
+      },
+      "accel_rms": {
+        "recomputed_u": 40.0,
+        "recomputed_p": 1.0,
+        "existing_u": 40.0,
+        "existing_p": 1.0,
+        "u_agrees": true,
+        "p_agrees": true
+      },
+      "jerk_rms_smoothed": {
+        "recomputed_u": 40.0,
+        "recomputed_p": 1.0,
+        "existing_u": 40.0,
+        "existing_p": 1.0,
+        "u_agrees": true,
+        "p_agrees": true
+      }
+    },
+    "all_hard_checks_pass": true
+  }
+}

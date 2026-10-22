@@ -1,0 +1,31 @@
+{
+  "schema": "intr5100-lab1-run-registry",
+  "script": "src/preprocess_stage1.py",
+  "raw_dir": "data/raw",
+  "discovery_glob": "data/raw/collection_*",
+  "labelling_rule": "one run per data/raw/collection_* directory, numbered run_1, run_2, ... in directory-name (chronological) order; an already registered collection keeps its label and a newly added collection gets the next free number",
+  "raw_filename": "straight_trajectory.csv",
+  "stage1_file": "{run}.csv",
+  "runs": {
+    "run_1": {
+      "collection": "collection_20260917_144342",
+      "source": "data/raw/collection_20260917_144342/straight_trajectory.csv",
+      "sha256": "0a9baed906809a3905d6d56e41f2da6a18b6111647896a363d2d493969457ee9",
+      "stage1_file": "data/preprocess/stage_1/run_1.csv",
+      "rows": 727
+    },
+    "run_2": {
+      "collection": "collection_20260922_142956",
+      "source": "data/raw/collection_20260922_142956/straight_trajectory.csv",
+      "sha256": "cc073d4122e65ac3c532146648f4d451ca7e25c5c62c25f8e22a98cd06f16581",
+      "stage1_file": "data/preprocess/stage_1/run_2.csv",
+      "rows": 3435
+    }
+  },
+  "collections": {
+    "collection_20260917_144342": "run_1",
+    "collection_20260922_142956": "run_2"
+  },
+  "retired_runs": {},
+  "skipped_collections": []
+}

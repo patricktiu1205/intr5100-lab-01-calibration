@@ -1,0 +1,166 @@
+{
+  "script": "src/preprocess_stage4.py",
+  "config": {
+    "time_step_s": 0.1,
+    "time_decimals": 1,
+    "output_decimals": 6,
+    "speed_method": "central_difference_interior_one_sided_ends",
+    "speed_source": "position_difference",
+    "dt_source": "raw_stage3_timestamps",
+    "dhw_formula": "(x_l - x_f)*cos(h_f) + (y_l - y_f)*sin(h_f)",
+    "dhw_anomaly_rule": "delete time point when dhw <= 0",
+    "time_duplicate_rule": "drop the later point when its rounded time repeats the row above it",
+    "removal_order": "rounded_time_duplicate_drop_then_dhw_anomaly_drop_then_speeds",
+    "speed_window_source": "retained_points_only",
+    "velocity_column_used": false
+  },
+  "inputs": {
+    "data/preprocess/stage_3/run_1_event_2.csv": {
+      "sha256": "67ff1be07a65d497601bee2c4f1020f1eecef56d90e1244eb2bc2e3ec2b50272"
+    },
+    "data/preprocess/stage_3/run_1_event_3.csv": {
+      "sha256": "e9ada0769876c4b2c94c5141239e4b27c3bd83f4d990e6582cff7879f77780d5"
+    }
+  },
+  "events": [
+    {
+      "run": "run_1",
+      "event": "event_2",
+      "file": "run_1_event_2.csv",
+      "input_file": "data/preprocess/stage_3/run_1_event_2.csv",
+      "input_sha256": "67ff1be07a65d497601bee2c4f1020f1eecef56d90e1244eb2bc2e3ec2b50272",
+      "grid_points": 211,
+      "rows": 211,
+      "time_kept_points": 211,
+      "deleted_points": 0,
+      "dropped_points": 0,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [],
+      "time_range": {
+        "min": "12.4",
+        "max": "33.9"
+      },
+      "grid_time_range": {
+        "min": "12.4",
+        "max": "33.9"
+      },
+      "raw_time_range": {
+        "min": 12.442953,
+        "max": 33.865332
+      },
+      "dhw_range": {
+        "min": 456.82407,
+        "max": 540.01932
+      },
+      "dhw_range_kept": {
+        "min": 456.82407,
+        "max": 540.01932
+      },
+      "dhw_median": 490.418045,
+      "fv_range": {
+        "min": 59.78442,
+        "max": 168.210363
+      },
+      "lv_range": {
+        "min": 56.953438,
+        "max": 150.14129
+      },
+      "fv_mean": 101.287251,
+      "lv_mean": 104.569016,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    },
+    {
+      "run": "run_1",
+      "event": "event_3",
+      "file": "run_1_event_3.csv",
+      "input_file": "data/preprocess/stage_3/run_1_event_3.csv",
+      "input_sha256": "e9ada0769876c4b2c94c5141239e4b27c3bd83f4d990e6582cff7879f77780d5",
+      "grid_points": 124,
+      "rows": 124,
+      "time_kept_points": 124,
+      "deleted_points": 0,
+      "dropped_points": 0,
+      "deleted_anomalies": [],
+      "dropped_time_duplicates": [],
+      "time_range": {
+        "min": "46.0",
+        "max": "58.3"
+      },
+      "grid_time_range": {
+        "min": "46.0",
+        "max": "58.3"
+      },
+      "raw_time_range": {
+        "min": 46.047997,
+        "max": 58.330555
+      },
+      "dhw_range": {
+        "min": 415.767808,
+        "max": 562.0037
+      },
+      "dhw_range_kept": {
+        "min": 415.767808,
+        "max": 562.0037
+      },
+      "dhw_median": 452.520414,
+      "fv_range": {
+        "min": 66.602222,
+        "max": 165.646403
+      },
+      "lv_range": {
+        "min": 61.685185,
+        "max": 136.43422
+      },
+      "fv_mean": 112.623699,
+      "lv_mean": 101.705857,
+      "conservation": {
+        "rows_plus_deleted_plus_dropped_equals_grid_points": true,
+        "speed_values_equal_rows": true,
+        "speed_windows_use_kept_points_only": true
+      }
+    }
+  ],
+  "dropped_time_duplicates": [],
+  "outputs": [
+    {
+      "file": "run_1_event_2.csv",
+      "rows": 211
+    },
+    {
+      "file": "run_1_event_3.csv",
+      "rows": 124
+    },
+    {
+      "file": "stage4_summary.json",
+      "rows": null
+    }
+  ],
+  "verification": [
+    {
+      "file": "run_1_event_2.csv",
+      "rows": 211,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    },
+    {
+      "file": "run_1_event_3.csv",
+      "rows": 124,
+      "duplicate_time_values": 0,
+      "time_strictly_increasing": true,
+      "problems": []
+    }
+  ],
+  "total": {
+    "input_event_files": 2,
+    "written_event_files": 2,
+    "rows": 335,
+    "deleted_points": 0,
+    "dropped_points": 0,
+    "conservation_ok": true
+  }
+}

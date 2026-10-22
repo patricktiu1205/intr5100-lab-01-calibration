@@ -1,0 +1,236 @@
+{
+  "script": "src/preprocess_stage3.py",
+  "config": {
+    "grid_dt_s": 0.1,
+    "min_overlap_s": 1.0,
+    "max_interpolation_span_s": 0.3,
+    "sample_match_tolerance_s": 1e-09,
+    "output_decimals": 6
+  },
+  "inputs": {
+    "data/preprocess/stage_2/run_1_event_1.csv": {
+      "sha256": "be9e7919bd5c6fe8fb98530701330361dd4500b67c3a7dfebc8c0360e8faa630"
+    },
+    "data/preprocess/stage_2/run_1_event_2.csv": {
+      "sha256": "9d55dc95ad06a4570802e715ed2e16abb3852e8b61fe37ffb08999e41f6265bc"
+    },
+    "data/preprocess/stage_2/run_1_event_3.csv": {
+      "sha256": "97d5b3e5521f4be0a2dab7412fddcb1a0e5046e531608d4c4deb246296710a03"
+    }
+  },
+  "events": [
+    {
+      "run": "run_1",
+      "event": "event_1",
+      "status": "deleted",
+      "reason": "no_overlap",
+      "overlap": {
+        "t_start": 4.63057,
+        "t_end": 0.352735,
+        "duration_s": -4.277835
+      }
+    },
+    {
+      "run": "run_1",
+      "event": "event_2",
+      "file": "run_1_event_2.csv",
+      "input_file": "data/preprocess/stage_2/run_1_event_2.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 230,
+          "t_start": 12.442953,
+          "t_end": 38.593424,
+          "rows_outside_overlap": 46
+        },
+        "leader": {
+          "input_rows": 225,
+          "t_start": 8.39649,
+          "t_end": 33.865332,
+          "rows_outside_overlap": 38
+        }
+      },
+      "rows_outside_overlap_total": 84,
+      "overlap": {
+        "t_start": 12.442953,
+        "t_end": 33.865332,
+        "duration_s": 21.422379
+      },
+      "grid_points": 216,
+      "grid_points_kept": 211,
+      "grid_points_removed": 5,
+      "removed_by_reason": {
+        "discontinuity": 5,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 5,
+        "leader": 3
+      },
+      "removed_times": [
+        {
+          "t_from_start": 22.442953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 22.542953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 22.642953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower",
+            "leader"
+          ]
+        },
+        {
+          "t_from_start": 22.742953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        },
+        {
+          "t_from_start": 22.842953,
+          "reason": "discontinuity",
+          "roles": [
+            "follower"
+          ]
+        }
+      ],
+      "max_interpolation_span_s": 0.453398,
+      "max_interpolation_span_kept_s": 0.22099,
+      "written_rows_per_role": 211,
+      "written_rows_total": 422,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    },
+    {
+      "run": "run_1",
+      "event": "event_3",
+      "file": "run_1_event_3.csv",
+      "input_file": "data/preprocess/stage_2/run_1_event_3.csv",
+      "status": "written",
+      "roles": {
+        "follower": {
+          "input_rows": 105,
+          "t_start": 46.047997,
+          "t_end": 58.330555,
+          "rows_outside_overlap": 0
+        },
+        "leader": {
+          "input_rows": 145,
+          "t_start": 41.815037,
+          "t_end": 58.337247,
+          "rows_outside_overlap": 39
+        }
+      },
+      "rows_outside_overlap_total": 39,
+      "overlap": {
+        "t_start": 46.047997,
+        "t_end": 58.330555,
+        "duration_s": 12.282558
+      },
+      "grid_points": 124,
+      "grid_points_kept": 124,
+      "grid_points_removed": 0,
+      "removed_by_reason": {
+        "discontinuity": 0,
+        "outside_source_range": 0
+      },
+      "removed_by_role": {
+        "follower": 0,
+        "leader": 0
+      },
+      "removed_times": [],
+      "max_interpolation_span_s": 0.268418,
+      "max_interpolation_span_kept_s": 0.268418,
+      "written_rows_per_role": 124,
+      "written_rows_total": 248,
+      "timestamps_identical": true,
+      "conservation": {
+        "grid_points_kept_x2_equals_rows": true,
+        "grid_points_equals_kept_plus_removed": true
+      }
+    }
+  ],
+  "deleted_events": [
+    {
+      "run": "run_1",
+      "event": "event_1",
+      "file": null,
+      "status": "deleted",
+      "reason": "no_overlap",
+      "detail": "empty_intersection",
+      "input_file": "data/preprocess/stage_2/run_1_event_1.csv",
+      "roles": {
+        "follower": {
+          "input_rows": 18,
+          "t_start": 4.63057,
+          "t_end": 6.415966,
+          "rows_outside_overlap": 18
+        },
+        "leader": {
+          "input_rows": 4,
+          "t_start": -0.054888,
+          "t_end": 0.352735,
+          "rows_outside_overlap": 4
+        }
+      },
+      "overlap": {
+        "t_start": 4.63057,
+        "t_end": 0.352735,
+        "duration_s": -4.277835
+      },
+      "rows_outside_overlap_total": 22
+    }
+  ],
+  "outputs": [
+    {
+      "file": "run_1_event_2.csv",
+      "rows": 422
+    },
+    {
+      "file": "run_1_event_3.csv",
+      "rows": 248
+    },
+    {
+      "file": "stage3_summary.json",
+      "rows": null
+    }
+  ],
+  "verification": [
+    {
+      "file": "run_1_event_2.csv",
+      "rows": 422,
+      "problems": []
+    },
+    {
+      "file": "run_1_event_3.csv",
+      "rows": 248,
+      "problems": []
+    }
+  ],
+  "total": {
+    "input_event_files": 3,
+    "written_event_files": 2,
+    "deleted_event_files": 1,
+    "grid_points": 340,
+    "grid_points_kept": 335,
+    "grid_points_removed": 5,
+    "written_rows": 670,
+    "conservation_ok": true
+  }
+}

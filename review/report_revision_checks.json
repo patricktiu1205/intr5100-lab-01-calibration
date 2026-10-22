@@ -1,0 +1,159 @@
+{
+  "scope": "Report-only revision; no fitting or simulation was run.",
+  "protected_file_count": 132,
+  "protected_files_unchanged": true,
+  "historical_parameters": {
+    "v0": 123.358456,
+    "T": 2.091427,
+    "s0": 28.722997,
+    "a": 13.97444,
+    "b": 185.159417
+  },
+  "validation_statistics": {
+    "152115": {
+      "n": 737,
+      "n_active": 312,
+      "minimum": 52.2790878645701,
+      "active_minimum": 52.2790878645701,
+      "active_median": 207.43702809486967,
+      "flags": 17,
+      "active_flags": 10,
+      "episodes": [
+        {
+          "start": 13.254752159118652,
+          "reason": "spacing_emergency",
+          "spacing": 78.79281967483621
+        },
+        {
+          "start": 26.862662076950073,
+          "reason": "spacing_emergency",
+          "spacing": 78.76795829574075
+        },
+        {
+          "start": 106.6596040725708,
+          "reason": "center_sensor_emergency",
+          "spacing": 818.0119314400272
+        },
+        {
+          "start": 128.26545214653015,
+          "reason": "spacing_emergency",
+          "spacing": 71.31022873159964
+        },
+        {
+          "start": 140.058287858963,
+          "reason": "center_sensor_emergency",
+          "spacing": 209.95929684994917
+        }
+      ],
+      "reasons": {
+        "spacing_emergency": 10,
+        "center_sensor_emergency": 7
+      }
+    },
+    "155015": {
+      "n": 749,
+      "n_active": 319,
+      "minimum": 143.28612102184888,
+      "active_minimum": 149.26100993865293,
+      "active_median": 543.3884093955694,
+      "flags": 0,
+      "active_flags": 0,
+      "episodes": [],
+      "reasons": {}
+    }
+  },
+  "group_statistics": {
+    "group_1": {
+      "n": 857,
+      "n_active": 352,
+      "minimum": 434.6309318408603,
+      "active_minimum": 434.6309318408603,
+      "active_median": 1347.6855765522287,
+      "flags": 4,
+      "active_flags": 2,
+      "episodes": [
+        {
+          "start": 23.84417200088501,
+          "reason": "center_sensor_emergency",
+          "spacing": 942.0718652391644
+        },
+        {
+          "start": 39.63930106163025,
+          "reason": "center_sensor_emergency",
+          "spacing": 1098.843828531064
+        },
+        {
+          "start": 89.44576096534729,
+          "reason": "center_sensor_emergency",
+          "spacing": 1970.6503427854968
+        },
+        {
+          "start": 89.84528398513794,
+          "reason": "center_sensor_emergency",
+          "spacing": 1973.6481953917057
+        }
+      ],
+      "reasons": {
+        "center_sensor_emergency": 4
+      }
+    },
+    "group_2": {
+      "n": 746,
+      "n_active": 340,
+      "minimum": 0.0,
+      "active_minimum": 0.0,
+      "active_median": 132.78642960558773,
+      "flags": 8,
+      "active_flags": 6,
+      "episodes": [
+        {
+          "start": 75.81607389450073,
+          "reason": "center_sensor_emergency",
+          "spacing": 338.2477772101911
+        },
+        {
+          "start": 111.4116508960724,
+          "reason": "spacing_emergency",
+          "spacing": 0.0
+        }
+      ],
+      "reasons": {
+        "spacing_emergency": 6,
+        "center_sensor_emergency": 2
+      }
+    },
+    "group_3": {
+      "n": 756,
+      "n_active": 350,
+      "minimum": 84.4813073680416,
+      "active_minimum": 87.5422636076928,
+      "active_median": 129.20087456377405,
+      "flags": 0,
+      "active_flags": 0,
+      "episodes": [],
+      "reasons": {}
+    },
+    "group_4": {
+      "n": 749,
+      "n_active": 319,
+      "minimum": 143.28612102184888,
+      "active_minimum": 149.26100993865293,
+      "active_median": 543.3884093955694,
+      "flags": 0,
+      "active_flags": 0,
+      "episodes": [],
+      "reasons": {}
+    },
+    "group_5": {
+      "n": 736,
+      "n_active": 316,
+      "minimum": 44.392424402371034,
+      "active_minimum": 44.392424402371034,
+      "active_median": 364.01890496268425,
+      "flags": 0,
+      "active_flags": 0,
+      "episodes": [],
+      "reasons": {}
+    }
+  }
+}

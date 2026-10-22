@@ -1,0 +1,40 @@
+project root : C:\Users\ptiu1\Documents\PhDStudy\INTR5100\lab1
+raw dir      : data/raw
+output dir   : data/preprocess/stage_1
+run registry : data/run_registry.json
+
+collections discovered in data/raw (collection_*): 2
+  collection_20260917_144342
+  collection_20260922_142956
+
+runs to process (2), in run order:
+  run_1    <- collection_20260917_144342
+  run_2    <- collection_20260922_142956
+
+run_1 (data/raw/collection_20260917_144342/straight_trajectory.csv): 727 data rows (follower=353, leader=374)
+run_2 (data/raw/collection_20260922_142956/straight_trajectory.csv): 3435 data rows (follower=1787, leader=1648)
+
+output row counts (data rows, header excluded):
+  run_1.csv  727
+  run_2.csv  3435
+  TOTAL      4162
+
+on-disk verification:
+  run_1.csv  expected=727  on_disk=727  run column=['run_1']  OK
+  run_2.csv  expected=3435  on_disk=3435  run column=['run_2']  OK
+
+role counts (from source):
+  run_1: follower=353, leader=374, total=727
+  run_2: follower=1787, leader=1648, total=3435
+
+header:
+  run_1.csv  run,role,t_from_start,x,y,heading,velocity
+  run_2.csv  run,role,t_from_start,x,y,heading,velocity
+
+removed superseded output(s) of the earlier driver layout: none present
+stage_1 dir contents: run_1.csv, run_2.csv
+
+run registry written: data/run_registry.json
+  runs: run_1 <- collection_20260917_144342, run_2 <- collection_20260922_142956
+
+.tmp leftovers: none
