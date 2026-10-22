@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-22",
+  "verified_source_commit": "c6069a629191539b78d47f3a70361dfa20925d60",
+  "standalone_clone": {
+    "unit_checks_passed": 6,
+    "report_pdf_and_html_build_passed": true,
+    "pdf_pages": 7,
+    "legacy_validation_readiness_passed": true,
+    "legacy_parameter_run": "run_1",
+    "no_sibling_course_folder_dependency": true
+  },
+  "preservation": {
+    "original_files_checked": 259,
+    "all_original_manifest_file_bytes_unchanged": true,
+    "model_and_metric_functions_checked": 100,
+    "historical_function_asts_unchanged": true
+  },
+  "report_qa": {
+    "all_seven_pages_rendered_and_visually_checked": true,
+    "tables_and_figures_clean": true,
+    "headline_values_checked": true,
+    "clone_report_text_matches_local_report": true
+  },
+  "scope": "Repository organization, naming, portable IO/report builds and read-only checks. No fitting, model simulation or physical experiment was repeated."
+}
