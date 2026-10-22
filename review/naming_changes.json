@@ -1,0 +1,14 @@
+{
+  "folder_names": {
+    "Lab_01_Calibration": "lab_01_calibration",
+    "Lab_02_CACC": "lab_02_cacc"
+  },
+  "renamed_paths": {
+    "archive/development/briefs/calib_stepA_m1m2.md": "archive/development/briefs/calib_step_a_m1_m2.md",
+    "archive/development/briefs/calib_stepB_ga_pso_diff.md": "archive/development/briefs/calib_step_b_ga_pso_diff.md",
+    "archive/development/briefs/calib_stepC_cv_final.md": "archive/development/briefs/calib_step_c_cv_final.md",
+    "archive/development/lab1_run2": "archive/development/lab_01_run_02",
+    "archive/old_results/lab1_full_report_demo.html": "archive/old_results/lab_01_report_demo.html"
+  },
+  "policy": "Lowercase snake_case descriptive paths; YYYYMMDD document dates. Preserve recorded timestamps, dataset pair IDs, method IDs, standard README/AGENTS names and required deployment filenames. Archived file contents are unchanged."
+}

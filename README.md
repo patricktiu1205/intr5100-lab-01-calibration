@@ -75,3 +75,5 @@ The six checks verify the original source-content manifest, collection-registry 
 `src/analysis/build_historical_report.py` writes a separately named historical analysis. The current report is built only by `src/build_report.py`. The optional `src/verify_historical_analysis.py` reproduces the existing sign findings and fixed-parameter diagnostic trajectories; it does not refit a model, and its sign-only diagnostic is not a corrected optimum.
 
 The source data, historical fitted parameters, model equations and deployment records were preserved during repository organization. Submission status is not assumed. Supplied course files retain their original attribution; no new redistribution license is assigned to them.
+
+Naming convention: lowercase snake_case for descriptive files and folders; use `lab_01` / `lab_02` prefixes on lab deliverables and `YYYYMMDD` for document dates. Preserve recorded timestamps, dataset/method identifiers, standard `README.md` / `AGENTS.md` and required deployment filenames. See `review/naming_changes.json` for the rename map.

@@ -9,3 +9,5 @@
 - Keep the concise Lab I report style: A4, 20-mm margins, readable 11-point serif text, black headings and clean tables/figures.
 - The course-root `environment.yml` is authoritative in the full workspace. Sync this repository's copy before publishing.
 - Remove task-created temporary scripts, previews, caches and build byproducts. Preserve source code, raw data, results, diagnostics and reproducibility records.
+
+Naming convention: lowercase snake_case for descriptive files and folders; use `lab_01` / `lab_02` prefixes on lab deliverables and `YYYYMMDD` for document dates. Preserve recorded timestamps, dataset/method identifiers, standard `README.md` / `AGENTS.md` and required deployment filenames. See `review/naming_changes.json` for the rename map.
